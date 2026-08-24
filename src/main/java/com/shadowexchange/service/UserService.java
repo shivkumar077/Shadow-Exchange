@@ -1,6 +1,8 @@
 package com.shadowexchange.service;
 
 
+import com.shadowexchange.dto.CreateUserRequest;
+import com.shadowexchange.dto.UserResponse;
 import com.shadowexchange.entity.User;
 import com.shadowexchange.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -14,7 +16,20 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public User createUser(User user){
-        return userRepository.save(user);
+    public UserResponse createUser(CreateUserRequest request) {
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword());
+        user.setBalance(10000.0);
+
+        User savedUser = userRepository.save(user);
+        return new UserResponse(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                savedUser.getEmail(),
+                savedUser.getBalance()
+        );
     }
 }
