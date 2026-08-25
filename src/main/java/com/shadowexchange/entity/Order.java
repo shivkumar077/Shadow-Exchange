@@ -67,4 +67,26 @@ public class Order {
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
+
+    @Enumerated(EnumType.STRING)
+    private OrderType type;
+
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
+
+    public OrderType getType() {
+        return type;
+    }
+
+    public void setType(OrderType type) {
+        this.type = type;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
+    }
 }
