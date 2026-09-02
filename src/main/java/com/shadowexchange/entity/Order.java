@@ -28,13 +28,22 @@ public class Order {
     public Order() {
     }
 
-    public Order(User user, Stock stock, BigDecimal price, Integer quantity, OrderType type, OrderStatus status) {
+    public Order(User user, Stock stock, BigDecimal price, Integer quantity, OrderType type) {
         this.user = user;
         this.stock = stock;
         this.price = price;
         this.quantity = quantity;
         this.type = type;
         this.status = OrderStatus.PENDING;
+    }
+
+    public Order(User user, Stock stock, BigDecimal price, Integer quantity, OrderType type, OrderStatus status) {
+        this.user = user;
+        this.stock = stock;
+        this.price = price;
+        this.quantity = quantity;
+        this.type = type;
+        this.status = status != null ? status : OrderStatus.PENDING;
     }
 
     public Long getId() {
