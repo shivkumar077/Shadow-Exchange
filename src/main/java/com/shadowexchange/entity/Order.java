@@ -4,6 +4,7 @@ package com.shadowexchange.entity;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "orders")
@@ -25,6 +26,8 @@ public class Order {
 
     private Integer quantity;
 
+    private LocalDateTime createdAt;
+
     public Order() {
     }
 
@@ -35,6 +38,7 @@ public class Order {
         this.quantity = quantity;
         this.type = type;
         this.status = OrderStatus.PENDING;
+        this.createdAt = LocalDateTime.now();
     }
 
     public Order(User user, Stock stock, BigDecimal price, Integer quantity, OrderType type, OrderStatus status) {
@@ -44,6 +48,7 @@ public class Order {
         this.quantity = quantity;
         this.type = type;
         this.status = status != null ? status : OrderStatus.PENDING;
+        this.createdAt = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -84,6 +89,14 @@ public class Order {
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     @Enumerated(EnumType.STRING)

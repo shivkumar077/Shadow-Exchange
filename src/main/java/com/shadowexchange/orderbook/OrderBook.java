@@ -33,4 +33,9 @@ public class OrderBook {
         Order bustBuyOrder = buyOrders.peek();
         return bustBuyOrder;
     }
+
+    public Order getBestSell() {
+        Order bestSellOrder = sellOrders.peek();
+        return bestSellOrder;
+    }
 }
