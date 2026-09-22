@@ -28,4 +28,9 @@ public class OrderBook {
             sellOrders.add(order);
         }
     }
+
+    public Order getBestBuy() {
+        Order bustBuyOrder = buyOrders.peek();
+        return bustBuyOrder;
+    }
 }
