@@ -6,7 +6,7 @@ public class CreateUserRequest {
     private String email;
     private String password;
 
-    public void createUserRequest() {
+    public CreateUserRequest() {
     }
 
     public String getUsername() {
