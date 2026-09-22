@@ -3,6 +3,7 @@ package com.shadowexchange.orderbook;
 import com.shadowexchange.entity.Order;
 import java.util.PriorityQueue;
 import com.shadowexchange.entity.OrderType;
+import java.util.Comparator;
 
 public class OrderBook {
 
@@ -11,13 +12,16 @@ public class OrderBook {
 
 
     public OrderBook() {
-        buyOrders = new PriorityQueue<>
-                ((order1, order2) -> order2.getPrice().compareTo(order1.getPrice()));
+        buyOrders = new PriorityQueue<>(
+                Comparator.comparing(Order::getPrice , Comparator.reverseOrder())
+                                .thenComparing(Order::getCreatedAt)
+        );
 
 
-        sellOrders = new PriorityQueue<>
-                ((order1, order2) -> order1.getPrice().compareTo(order2.getPrice()));
-
+        sellOrders = new PriorityQueue<>(
+                Comparator.comparing(Order::getPrice)
+                        .thenComparing(Order::getCreatedAt)
+        );
     }
 
     public void addOrder(Order order){
@@ -30,8 +34,8 @@ public class OrderBook {
     }
 
     public Order getBestBuy() {
-        Order bustBuyOrder = buyOrders.peek();
-        return bustBuyOrder;
+        Order bestBuyOrder = buyOrders.peek();
+        return bestBuyOrder;
     }
 
     public Order getBestSell() {
