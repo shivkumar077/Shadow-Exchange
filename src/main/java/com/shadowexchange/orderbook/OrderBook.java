@@ -38,8 +38,17 @@ public class OrderBook {
         return bestBuyOrder;
     }
 
+    public Order removeBestSell(){
+        return sellOrders.poll();
+    }
+
+
     public Order getBestSell() {
         Order bestSellOrder = sellOrders.peek();
         return bestSellOrder;
+    }
+
+    public Order removeBestBuy(){
+        return buyOrders.poll();
     }
 }
