@@ -13,18 +13,18 @@ public class OrderBook {
 
     public OrderBook() {
         buyOrders = new PriorityQueue<>(
-                Comparator.comparing(Order::getPrice , Comparator.reverseOrder())
-                                .thenComparing(Order::getCreatedAt)
+                Comparator.comparing(Order::getPrice, Comparator.reverseOrder())
+                        .thenComparing(Order::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()))
         );
-
 
         sellOrders = new PriorityQueue<>(
                 Comparator.comparing(Order::getPrice)
-                        .thenComparing(Order::getCreatedAt)
+                        .thenComparing(Order::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()))
         );
     }
 
     public void addOrder(Order order){
+        if(order == null) return;
         if(order.getType() == OrderType.BUY){
             buyOrders.add(order);
         }

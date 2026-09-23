@@ -34,11 +34,11 @@ public class OrderService {
 
     public OrderResponseDTO createOrder(OrderRequestDTO orderRequestDTO){
 
-        if(orderRequestDTO.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+        if(orderRequestDTO.getPrice() == null || orderRequestDTO.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Price must be greater than zero");
         }
 
-        if(orderRequestDTO.getQuantity() <1) {
+        if(orderRequestDTO.getQuantity() == null || orderRequestDTO.getQuantity() < 1) {
             throw new RuntimeException("Quantity must be at least 1");
         }
 
