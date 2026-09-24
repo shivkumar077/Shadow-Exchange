@@ -33,5 +33,69 @@ public class Trade {
 
     public Trade() {
     }
-    
+
+    public Trade(User buyer, User seller, Stock stock, BigDecimal price, Integer quantity) {
+        this.buyer = buyer;
+        this.seller = seller;
+        this.stock = stock;
+        this.price = price;
+        this.quantity = quantity;
+        this.executedAt = LocalDateTime.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public User getBuyer() {
+        return buyer;
+    }
+
+    public void setBuyer(User buyer) {
+        this.buyer = buyer;
+    }
+
+    public User getSeller() {
+        return seller;
+    }
+
+    public void setSeller(User seller) {
+        this.seller = seller;
+    }
+
+    public Stock getStock() {
+        return stock;
+    }
+
+    public void setStock(Stock stock) {
+        this.stock = stock;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+
+    public LocalDateTime getExecutedAt() {
+        return executedAt;
+    }
+
+    public void setExecutedAt(LocalDateTime executedAt) {
+        this.executedAt = executedAt;
+    }
 }
