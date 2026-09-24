@@ -1,5 +1,6 @@
 package com.shadowexchange;
 
+import com.shadowexchange.repository.TradeRepository;
 import org.junit.jupiter.api.Test;
 import com.shadowexchange.entity.Order;
 import com.shadowexchange.entity.OrderType;
@@ -8,6 +9,8 @@ import com.shadowexchange.entity.User;
 import com.shadowexchange.orderbook.OrderBook;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -175,5 +178,10 @@ public class OrderBookTest {
                 order1,
                 bestSellAfterRemoval
         );
+    }
+
+    @Test
+    public void machineEngineShouldTrade(){
+        TradeRepository tradeRepository = mock(TradeRepository.class);
     }
 }
