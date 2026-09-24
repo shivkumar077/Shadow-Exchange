@@ -1,15 +1,19 @@
 package com.shadowexchange.matching;
 
 import com.shadowexchange.entity.Order;
+import com.shadowexchange.entity.Trade;
 import com.shadowexchange.orderbook.OrderBook;
 import java.math.BigDecimal;
+import com.shadowexchange.repository.TradeRepository;
 
 public class MatchingEngine {
 
     private final OrderBook orderBook;
+    private final TradeRepository tradeRepository;
 
-    public MatchingEngine(OrderBook orderBook) {
+    public MatchingEngine(OrderBook orderBook, TradeRepository tradeRepository) {
         this.orderBook = orderBook;
+        this.tradeRepository = tradeRepository;
     }
 
     public void match(){
@@ -53,6 +57,16 @@ public class MatchingEngine {
         if(bestSell.getQuantity() == 0){
             orderBook.removeBestSell();
         }
+
+        Trade trade = new Trade(
+                bestBuy.getUser(),
+                bestSell.getUser(),
+                bestBuy.getStock(),
+                tradePrice,
+                tradeQuantity
+        );
+
+        tradeRepository.save(trade);
     }
 
 
