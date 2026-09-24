@@ -94,4 +94,86 @@ public class OrderBookTest {
                 bestBuy
         );
     }
+
+    @Test
+    public void removeBestBuyShouldRemoveBestBuyOrder(){
+
+        User user = new User();
+        Stock stock = new Stock();
+        OrderBook orderBook = new OrderBook();
+
+        Order order1 = new Order(
+                user,
+                stock,
+                new BigDecimal("100.00"),
+                10,
+                OrderType.BUY
+        );
+
+        Order order2 = new Order(
+                user,
+                stock,
+                new BigDecimal("105.00"),
+                10,
+                OrderType.BUY
+        );
+
+        orderBook.addOrder(order1);
+        orderBook.addOrder(order2);
+
+        Order removedOrder = orderBook.removeBestBuy();
+
+        assertEquals(
+                order2,
+                removedOrder
+        );
+
+        Order bestBuyAfterRemoval = orderBook.getBestBuy();
+
+        assertEquals(
+                order1,
+                bestBuyAfterRemoval
+        );
+    }
+
+    @Test
+    public void removeBestSellShouldRemoveBestSellOrder(){
+
+        User user = new User();
+        Stock stock = new Stock();
+        OrderBook orderBook = new OrderBook();
+
+        Order order1 = new Order(
+                user,
+                stock,
+                new BigDecimal("100.00"),
+                10,
+                OrderType.SELL
+        );
+
+        Order order2 = new Order(
+                user,
+                stock,
+                new BigDecimal("95.00"),
+                10,
+                OrderType.SELL
+        );
+
+        orderBook.addOrder(order1);
+        orderBook.addOrder(order2);
+
+        Order removedOrder = orderBook.removeBestSell();
+
+        assertEquals(
+                order2,
+                removedOrder
+        );
+
+        Order bestSellAfterRemoval = orderBook.getBestSell();
+
+        assertEquals(
+                order1,
+                bestSellAfterRemoval
+        );
+    }
 }
