@@ -1,17 +1,19 @@
 package com.shadowexchange;
 
+import com.shadowexchange.entity.*;
+import com.shadowexchange.matching.MatchingEngine;
 import com.shadowexchange.repository.TradeRepository;
 import org.junit.jupiter.api.Test;
-import com.shadowexchange.entity.Order;
-import com.shadowexchange.entity.OrderType;
-import com.shadowexchange.entity.Stock;
-import com.shadowexchange.entity.User;
 import com.shadowexchange.orderbook.OrderBook;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-
+import static org.mockito.Mockito.any;
+import org.mockito.ArgumentCaptor;
+import static org.mockito.Mockito.times;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class OrderBookTest {
@@ -181,7 +183,118 @@ public class OrderBookTest {
     }
 
     @Test
-    public void machineEngineShouldTrade(){
+    public void machineEngineShouldCreateTrade(){
         TradeRepository tradeRepository = mock(TradeRepository.class);
+
+        OrderBook orderBook = new OrderBook();
+
+        MatchingEngine matchingEngine = new MatchingEngine(
+                orderBook,
+                tradeRepository);
+
+        User buyer = new User();
+        User seller = new User();
+        Stock stock = new Stock();
+
+        Order buyOrder = new Order(
+                buyer,
+                stock,
+                new BigDecimal("100.00"),
+                10,
+                OrderType.BUY
+        );
+
+        Order sellOrder = new Order(
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                10,
+                OrderType.SELL
+        );
+
+        buyOrder.setCreatedAt(
+                LocalDateTime.of(2026,9,24,10,1));
+        sellOrder.setCreatedAt(
+                LocalDateTime.of(2026,9,24,10,0));
+
+        orderBook.addOrder(buyOrder);
+        orderBook.addOrder(sellOrder);
+
+        matchingEngine.match();
+
+        verify(tradeRepository).save(any());
+
+        ArgumentCaptor<Trade> tradeCaptor = ArgumentCaptor.forClass(Trade.class);
+        verify(tradeRepository).save(tradeCaptor.capture());
+
+        Trade savedtrade = tradeCaptor.getValue();
+
+        assertEquals(
+                new BigDecimal("95.00"),
+                savedtrade.getPrice()
+        );
+
+    }
+
+    @Test
+    public void matchingEngineShouldCreateMultipleTrades(){
+
+        TradeRepository tradeRepository = mock(TradeRepository.class);
+
+        OrderBook orderBook = new OrderBook();
+
+        MatchingEngine matchingEngine = new MatchingEngine(
+                orderBook,
+                tradeRepository);
+
+        User buyer = new User();
+        User seller = new User();
+        Stock stock = new Stock();
+
+        Order buyOrder1 = new Order(
+                buyer,
+                stock,
+                new BigDecimal("100.00"),
+                50,
+                OrderType.BUY
+        );
+
+        Order sellOrder1 = new Order(
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                20,
+                OrderType.SELL
+        );
+
+        Order sellOrder2 = new Order(
+                seller,
+                stock,
+                new BigDecimal("96.00"),
+                30,
+                OrderType.SELL
+        );
+
+        buyOrder1.setCreatedAt(
+                LocalDateTime.of(2026,9,24,10,2));
+
+        sellOrder1.setCreatedAt(
+                LocalDateTime.of(2026,9,24,10,0));
+
+        sellOrder2.setCreatedAt(
+                LocalDateTime.of(2026,9,24,10,1));
+
+        orderBook.addOrder(buyOrder1);
+        orderBook.addOrder(sellOrder1);
+        orderBook.addOrder(sellOrder2);
+
+        matchingEngine.match();
+
+        verify(tradeRepository, times(2)).save(any(Trade.class));
+
+        assertEquals(0, buyOrder1.getQuantity());
+        assertNull(orderBook.getBestBuy());
+        assertNull(orderBook.getBestSell());
+
     }
 }

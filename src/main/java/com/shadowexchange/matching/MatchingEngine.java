@@ -16,58 +16,60 @@ public class MatchingEngine {
         this.tradeRepository = tradeRepository;
     }
 
-    public void match(){
-        Order bestBuy = orderBook.getBestBuy();
-        Order bestSell = orderBook.getBestSell();
+    public void match() {
 
-        if(bestBuy == null || bestSell == null){
-            return;
+        while (true) {
+
+            Order bestBuy = orderBook.getBestBuy();
+            Order bestSell = orderBook.getBestSell();
+
+            if (bestBuy == null || bestSell == null) {
+                break;
+            }
+
+            if (bestBuy.getPrice().compareTo(bestSell.getPrice()) < 0) {
+                break;
+            }
+
+            int tradeQuantity = Math.min(
+                    bestBuy.getQuantity(),
+                    bestSell.getQuantity()
+            );
+
+            BigDecimal tradePrice;
+
+            if (bestBuy.getCreatedAt().isBefore(bestSell.getCreatedAt())) {
+                tradePrice = bestBuy.getPrice();
+            } else {
+                tradePrice = bestSell.getPrice();
+            }
+
+            bestBuy.setQuantity(
+                    bestBuy.getQuantity() - tradeQuantity
+            );
+
+            bestSell.setQuantity(
+                    bestSell.getQuantity() - tradeQuantity
+            );
+
+            if (bestBuy.getQuantity() == 0) {
+                orderBook.removeBestBuy();
+            }
+
+            if (bestSell.getQuantity() == 0) {
+                orderBook.removeBestSell();
+            }
+
+            Trade trade = new Trade(
+                    bestBuy.getUser(),
+                    bestSell.getUser(),
+                    bestBuy.getStock(),
+                    tradePrice,
+                    tradeQuantity
+            );
+
+            tradeRepository.save(trade);
         }
-
-        if(bestBuy.getPrice().compareTo(bestSell.getPrice()) < 0){
-            return;
-        }
-
-        int tradeQuantity = Math.min(
-                bestBuy.getQuantity(),
-                bestSell.getQuantity()
-        );
-
-        BigDecimal tradePrice;
-
-        if(bestBuy.getCreatedAt().isBefore(bestSell.getCreatedAt())){
-            tradePrice = bestBuy.getPrice();
-        }
-        else{
-            tradePrice = bestSell.getPrice();
-        }
-
-        bestBuy.setQuantity(
-                bestBuy.getQuantity() -  tradeQuantity
-        );
-
-        bestSell.setQuantity(
-                bestSell.getQuantity() - tradeQuantity
-        );
-
-        if(bestBuy.getQuantity() == 0){
-            orderBook.removeBestBuy();
-        }
-
-        if(bestSell.getQuantity() == 0){
-            orderBook.removeBestSell();
-        }
-
-        Trade trade = new Trade(
-                bestBuy.getUser(),
-                bestSell.getUser(),
-                bestBuy.getStock(),
-                tradePrice,
-                tradeQuantity
-        );
-
-        tradeRepository.save(trade);
     }
-
 
 }
