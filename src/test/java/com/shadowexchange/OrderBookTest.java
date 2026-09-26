@@ -354,6 +354,9 @@ public class OrderBookTest {
         orderBook.addOrder(sellOrder2);
 
         matchingEngine.match();
+        verify(orderRepository,times(2)).save(buyOrder1);
+        verify(orderRepository).save(sellOrder1);
+        verify(orderRepository).save(sellOrder2);
 
         assertEquals(OrderStatus.FILLED, buyOrder1.getStatus());
         assertEquals(OrderStatus.FILLED, sellOrder1.getStatus());
