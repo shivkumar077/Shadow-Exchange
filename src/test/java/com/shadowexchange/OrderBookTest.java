@@ -3,6 +3,7 @@ package com.shadowexchange;
 import com.shadowexchange.entity.*;
 import com.shadowexchange.matching.MatchingEngine;
 import com.shadowexchange.repository.TradeRepository;
+import com.shadowexchange.repository.OrderRepository;
 import org.junit.jupiter.api.Test;
 import com.shadowexchange.orderbook.OrderBook;
 import java.math.BigDecimal;
@@ -296,5 +297,66 @@ public class OrderBookTest {
         assertNull(orderBook.getBestBuy());
         assertNull(orderBook.getBestSell());
 
+    }
+
+    @Test
+    public void matchingEngineShouldUpdateOrderStatus(){
+
+        TradeRepository tradeRepository = mock(TradeRepository.class);
+        OrderRepository orderRepository = mock(OrderRepository.class);
+
+        OrderBook orderBook = new OrderBook();
+
+        MatchingEngine matchingEngine = new MatchingEngine(
+                orderBook,
+                tradeRepository,
+                orderRepository);
+
+        User buyer = new User();
+        User seller = new User();
+        Stock stock = new Stock();
+
+        Order buyOrder1 = new Order(
+                buyer,
+                stock,
+                new BigDecimal("100.00"),
+                50,
+                OrderType.BUY
+        );
+
+        Order sellOrder1 = new Order(
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                20,
+                OrderType.SELL
+        );
+
+        Order sellOrder2 = new Order(
+                seller,
+                stock,
+                new BigDecimal("96.00"),
+                30,
+                OrderType.SELL
+        );
+
+        buyOrder1.setCreatedAt(
+                LocalDateTime.of(2026,9,24,10,2));
+
+        sellOrder1.setCreatedAt(
+                LocalDateTime.of(2026,9,24,10,0));
+
+        sellOrder2.setCreatedAt(
+                LocalDateTime.of(2026,9,24,10,1));
+
+        orderBook.addOrder(buyOrder1);
+        orderBook.addOrder(sellOrder1);
+        orderBook.addOrder(sellOrder2);
+
+        matchingEngine.match();
+
+        assertEquals(OrderStatus.FILLED, buyOrder1.getStatus());
+        assertEquals(OrderStatus.FILLED, sellOrder1.getStatus());
+        assertEquals(OrderStatus.FILLED, sellOrder2.getStatus());
     }
 }

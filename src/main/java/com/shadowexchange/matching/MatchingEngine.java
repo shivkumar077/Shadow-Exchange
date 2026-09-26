@@ -5,15 +5,23 @@ import com.shadowexchange.entity.Trade;
 import com.shadowexchange.orderbook.OrderBook;
 import java.math.BigDecimal;
 import com.shadowexchange.repository.TradeRepository;
+import com.shadowexchange.entity.OrderStatus;
+import com.shadowexchange.repository.OrderRepository;
 
 public class MatchingEngine {
 
     private final OrderBook orderBook;
     private final TradeRepository tradeRepository;
+    private final OrderRepository orderRepository;
 
     public MatchingEngine(OrderBook orderBook, TradeRepository tradeRepository) {
+        this(orderBook, tradeRepository, null);
+    }
+
+    public MatchingEngine(OrderBook orderBook, TradeRepository tradeRepository, OrderRepository orderRepository) {
         this.orderBook = orderBook;
         this.tradeRepository = tradeRepository;
+        this.orderRepository = orderRepository;
     }
 
     public void match() {
@@ -53,11 +61,19 @@ public class MatchingEngine {
             );
 
             if (bestBuy.getQuantity() == 0) {
+                bestBuy.setStatus(OrderStatus.FILLED);
                 orderBook.removeBestBuy();
+            }
+            else {
+                bestBuy.setStatus(OrderStatus.PARTIALLY_FILLED);
             }
 
             if (bestSell.getQuantity() == 0) {
+                bestSell.setStatus(OrderStatus.FILLED);
                 orderBook.removeBestSell();
+            }
+            else {
+                bestSell.setStatus(OrderStatus.PARTIALLY_FILLED);
             }
 
             Trade trade = new Trade(
@@ -69,6 +85,11 @@ public class MatchingEngine {
             );
 
             tradeRepository.save(trade);
+
+            if (orderRepository != null) {
+                orderRepository.save(bestBuy);
+                orderRepository.save(bestSell);
+            }
         }
     }
 
