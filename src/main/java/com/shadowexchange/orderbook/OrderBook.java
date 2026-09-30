@@ -51,4 +51,17 @@ public class OrderBook {
     public Order removeBestBuy(){
         return buyOrders.poll();
     }
+
+    public boolean removeOrder(Order order){
+        if(order == null){
+            return false;
+        }
+
+        if(order.getType() == OrderType.BUY){
+            return buyOrders.remove(order);
+        }
+        else{
+            return sellOrders.remove(order);
+        }
+    }
 }

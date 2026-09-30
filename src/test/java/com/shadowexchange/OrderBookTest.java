@@ -9,13 +9,12 @@ import com.shadowexchange.orderbook.OrderBook;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.any;
 import org.mockito.ArgumentCaptor;
 import static org.mockito.Mockito.times;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class OrderBookTest {
 
@@ -361,5 +360,46 @@ public class OrderBookTest {
         assertEquals(OrderStatus.FILLED, buyOrder1.getStatus());
         assertEquals(OrderStatus.FILLED, sellOrder1.getStatus());
         assertEquals(OrderStatus.FILLED, sellOrder2.getStatus());
+    }
+
+    @Test
+    public void removeOrderShouldRemoveSpecificOrder(){
+
+        User user = new User();
+        Stock stock = new Stock();
+        OrderBook orderBook = new OrderBook();
+
+        Order buyOrder1 = new Order(
+                user,
+                stock,
+                new BigDecimal("100.00"),
+                10,
+                OrderType.BUY
+        );
+
+        Order buyOrder2 = new Order(
+                user,
+                stock,
+                new BigDecimal("105.00"),
+                10,
+                OrderType.BUY
+        );
+
+        Order buyOrder3 = new Order(
+                user,
+                stock,
+                new BigDecimal("110.00"),
+                10,
+                OrderType.BUY
+        );
+
+        orderBook.addOrder(buyOrder1);
+        orderBook.addOrder(buyOrder2);
+        orderBook.addOrder(buyOrder3);
+
+        boolean removed = orderBook.removeOrder(buyOrder2);
+
+        assertTrue(removed);
+        assertEquals(buyOrder3, orderBook.getBestBuy());
     }
 }
