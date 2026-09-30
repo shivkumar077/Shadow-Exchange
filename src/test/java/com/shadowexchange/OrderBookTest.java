@@ -4,17 +4,17 @@ import com.shadowexchange.entity.*;
 import com.shadowexchange.matching.MatchingEngine;
 import com.shadowexchange.repository.TradeRepository;
 import com.shadowexchange.repository.OrderRepository;
+import com.shadowexchange.service.OrderCancellationService;
 import org.junit.jupiter.api.Test;
 import com.shadowexchange.orderbook.OrderBook;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.*;
+
 import org.mockito.ArgumentCaptor;
-import static org.mockito.Mockito.times;
 
 public class OrderBookTest {
 
@@ -401,5 +401,73 @@ public class OrderBookTest {
 
         assertTrue(removed);
         assertEquals(buyOrder3, orderBook.getBestBuy());
+    }
+
+    @Test
+    public void cancelOrderShouldMarkOrderAsCancelled() {
+
+        OrderRepository orderRepository = mock(OrderRepository.class);
+        OrderBook orderBook = new OrderBook();
+
+        OrderCancellationService cancellationService =
+                new OrderCancellationService(orderRepository, orderBook);
+
+        User user = new User();
+        Stock stock = new Stock();
+
+        Order order = new Order(
+                user,
+                stock,
+                new BigDecimal("100.00"),
+                50,
+                OrderType.BUY
+        );
+
+        orderBook.addOrder(order);
+
+        when(orderRepository.findById(1L))
+                .thenReturn(Optional.of(order));
+
+        cancellationService.cancelOrder(1L);
+
+        assertEquals(OrderStatus.CANCELLED, order.getStatus());
+
+        verify(orderRepository).save(order);
+        assertNull(orderBook.getBestBuy());
+    }
+
+    @Test
+    public void cancelPartiallyFilledOrderShouldMarkOrderAsCancelled() {
+
+        OrderRepository orderRepository = mock(OrderRepository.class);
+        OrderBook orderBook = new OrderBook();
+
+        OrderCancellationService cancellationService =
+                new OrderCancellationService(orderRepository, orderBook);
+
+        User user = new User();
+        Stock stock = new Stock();
+
+        Order order = new Order(
+                user,
+                stock,
+                new BigDecimal("100.00"),
+                20,
+                OrderType.BUY
+        );
+
+        order.setStatus(OrderStatus.PARTIALLY_FILLED);
+
+        orderBook.addOrder(order);
+
+        when(orderRepository.findById(1L))
+                .thenReturn(Optional.of(order));
+
+        cancellationService.cancelOrder(1L);
+
+        assertEquals(OrderStatus.CANCELLED, order.getStatus());
+
+        verify(orderRepository).save(order);
+        assertNull(orderBook.getBestBuy());
     }
 }
