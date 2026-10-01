@@ -5,6 +5,7 @@ import com.shadowexchange.entity.OrderStatus;
 import com.shadowexchange.repository.OrderRepository;
 import com.shadowexchange.orderbook.OrderBook;
 import org.springframework.stereotype.Service;
+import com.shadowexchange.exception.ResourceNotFoundException;
 
 @Service
 public class OrderCancellationService {
@@ -20,7 +21,7 @@ public class OrderCancellationService {
     public void cancelOrder(Long orderId) {
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         if (order.getStatus() != OrderStatus.PENDING &&
             order.getStatus() != OrderStatus.PARTIALLY_FILLED) {
