@@ -1,0 +1,24 @@
+$kind: http-request
+name: Get data
+url: 'http://localhost:8080/orders'
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": 1,
+      "stockId": 1,
+      "price": 100.00,
+      "quantity": 50,
+      "type": "BUY"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+          pm.response.to.have.status(200);
+      });

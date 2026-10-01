@@ -470,4 +470,70 @@ public class OrderBookTest {
         verify(orderRepository).save(order);
         assertNull(orderBook.getBestBuy());
     }
+
+    @Test
+    public void filledOrderShouldNotBeCancelled() {
+
+        OrderRepository orderRepository = mock(OrderRepository.class);
+        OrderBook orderBook = new OrderBook();
+
+        OrderCancellationService cancellationService =
+                new OrderCancellationService(orderRepository, orderBook);
+
+        User user = new User();
+        Stock stock = new Stock();
+
+        Order order = new Order(
+                user,
+                stock,
+                new BigDecimal("100.00"),
+                50,
+                OrderType.BUY
+        );
+
+        order.setStatus(OrderStatus.FILLED);
+
+        when(orderRepository.findById(1L))
+                .thenReturn(Optional.of(order));
+
+        assertThrows(
+                RuntimeException.class,
+                () -> cancellationService.cancelOrder(1L)
+        );
+
+        verify(orderRepository, never()).save(order);
+    }
+
+    @Test
+    public void cancelledOrderShouldNotBeCancelledAgain() {
+
+        OrderRepository orderRepository = mock(OrderRepository.class);
+        OrderBook orderBook = new OrderBook();
+
+        OrderCancellationService cancellationService =
+                new OrderCancellationService(orderRepository, orderBook);
+
+        User user = new User();
+        Stock stock = new Stock();
+
+        Order order = new Order(
+                user,
+                stock,
+                new BigDecimal("100.00"),
+                50,
+                OrderType.BUY
+        );
+
+        order.setStatus(OrderStatus.CANCELLED);
+
+        when(orderRepository.findById(1L))
+                .thenReturn(Optional.of(order));
+
+        assertThrows(
+                RuntimeException.class,
+                () -> cancellationService.cancelOrder(1L)
+        );
+
+        verify(orderRepository, never()).save(order);
+    }
 }

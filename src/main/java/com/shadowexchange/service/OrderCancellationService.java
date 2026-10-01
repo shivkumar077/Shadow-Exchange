@@ -4,7 +4,9 @@ import com.shadowexchange.entity.Order;
 import com.shadowexchange.entity.OrderStatus;
 import com.shadowexchange.repository.OrderRepository;
 import com.shadowexchange.orderbook.OrderBook;
+import org.springframework.stereotype.Service;
 
+@Service
 public class OrderCancellationService {
 
     private final OrderRepository orderRepository;

@@ -6,6 +6,7 @@ import com.shadowexchange.dto.UserResponse;
 import com.shadowexchange.entity.Order;
 import com.shadowexchange.entity.Stock;
 import com.shadowexchange.entity.User;
+import com.shadowexchange.orderbook.OrderBook;
 import com.shadowexchange.repository.OrderRepository;
 import com.shadowexchange.repository.StockRepository;
 import com.shadowexchange.repository.UserRepository;
@@ -18,14 +19,17 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final StockRepository stockRepository;
+    private final OrderBook orderBook;
 
     public OrderService(
             OrderRepository orderRepository,
             UserRepository userRepository,
-            StockRepository stockRepository) {
+            StockRepository stockRepository,
+            OrderBook orderBook) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.stockRepository = stockRepository;
+        this.orderBook = orderBook;
     }
 
     public Order saveOrder(Order order) {
@@ -61,6 +65,7 @@ public class OrderService {
                 orderRequestDTO.getType()
         );
         Order savedOrder = orderRepository.save(order);
+        orderBook.addOrder(savedOrder);
 
         return toResponseDTO(savedOrder);
     }

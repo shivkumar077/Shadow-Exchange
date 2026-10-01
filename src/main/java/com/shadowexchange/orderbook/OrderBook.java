@@ -3,8 +3,11 @@ package com.shadowexchange.orderbook;
 import com.shadowexchange.entity.Order;
 import java.util.PriorityQueue;
 import com.shadowexchange.entity.OrderType;
+import org.springframework.stereotype.Component;
+
 import java.util.Comparator;
 
+@Component
 public class OrderBook {
 
     private final PriorityQueue<Order> buyOrders;
