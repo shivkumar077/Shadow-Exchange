@@ -20,4 +20,10 @@ public class GlobalExceptionHandler {
         return exception.getMessage();
     }
 
+    @ExceptionHandler(OrderCannotBeCancelledException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public String handleOrderCannotBeCancelledException(OrderCannotBeCancelledException exception) {
+        return exception.getMessage();
+    }
+
 }

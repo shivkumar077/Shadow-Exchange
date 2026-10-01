@@ -2,6 +2,7 @@ package com.shadowexchange.service;
 
 import com.shadowexchange.entity.Order;
 import com.shadowexchange.entity.OrderStatus;
+import com.shadowexchange.exception.OrderCannotBeCancelledException;
 import com.shadowexchange.repository.OrderRepository;
 import com.shadowexchange.orderbook.OrderBook;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,7 @@ public class OrderCancellationService {
 
         if (order.getStatus() != OrderStatus.PENDING &&
             order.getStatus() != OrderStatus.PARTIALLY_FILLED) {
-            throw new RuntimeException("Order can't be cancelled");
+            throw new OrderCannotBeCancelledException("Order can't be cancelled");
         }
 
         boolean removed = orderBook.removeOrder(order);
