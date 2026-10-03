@@ -7,6 +7,8 @@ import com.shadowexchange.entity.User;
 import com.shadowexchange.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 public class UserService {
 
@@ -22,7 +24,8 @@ public class UserService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(request.getPassword());
-        user.setBalance(10000.0);
+        user.setBalance(new BigDecimal(10000.00));
+        user.setReservedBalance(BigDecimal.ZERO);
 
         User savedUser = userRepository.save(user);
         return new UserResponse(

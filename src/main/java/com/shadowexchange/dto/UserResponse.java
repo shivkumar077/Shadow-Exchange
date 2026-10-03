@@ -1,15 +1,17 @@
 package com.shadowexchange.dto;
 
+import java.math.BigDecimal;
+
 public class UserResponse {
     private Long id;
     private String username;
     private String email;
-    private Double balance;
+    private BigDecimal balance;
 
     public UserResponse() {
     }
 
-    public UserResponse(Long id, String username, String email, Double balance) {
+    public UserResponse(Long id, String username, String email, BigDecimal balance) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -28,7 +30,7 @@ public class UserResponse {
         return email;
     }
 
-    public Double getBalance() {
+    public BigDecimal getBalance() {
         return balance;
     }
 }

@@ -7,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "users")
 public class User {
@@ -17,7 +19,8 @@ public class User {
     private String username;
     private String email;
     private String password;
-    private Double balance;
+    private BigDecimal balance;
+    private BigDecimal reservedBalance;
 
     public User() {
     }
@@ -54,13 +57,22 @@ public class User {
         this.password = password;
     }
 
-    public Double getBalance() {
+    public BigDecimal getBalance() {
         return balance;
     }
 
-    public void setBalance(Double balance) {
+    public void setBalance(BigDecimal balance) {
         this.balance = balance;
     }
+
+    public BigDecimal getReservedBalance() {
+        return reservedBalance;
+    }
+
+    public void setReservedBalance(BigDecimal reservedBalance) {
+        this.reservedBalance = reservedBalance;
+    }
+
 }
 
 
