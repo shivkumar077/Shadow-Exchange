@@ -32,7 +32,8 @@ public class UserService {
                 savedUser.getId(),
                 savedUser.getUsername(),
                 savedUser.getEmail(),
-                savedUser.getBalance()
+                savedUser.getBalance(),
+                savedUser.getReservedBalance()
         );
     }
 }
