@@ -68,6 +68,13 @@ public class OrderService {
             throw new RuntimeException("Insufficient balance to place the order");
         }
 
+        if(orderRequestDTO.getType() == OrderType.BUY){
+            user.setReservedBalance(user.getReservedBalance()
+                    .add(requiredFunds));
+
+            userRepository.save(user);
+        }
+
 
         Order order = new Order(
                 user,
