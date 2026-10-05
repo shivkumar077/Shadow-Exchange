@@ -4,6 +4,7 @@ import com.shadowexchange.dto.OrderRequestDTO;
 import com.shadowexchange.dto.OrderResponseDTO;
 import com.shadowexchange.dto.UserResponse;
 import com.shadowexchange.entity.Order;
+import com.shadowexchange.entity.OrderType;
 import com.shadowexchange.entity.Stock;
 import com.shadowexchange.entity.User;
 import com.shadowexchange.orderbook.OrderBook;
@@ -55,6 +56,17 @@ public class OrderService {
 
         Stock stock = stockRepository.findById(orderRequestDTO.getStockId())
                 .orElseThrow(() -> new RuntimeException("Stock not found"));
+
+        BigDecimal requiredFunds = orderRequestDTO.getPrice()
+                .multiply(BigDecimal.valueOf(orderRequestDTO.getQuantity()));
+
+        BigDecimal availableBalance = user.getBalance()
+                .subtract(user.getReservedBalance());
+
+        if(orderRequestDTO.getType() == OrderType.BUY &&
+                availableBalance.compareTo(requiredFunds) < 0) {
+            throw new RuntimeException("Insufficient balance to place the order");
+        }
 
 
         Order order = new Order(
