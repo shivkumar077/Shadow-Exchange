@@ -1,8 +1,12 @@
 package com.shadowexchange.service;
 
+import com.shadowexchange.entity.Trade;
+import com.shadowexchange.entity.User;
 import com.shadowexchange.repository.HoldingRepository;
 import com.shadowexchange.repository.UserRepository;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 @Service
 public class SettlementService {
@@ -14,5 +18,16 @@ public class SettlementService {
         this.holdingRepository = holdingRepository;
         this.userRepository = userRepository;
     }
-    
+
+    public void settleTrade(Trade trade){
+
+        User buyer = trade.getBuyer();
+        User seller = trade.getSeller();
+
+        BigDecimal tradeValue = trade.getPrice()
+                .multiply(BigDecimal.valueOf(trade.getQuantity()));
+
+        // Update buyer's balance and reserved balance
+        //update holding for ppl
+    }
 }
