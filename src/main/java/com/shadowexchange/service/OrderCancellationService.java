@@ -10,6 +10,7 @@ import com.shadowexchange.orderbook.OrderBook;
 import com.shadowexchange.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import com.shadowexchange.exception.ResourceNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -31,6 +32,7 @@ public class OrderCancellationService {
         this.userRepository = userRepository;
     }
 
+    @Transactional
     public void cancelOrder(Long orderId) {
 
         Order order = orderRepository.findById(orderId)
