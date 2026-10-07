@@ -60,5 +60,16 @@ public class SettlementService {
             holdingRepository.save(newHolding);
         }
 
+        Holding sellerHolding = holdingRepository.
+                findByUserAndStock(seller, trade.getStock())
+                .orElse(null);
+
+        if(sellerHolding == null){
+            throw new RuntimeException("Seller does not have the stock to sell");
+        }
+
+        if(sellerHolding.getQuantity() < trade.getQuantity()){
+            throw new RuntimeException("Seller does not have enough stock to sell");
+        }
     }
 }
