@@ -31,15 +31,26 @@ public class Trade {
     private Integer quantity;
     private LocalDateTime executedAt;
 
+    @ManyToOne
+    @JoinColumn(name = "buy_order_id", nullable = false)
+    private Order buyOrder;
+
+
+    @ManyToOne
+    @JoinColumn(name = "sell_order_id", nullable = false)
+    private Order sellOrder;
+
     public Trade() {
     }
 
-    public Trade(User buyer, User seller, Stock stock, BigDecimal price, Integer quantity) {
+    public Trade(User buyer, User seller, Stock stock, BigDecimal price, Integer quantity, Order buyOrder, Order sellOrder) {
         this.buyer = buyer;
         this.seller = seller;
         this.stock = stock;
         this.price = price;
         this.quantity = quantity;
+        this.buyOrder = buyOrder;
+        this.sellOrder = sellOrder;
         this.executedAt = LocalDateTime.now();
     }
 
@@ -97,5 +108,21 @@ public class Trade {
 
     public void setExecutedAt(LocalDateTime executedAt) {
         this.executedAt = executedAt;
+    }
+
+    public Order getBuyOrder() {
+        return buyOrder;
+    }
+
+    public void setBuyOrder(Order buyOrder) {
+        this.buyOrder = buyOrder;
+    }
+
+    public Order getSellOrder() {
+        return sellOrder;
+    }
+
+    public void setSellOrder(Order sellOrder) {
+        this.sellOrder = sellOrder;
     }
 }

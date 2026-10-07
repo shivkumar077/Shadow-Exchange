@@ -27,7 +27,9 @@ public class SettlementService {
         BigDecimal tradeValue = trade.getPrice()
                 .multiply(BigDecimal.valueOf(trade.getQuantity()));
 
-        // Update buyer's balance and reserved balance
-        //update holding for ppl
+        BigDecimal reservedAmount = trade.getPrice()
+                .multiply(BigDecimal.valueOf(trade.getQuantity()));
+
+        buyer.setBalance(buyer.getBalance().subtract(tradeValue));
     }
 }

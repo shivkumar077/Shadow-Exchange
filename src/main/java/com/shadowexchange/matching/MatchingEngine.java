@@ -81,7 +81,9 @@ public class MatchingEngine {
                     bestSell.getUser(),
                     bestBuy.getStock(),
                     tradePrice,
-                    tradeQuantity
+                    tradeQuantity,
+                    bestBuy,
+                    bestSell
             );
 
             tradeRepository.save(trade);
