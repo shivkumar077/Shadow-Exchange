@@ -6,6 +6,7 @@ import com.shadowexchange.entity.User;
 import com.shadowexchange.repository.HoldingRepository;
 import com.shadowexchange.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -20,6 +21,7 @@ public class SettlementService {
         this.userRepository = userRepository;
     }
 
+    @Transactional
     public void settleTrade(Trade trade){
 
         User buyer = trade.getBuyer();
