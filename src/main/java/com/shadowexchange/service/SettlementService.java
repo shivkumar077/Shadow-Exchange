@@ -51,6 +51,14 @@ public class SettlementService {
 
             holdingRepository.save(buyerHolding);
         }
+        else {
+            Holding newHolding = new Holding(
+                    buyer,
+                    trade.getStock(),
+                    trade.getQuantity()
+            );
+            holdingRepository.save(newHolding);
+        }
 
     }
 }
