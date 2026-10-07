@@ -71,5 +71,11 @@ public class SettlementService {
         if(sellerHolding.getQuantity() < trade.getQuantity()){
             throw new RuntimeException("Seller does not have enough stock to sell");
         }
+
+        sellerHolding.setQuantity(
+                sellerHolding.getQuantity() - trade.getQuantity()
+        );
+
+        holdingRepository.save(sellerHolding);
     }
 }
