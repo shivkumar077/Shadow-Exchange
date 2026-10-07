@@ -30,6 +30,14 @@ public class SettlementService {
         BigDecimal reservedAmount = trade.getPrice()
                 .multiply(BigDecimal.valueOf(trade.getQuantity()));
 
+        buyer.setReservedBalance(buyer.getReservedBalance().subtract(reservedAmount));
+
         buyer.setBalance(buyer.getBalance().subtract(tradeValue));
+
+        userRepository.save(buyer);
+
+        seller.setBalance(seller.getBalance().add(tradeValue));
+
+        userRepository.save(seller);
     }
 }
