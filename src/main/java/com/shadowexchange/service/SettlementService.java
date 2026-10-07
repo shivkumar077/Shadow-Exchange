@@ -43,5 +43,14 @@ public class SettlementService {
 
         Holding buyerHolding = holdingRepository.findByUserAndStock(buyer, trade.getStock())
                 .orElse(null);
+
+
+        if(buyerHolding != null){
+
+            buyerHolding.setQuantity(buyerHolding.getQuantity() + trade.getQuantity());
+
+            holdingRepository.save(buyerHolding);
+        }
+
     }
 }
