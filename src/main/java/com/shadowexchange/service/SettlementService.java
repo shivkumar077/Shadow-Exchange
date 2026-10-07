@@ -1,5 +1,6 @@
 package com.shadowexchange.service;
 
+import com.shadowexchange.entity.Holding;
 import com.shadowexchange.entity.Trade;
 import com.shadowexchange.entity.User;
 import com.shadowexchange.repository.HoldingRepository;
@@ -39,5 +40,8 @@ public class SettlementService {
         seller.setBalance(seller.getBalance().add(tradeValue));
 
         userRepository.save(seller);
+
+        Holding buyerHolding = holdingRepository.findByUserAndStock(buyer, trade.getStock())
+                .orElse(null);
     }
 }
