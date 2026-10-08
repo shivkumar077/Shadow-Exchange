@@ -21,6 +21,8 @@ public class Holding {
 
     private Integer quantity;
 
+    public Integer reserveQuantity;
+
     public Holding() {
     }
 
@@ -28,6 +30,14 @@ public class Holding {
         this.user = user;
         this.stock = stock;
         this.quantity = quantity;
+        this.reserveQuantity = 0;
+    }
+
+    public Holding(User user, Stock stock, Integer quantity, Integer reserveQuantity) {
+        this.user = user;
+        this.stock = stock;
+        this.quantity = quantity;
+        this.reserveQuantity = reserveQuantity;
     }
 
     public Long getId() {
@@ -60,5 +70,13 @@ public class Holding {
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+
+    public Integer getReserveQuantity() {
+        return reserveQuantity;
+    }
+
+    public void setReserveQuantity(Integer reserveQuantity) {
+        this.reserveQuantity = reserveQuantity;
     }
 }
