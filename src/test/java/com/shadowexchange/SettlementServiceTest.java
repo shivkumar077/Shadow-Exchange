@@ -38,5 +38,23 @@ class SettlementServiceTest {
         User seller = new User();
         seller.setBalance(new BigDecimal("5000.00"));
         seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+
+        Order buyOrder = new Order(
+                buyer,
+                stock,
+                new BigDecimal("100.00"),
+                20,
+                OrderType.BUY
+        );
+
+        Order sellOrder = new Order(
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                20,
+                OrderType.SELL
+        );
     }
 }
