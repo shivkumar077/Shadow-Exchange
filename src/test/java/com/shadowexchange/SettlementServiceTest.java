@@ -56,5 +56,17 @@ class SettlementServiceTest {
                 20,
                 OrderType.SELL
         );
+
+        Holding buyerHolding = new Holding(
+                buyer,
+                stock,
+                10
+        );
+
+        Holding sellerHolding = new Holding(
+                seller,
+                stock,
+                50
+        );
     }
 }
