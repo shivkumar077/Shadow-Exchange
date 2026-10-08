@@ -62,9 +62,6 @@ public class OrderService {
         Stock stock = stockRepository.findById(orderRequestDTO.getStockId())
                 .orElseThrow(() -> new RuntimeException("Stock not found"));
 
-        Holding holding = holdingRepository.findByUserAndStock(user, stock)
-                .orElseThrow(() -> new RuntimeException("Holding not found"));
-
         BigDecimal requiredFunds = orderRequestDTO.getPrice()
                 .multiply(BigDecimal.valueOf(orderRequestDTO.getQuantity()));
 
@@ -81,6 +78,25 @@ public class OrderService {
                     .add(requiredFunds));
 
             userRepository.save(user);
+        }
+
+        if (orderRequestDTO.getType() == OrderType.SELL) {
+
+            Holding holding = holdingRepository.findByUserAndStock(user, stock)
+                    .orElseThrow(() -> new RuntimeException("Holding not found"));
+
+            Integer availableShares =
+                    holding.getQuantity() - holding.getReservedQuantity();
+
+            if (availableShares < orderRequestDTO.getQuantity()) {
+                throw new RuntimeException("Insufficient shares to place the sell order");
+            }
+
+            holding.setReservedQuantity(
+                    holding.getReservedQuantity() + orderRequestDTO.getQuantity()
+            );
+
+            holdingRepository.save(holding);
         }
 
 
