@@ -112,4 +112,9 @@ class SettlementServiceTest {
         verify(holdingRepository).save(buyerHolding);
         verify(holdingRepository).save(sellerHolding);
     }
+
+    @Test
+    void shouldRejectTradeWhenSellerDoesNotHaveEnoughShares() {
+
+    }
 }
