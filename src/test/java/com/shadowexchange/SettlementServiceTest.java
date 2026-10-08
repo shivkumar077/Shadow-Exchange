@@ -148,5 +148,23 @@ class SettlementServiceTest {
                 10
         );
 
+        Trade trade = new Trade(
+                buyer,
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                20,
+                buyOrder,
+                sellOrder
+        );
+
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(Optional.of(sellerHolding));
+
+        assertThrows(
+                RuntimeException.class,
+                () -> settlementService.settleTrade(trade)
+        );
+
     }
 }
