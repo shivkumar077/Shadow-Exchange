@@ -116,5 +116,37 @@ class SettlementServiceTest {
     @Test
     void shouldRejectTradeWhenSellerDoesNotHaveEnoughShares() {
 
+        User buyer = new User();
+        buyer.setBalance(new BigDecimal("10000.00"));
+        buyer.setReservedBalance(new BigDecimal("2000.00"));
+
+        User seller = new User();
+        seller.setBalance(new BigDecimal("5000.00"));
+        seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+
+        Order buyOrder = new Order(
+                buyer,
+                stock,
+                new BigDecimal("100.00"),
+                20,
+                OrderType.BUY
+        );
+
+        Order sellOrder = new Order(
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                20,
+                OrderType.SELL
+        );
+
+        Holding sellerHolding = new Holding(
+                seller,
+                stock,
+                10
+        );
+
     }
 }
