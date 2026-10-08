@@ -30,10 +30,13 @@ public class SettlementService {
         BigDecimal tradeValue = trade.getPrice()
                 .multiply(BigDecimal.valueOf(trade.getQuantity()));
 
-        BigDecimal reservedAmount = trade.getPrice()
+        BigDecimal buyPrice = trade.getBuyOrder() != null ? trade.getBuyOrder().getPrice() : trade.getPrice();
+        BigDecimal reservedAmount = buyPrice
                 .multiply(BigDecimal.valueOf(trade.getQuantity()));
 
-        buyer.setReservedBalance(buyer.getReservedBalance().subtract(reservedAmount));
+        if (buyer.getReservedBalance() != null) {
+            buyer.setReservedBalance(buyer.getReservedBalance().subtract(reservedAmount));
+        }
 
         buyer.setBalance(buyer.getBalance().subtract(tradeValue));
 

@@ -79,6 +79,7 @@ class SettlementServiceTest {
                 sellOrder
         );
 
+
         when(holdingRepository.findByUserAndStock(buyer, stock))
                 .thenReturn(Optional.of(buyerHolding));
 
@@ -86,5 +87,23 @@ class SettlementServiceTest {
                 .thenReturn(Optional.of(sellerHolding));
 
         settlementService.settleTrade(trade);
+
+        assertEquals(
+                new BigDecimal("8100.00"),
+                buyer.getBalance()
+        );
+
+        assertEquals(
+                new BigDecimal("0.00"),
+                buyer.getReservedBalance()
+        );
+
+        assertEquals(
+                new BigDecimal("6900.00"),
+                seller.getBalance()
+        );
+
+        assertEquals(30, buyerHolding.getQuantity());
+        assertEquals(30, sellerHolding.getQuantity());
     }
 }
