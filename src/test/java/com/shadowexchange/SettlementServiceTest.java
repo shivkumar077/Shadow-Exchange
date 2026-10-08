@@ -68,5 +68,15 @@ class SettlementServiceTest {
                 stock,
                 50
         );
+
+        Trade trade = new Trade(
+                buyer,
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                20,
+                buyOrder,
+                sellOrder
+        );
     }
 }
