@@ -105,5 +105,11 @@ class SettlementServiceTest {
 
         assertEquals(30, buyerHolding.getQuantity());
         assertEquals(30, sellerHolding.getQuantity());
+
+        verify(userRepository).save(buyer);
+        verify(userRepository).save(seller);
+
+        verify(holdingRepository).save(buyerHolding);
+        verify(holdingRepository).save(sellerHolding);
     }
 }
