@@ -78,5 +78,13 @@ class SettlementServiceTest {
                 buyOrder,
                 sellOrder
         );
+
+        when(holdingRepository.findByUserAndStock(buyer, stock))
+                .thenReturn(Optional.of(buyerHolding));
+
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(Optional.of(sellerHolding));
+
+        settlementService.settleTrade(trade);
     }
 }
