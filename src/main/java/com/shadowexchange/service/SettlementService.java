@@ -37,42 +37,64 @@ public class SettlementService {
         BigDecimal reservedAmount = buyPrice
                 .multiply(BigDecimal.valueOf(trade.getQuantity()));
 
-        // Release buyer's reserved money
-        if (buyer.getReservedBalance() != null) {
-            buyer.setReservedBalance(
-                    buyer.getReservedBalance().subtract(reservedAmount)
+        // Validate the seller's shares before changing any balances or holdings.
+        Holding sellerHolding = holdingRepository
+                .findByUserAndStock(seller, trade.getStock())
+                .orElseThrow(() -> new RuntimeException(
+                        "Seller does not have the stock to sell"
+                ));
+
+        if (sellerHolding.getQuantity() < trade.getQuantity()) {
+            throw new RuntimeException(
+                    "Seller does not have enough stock to sell"
             );
         }
 
-        // Deduct actual trade value from buyer
+        if (sellerHolding.getReservedQuantity() == null
+                || sellerHolding.getReservedQuantity() < trade.getQuantity()) {
+            throw new RuntimeException(
+                    "Seller does not have enough reserved shares to settle the trade"
+            );
+        }
+
+        if (buyer.getReservedBalance() == null
+                || buyer.getReservedBalance().compareTo(reservedAmount) < 0) {
+            throw new RuntimeException(
+                    "Buyer does not have enough reserved funds to settle the trade"
+            );
+        }
+
+        // Release the buyer's reserved funds for the shares being traded.
+        buyer.setReservedBalance(
+                buyer.getReservedBalance().subtract(reservedAmount)
+        );
+
+        // Deduct the actual trade value, which may be lower than the limit price.
         buyer.setBalance(
                 buyer.getBalance().subtract(tradeValue)
         );
 
         userRepository.save(buyer);
 
-        // Give seller the money
+        // Credit the seller with the actual trade value.
         seller.setBalance(
                 seller.getBalance().add(tradeValue)
         );
 
         userRepository.save(seller);
 
-        // Add shares to buyer
+        // Add the traded shares to the buyer's existing holding, or create one.
         Holding buyerHolding = holdingRepository
                 .findByUserAndStock(buyer, trade.getStock())
                 .orElse(null);
 
         if (buyerHolding != null) {
-
             buyerHolding.setQuantity(
                     buyerHolding.getQuantity() + trade.getQuantity()
             );
 
             holdingRepository.save(buyerHolding);
-
         } else {
-
             Holding newHolding = new Holding(
                     buyer,
                     trade.getStock(),
@@ -82,33 +104,14 @@ public class SettlementService {
             holdingRepository.save(newHolding);
         }
 
-        // Remove shares from seller
-        Holding sellerHolding = holdingRepository
-                .findByUserAndStock(seller, trade.getStock())
-                .orElse(null);
-
-        if (sellerHolding == null) {
-            throw new RuntimeException(
-                    "Seller does not have the stock to sell"
-            );
-        }
-
-        if (sellerHolding.getQuantity() < trade.getQuantity()) {
-            throw new RuntimeException(
-                    "Seller does not have enough stock to sell"
-            );
-        }
-
+        // Remove traded shares and release their reservation for the seller.
         sellerHolding.setQuantity(
                 sellerHolding.getQuantity() - trade.getQuantity()
         );
 
-        // Release seller's reserved shares
-        if (sellerHolding.getReservedQuantity() != null) {
-            sellerHolding.setReservedQuantity(
-                    sellerHolding.getReservedQuantity() - trade.getQuantity()
-            );
-        }
+        sellerHolding.setReservedQuantity(
+                sellerHolding.getReservedQuantity() - trade.getQuantity()
+        );
 
         holdingRepository.save(sellerHolding);
     }
