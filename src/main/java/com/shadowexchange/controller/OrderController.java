@@ -33,8 +33,9 @@ public class OrderController {
     }
 
     @DeleteMapping("/{orderId}")
-    public void cancelOrder(@PathVariable Long orderId) {
+    public org.springframework.http.ResponseEntity<Void> cancelOrder(@PathVariable Long orderId) {
         CancellationService.cancelOrder(orderId);
+        return org.springframework.http.ResponseEntity.noContent().build();
     }
 
 }
