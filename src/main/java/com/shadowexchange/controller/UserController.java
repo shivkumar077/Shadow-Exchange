@@ -2,7 +2,6 @@ package com.shadowexchange.controller;
 
 import com.shadowexchange.dto.CreateUserRequest;
 import com.shadowexchange.dto.UserResponse;
-import com.shadowexchange.entity.User;
 import com.shadowexchange.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +17,11 @@ public class UserController {
     @PostMapping
     public UserResponse createUser(@RequestBody CreateUserRequest request) {
         return userService.createUser(request);
+    }
+
+    @PostMapping("/demo")
+    public UserResponse createDemoUser() {
+        return userService.createDemoUser();
     }
 
     @GetMapping("/{userId}")
