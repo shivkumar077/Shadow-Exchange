@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getStocks, type ApiStock } from "./api";
+import { createDemoUser, getStocks, getUser, submitOrder, type ApiStock } from "./api";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -35,7 +35,7 @@ type LocalOrder = {
   symbol: string;
   quantity: number;
   price: number;
-  status: "QUEUED" | "FILLED";
+  status: "PENDING" | "PARTIALLY_FILLED" | "FILLED" | "CANCELLED";
   time: string;
 };
 
@@ -102,16 +102,15 @@ function App() {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [stocksLoading, setStocksLoading] = useState(true);
   const [stocksError, setStocksError] = useState("");
+  const [demoUserId, setDemoUserId] = useState<number | null>(null);
+  const [accountLoading, setAccountLoading] = useState(true);
+  const [submittingOrder, setSubmittingOrder] = useState(false);
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
   const [quantity, setQuantity] = useState("10");
   const [limitPrice, setLimitPrice] = useState("142.87");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
-  const [orders, setOrders] = useState<LocalOrder[]>([
-    { id: 1048, side: "BUY", symbol: "AAPL", quantity: 12, price: 229.5, status: "QUEUED", time: "10:42:18" },
-    { id: 1047, side: "SELL", symbol: "MSFT", quantity: 4, price: 431.2, status: "QUEUED", time: "10:39:06" },
-    { id: 1046, side: "BUY", symbol: "NVDA", quantity: 8, price: 140.25, status: "FILLED", time: "10:31:52" },
-  ]);
+  const [orders, setOrders] = useState<LocalOrder[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,6 +152,31 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadDemoAccount() {
+      try {
+        const storedId = window.localStorage.getItem("shadow-exchange-demo-user-id");
+        let user;
+        if (storedId && /^\\d+$/.test(storedId)) {
+          try { user = await getUser(Number(storedId)); }
+          catch { /* H2 may have restarted and cleared the user table. */ }
+        }
+        if (!user) {
+          user = await createDemoUser();
+          window.localStorage.setItem("shadow-exchange-demo-user-id", String(user.id));
+        }
+        if (!cancelled) setDemoUserId(user.id);
+      } catch (error) {
+        if (!cancelled) setToast(error instanceof Error ? `Demo account unavailable: ${error.message}` : "Demo account unavailable.");
+      } finally {
+        if (!cancelled) setAccountLoading(false);
+      }
+    }
+    void loadDemoAccount();
+    return () => { cancelled = true; };
+  }, []);
+
   const selectedStock = stocks.find((stock) => stock.symbol === selectedSymbol) ?? stocks[0] ?? {
     id: 0,
     symbol: "—",
@@ -170,24 +194,42 @@ function App() {
     setLimitPrice(stock.price.toFixed(2));
   };
 
-  const placeDemoOrder = () => {
+  const placeDemoOrder = async () => {
     const parsedQuantity = Number(quantity);
     const parsedPrice = Number(limitPrice);
     if (!Number.isInteger(parsedQuantity) || parsedQuantity < 1 || !Number.isFinite(parsedPrice) || parsedPrice <= 0) {
       setToast("Enter a valid quantity and limit price.");
       return;
     }
-    const newOrder: LocalOrder = {
-      id: (orders[0]?.id ?? 1048) + 1,
-      side,
-      symbol: selectedSymbol,
-      quantity: parsedQuantity,
-      price: parsedPrice,
-      status: "QUEUED",
-      time: new Date().toLocaleTimeString("en-GB", { hour12: false }),
-    };
-    setOrders((current) => [newOrder, ...current].slice(0, 5));
-    setToast(`${side} order staged locally · ${parsedQuantity} ${selectedSymbol}`);
+    if (!demoUserId || !selectedStock.id) {
+      setToast("The demo account or selected instrument is not ready yet.");
+      return;
+    }
+    setSubmittingOrder(true);
+    try {
+      const response = await submitOrder({
+        userId: demoUserId,
+        stockId: selectedStock.id,
+        type: side,
+        price: parsedPrice,
+        quantity: parsedQuantity,
+      });
+      const createdOrder: LocalOrder = {
+        id: response.id,
+        side: response.type,
+        symbol: selectedStock.symbol,
+        quantity: response.quantity,
+        price: Number(response.price),
+        status: response.status,
+        time: new Date().toLocaleTimeString("en-GB", { hour12: false }),
+      };
+      setOrders((current) => [createdOrder, ...current].slice(0, 5));
+      setToast(`Order #${response.id} accepted by the exchange · ${response.status}`);
+    } catch (error) {
+      setToast(error instanceof Error ? `Order rejected: ${error.message}` : "The exchange could not place this order.");
+    } finally {
+      setSubmittingOrder(false);
+    }
   };
 
   const navigation = [
@@ -231,7 +273,7 @@ function App() {
         <div className="sidebar-bottom">
           <div className="status-card">
             <span className={`status-light ${stocksError ? "is-error" : ""}`} />
-            <div><strong>Exchange API</strong><small>{stocksLoading ? "Connecting…" : stocksError ? "Needs attention" : "Stocks endpoint ready"}</small></div>
+            <div><strong>Exchange API</strong><small>{stocksLoading ? "Connecting…" : stocksError ? "Needs attention" : accountLoading ? "Preparing demo account…" : demoUserId ? "Demo account ready" : "Account unavailable"}</small></div>
             <span className="status-pulse" />
           </div>
           <button className="nav-item utility-item" onClick={() => setToast("Settings will be available in a later build.")}><Settings2 size={16} /><span>Preferences</span></button>
@@ -358,7 +400,7 @@ function App() {
                 </div>
                 <div className="order-estimate"><span>ESTIMATED ORDER VALUE</span><strong>{money(estimatedValue)}</strong></div>
                 <div className="order-note"><ShieldCheck size={14} /><span>Simulation only. No real funds or securities.</span></div>
-                <button className={`submit-order ${side === "SELL" ? "sell-submit" : ""}`} onClick={placeDemoOrder} disabled={stocksLoading || stocks.length === 0 || Boolean(stocksError)}>{side === "BUY" ? "Review buy order" : "Review sell order"} <ArrowUpRight size={16} /></button>
+                <button className={`submit-order ${side === "SELL" ? "sell-submit" : ""}`} onClick={placeDemoOrder} disabled={stocksLoading || stocks.length === 0 || Boolean(stocksError) || accountLoading || !demoUserId || submittingOrder}>{submittingOrder ? "Submitting order…" : side === "BUY" ? "Place buy order" : "Place sell order"} <ArrowUpRight size={16} /></button>
                 <div className="ticket-footnote">By continuing, you acknowledge this is a simulated market.</div>
               </section>
 
@@ -399,7 +441,7 @@ function App() {
 
           <section className="panel activity-panel">
             <div className="panel-topline">
-              <div className="panel-label"><span className="panel-index">05</span> ORDER ACTIVITY <span className="panel-count">LOCAL PREVIEW</span></div>
+              <div className="panel-label"><span className="panel-index">05</span> ORDER ACTIVITY <span className="panel-count">BACKEND CONFIRMED</span></div>
               <button className="subtle-button" onClick={() => setActiveSection("Activity")}>View activity <ArrowUpRight size={13} /></button>
             </div>
             <div className="activity-table">
