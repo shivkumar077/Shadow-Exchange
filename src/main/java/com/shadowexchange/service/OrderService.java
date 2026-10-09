@@ -122,6 +122,16 @@ public class OrderService {
         return toResponseDTO(savedOrder);
     }
 
+    public java.util.List<OrderResponseDTO> getOrdersForUser(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new RuntimeException("User not found");
+        }
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
     public OrderResponseDTO toResponseDTO(Order order) {
         OrderResponseDTO response = new OrderResponseDTO();
         response.setId(order.getId());
@@ -131,6 +141,7 @@ public class OrderService {
         response.setQuantity(order.getQuantity());
         response.setType(order.getType());
         response.setStatus(order.getStatus());
+        response.setCreatedAt(order.getCreatedAt());
         return response;
     }
 }
