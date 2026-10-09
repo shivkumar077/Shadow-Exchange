@@ -249,7 +249,7 @@ function App() {
   };
 
   const cancelPendingOrder = async (order: LocalOrder) => {
-    if (order.status !== "PENDING" && order.status !== "PARTIALLY_FILLED") {
+    if (order.status !== "PENDING") {
       setToast("Only pending or partially filled orders can be cancelled.");
       return;
     }
@@ -499,7 +499,7 @@ function App() {
                   <span>{money(order.price)}</span>
                   <span><i className={`status-indicator ${order.status.toLowerCase()}`} />{order.status}</span>
                   <span className="activity-time">{order.time}</span>
-                  {(order.status === "PENDING" || order.status === "PARTIALLY_FILLED") && (
+                  {order.status === "PENDING" && (
                     <button
                       className="cancel-order-button"
                       onClick={() => void cancelPendingOrder(order)}
