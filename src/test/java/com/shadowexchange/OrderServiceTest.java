@@ -154,4 +154,72 @@ class OrderServiceTest {
 
         assertEquals(70, holding.getReservedQuantity());
     }
+
+    @Test
+    void shouldReserveFundsWhenBuyOrderIsPlaced() {
+        User buyer = new User();
+        buyer.setBalance(new BigDecimal("10000.00"));
+        buyer.setReservedBalance(new BigDecimal("1000.00"));
+
+        Stock stock = new Stock();
+
+        OrderRequestDTO request = new OrderRequestDTO();
+        request.setUserId(1L);
+        request.setStockId(1L);
+        request.setPrice(new BigDecimal("100.00"));
+        request.setQuantity(20);
+        request.setType(OrderType.BUY);
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(buyer));
+        when(stockRepository.findById(1L))
+                .thenReturn(Optional.of(stock));
+        when(orderRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.createOrder(request);
+
+        // 20 shares at the limit price of 100 reserve 2,000.
+        assertEquals(new BigDecimal("3000.00"), buyer.getReservedBalance());
+        assertEquals(new BigDecimal("10000.00"), buyer.getBalance());
+
+        verify(userRepository).save(buyer);
+        verify(orderRepository).save(any());
+        verify(orderBook).addOrder(any());
+    }
+
+    @Test
+    void shouldRejectBuyOrderWhenAvailableFundsAreInsufficient() {
+        User buyer = new User();
+        buyer.setBalance(new BigDecimal("1000.00"));
+        buyer.setReservedBalance(new BigDecimal("200.00"));
+
+        Stock stock = new Stock();
+
+        OrderRequestDTO request = new OrderRequestDTO();
+        request.setUserId(1L);
+        request.setStockId(1L);
+        request.setPrice(new BigDecimal("100.00"));
+        request.setQuantity(9);
+        request.setType(OrderType.BUY);
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(buyer));
+        when(stockRepository.findById(1L))
+                .thenReturn(Optional.of(stock));
+
+        // Available funds are 1,000 - 200 = 800, but the order needs 900.
+        assertThrows(
+                RuntimeException.class,
+                () -> orderService.createOrder(request)
+        );
+
+        assertEquals(new BigDecimal("1000.00"), buyer.getBalance());
+        assertEquals(new BigDecimal("200.00"), buyer.getReservedBalance());
+
+        verify(userRepository, never()).save(any());
+        verify(orderRepository, never()).save(any());
+        verify(orderBook, never()).addOrder(any());
+    }
+
 }
