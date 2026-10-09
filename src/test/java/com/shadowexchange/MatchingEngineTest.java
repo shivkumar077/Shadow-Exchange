@@ -234,4 +234,61 @@ class MatchingEngineTest {
         verify(orderRepository, never()).save(any(Order.class));
     }
 
+
+    @Test
+    void shouldNeverMatchOrdersAcrossDifferentStocks() {
+        OrderBook orderBook = new OrderBook();
+        TradeRepository tradeRepository = mock(TradeRepository.class);
+        OrderRepository orderRepository = mock(OrderRepository.class);
+
+        MatchingEngine matchingEngine = new MatchingEngine(
+                orderBook,
+                tradeRepository,
+                orderRepository
+        );
+
+        User buyerA = new User();
+        User sellerA = new User();
+        User buyerB = new User();
+        User sellerB = new User();
+        Stock stockA = new Stock();
+        Stock stockB = new Stock();
+
+        Order buyA = new Order(
+                buyerA, stockA, new BigDecimal("100.00"), 10, OrderType.BUY
+        );
+        Order sellA = new Order(
+                sellerA, stockA, new BigDecimal("95.00"), 10, OrderType.SELL
+        );
+        Order buyB = new Order(
+                buyerB, stockB, new BigDecimal("80.00"), 10, OrderType.BUY
+        );
+        Order sellB = new Order(
+                sellerB, stockB, new BigDecimal("70.00"), 10, OrderType.SELL
+        );
+
+        orderBook.addOrder(buyA);
+        orderBook.addOrder(sellA);
+        orderBook.addOrder(buyB);
+        orderBook.addOrder(sellB);
+
+        matchingEngine.match();
+
+        ArgumentCaptor<Trade> tradeCaptor = ArgumentCaptor.forClass(Trade.class);
+        verify(tradeRepository, times(2)).save(tradeCaptor.capture());
+
+        for (Trade trade : tradeCaptor.getAllValues()) {
+            assertEquals(
+                    trade.getBuyOrder().getStock(),
+                    trade.getSellOrder().getStock()
+            );
+            assertEquals(trade.getStock(), trade.getBuyOrder().getStock());
+        }
+
+        assertEquals(0, buyA.getQuantity());
+        assertEquals(0, sellA.getQuantity());
+        assertEquals(0, buyB.getQuantity());
+        assertEquals(0, sellB.getQuantity());
+    }
+
 }
