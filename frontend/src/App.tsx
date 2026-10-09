@@ -489,7 +489,7 @@ function App() {
               <button className="subtle-button" onClick={() => setActiveSection("Activity")}>View activity <ArrowUpRight size={13} /></button>
             </div>
             <div className="activity-table">
-              <div className="table-head"><span>ORDER</span><span>SIDE</span><span>INSTRUMENT</span><span>QUANTITY</span><span>LIMIT PRICE</span><span>STATUS</span><span>TIME</span></div>
+              <div className="table-head"><span>ORDER</span><span>SIDE</span><span>INSTRUMENT</span><span>QUANTITY</span><span>LIMIT PRICE</span><span>STATUS</span><span>TIME</span><span>ACTION</span></div>
               {orders.slice(0, 3).map((order) => (
                 <div className="activity-row" key={order.id}>
                   <span className="order-id">#{order.id}</span>
