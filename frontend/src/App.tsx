@@ -358,7 +358,7 @@ function App() {
                 </div>
                 <div className="order-estimate"><span>ESTIMATED ORDER VALUE</span><strong>{money(estimatedValue)}</strong></div>
                 <div className="order-note"><ShieldCheck size={14} /><span>Simulation only. No real funds or securities.</span></div>
-                <button className={`submit-order ${side === "SELL" ? "sell-submit" : ""}`} onClick={placeDemoOrder}>{side === "BUY" ? "Review buy order" : "Review sell order"} <ArrowUpRight size={16} /></button>
+                <button className={`submit-order ${side === "SELL" ? "sell-submit" : ""}`} onClick={placeDemoOrder} disabled={stocksLoading || stocks.length === 0 || Boolean(stocksError)}>{side === "BUY" ? "Review buy order" : "Review sell order"} <ArrowUpRight size={16} /></button>
                 <div className="ticket-footnote">By continuing, you acknowledge this is a simulated market.</div>
               </section>
 
@@ -368,20 +368,26 @@ function App() {
                   <span className="depth-live"><span className="status-light" /> LIVE SIM</span>
                 </div>
                 <div className="depth-head"><span>SIZE</span><span>BUY PRICE</span><span>SELL PRICE</span><span>SIZE</span></div>
-                {[
-                  { buySize: "124", buy: selectedStock.price - 0.12, sell: selectedStock.price + 0.13, sellSize: "86", width: 66 },
-                  { buySize: "82", buy: selectedStock.price - 0.24, sell: selectedStock.price + 0.25, sellSize: "142", width: 45 },
-                  { buySize: "206", buy: selectedStock.price - 0.37, sell: selectedStock.price + 0.38, sellSize: "98", width: 82 },
-                  { buySize: "64", buy: selectedStock.price - 0.51, sell: selectedStock.price + 0.52, sellSize: "173", width: 34 },
-                ].map((level, index) => (
-                  <div className="depth-row" key={index}>
-                    <span className="depth-size buy-depth" style={{ "--depth": `${level.width}%` } as CSSProperties & { "--depth": string }}>{level.buySize}</span>
-                    <strong className="positive">{level.buy.toFixed(2)}</strong>
-                    <strong className="negative">{level.sell.toFixed(2)}</strong>
-                    <span className="depth-size sell-depth" style={{ "--depth": `${100 - level.width}%` } as CSSProperties & { "--depth": string }}>{level.sellSize}</span>
-                  </div>
-                ))}
-                <div className="depth-mid"><span>SPREAD</span><strong>$0.25 <small>0.17%</small></strong></div>
+                {stocks.length > 0 ? (
+                  <>
+                    {[
+                      { buySize: "124", buy: selectedStock.price - 0.12, sell: selectedStock.price + 0.13, sellSize: "86", width: 66 },
+                      { buySize: "82", buy: selectedStock.price - 0.24, sell: selectedStock.price + 0.25, sellSize: "142", width: 45 },
+                      { buySize: "206", buy: selectedStock.price - 0.37, sell: selectedStock.price + 0.38, sellSize: "98", width: 82 },
+                      { buySize: "64", buy: selectedStock.price - 0.51, sell: selectedStock.price + 0.52, sellSize: "173", width: 34 },
+                    ].map((level, index) => (
+                      <div className="depth-row" key={index}>
+                        <span className="depth-size buy-depth" style={{ "--depth": `${level.width}%` } as CSSProperties & { "--depth": string }}>{level.buySize}</span>
+                        <strong className="positive">{level.buy.toFixed(2)}</strong>
+                        <strong className="negative">{level.sell.toFixed(2)}</strong>
+                        <span className="depth-size sell-depth" style={{ "--depth": `${100 - level.width}%` } as CSSProperties & { "--depth": string }}>{level.sellSize}</span>
+                      </div>
+                    ))}
+                    <div className="depth-mid"><span>SPREAD</span><strong>$0.25 <small>0.17%</small></strong></div>
+                  </>
+                ) : (
+                  <div className="empty-state">{stocksLoading ? "Connecting to exchange…" : "Market depth will appear when an instrument is available."}</div>
+                )}
               </section>
 
               <section className="panel session-panel">
