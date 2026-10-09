@@ -375,4 +375,134 @@ class SettlementServiceTest {
         verify(holdingRepository).save(sellerHolding);
     }
 
+
+    @Test
+    void shouldRejectTradeWhenSellerHasNotReservedEnoughShares() {
+        User buyer = new User();
+        buyer.setBalance(new BigDecimal("10000.00"));
+        buyer.setReservedBalance(new BigDecimal("2000.00"));
+
+        User seller = new User();
+        seller.setBalance(new BigDecimal("5000.00"));
+        seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+
+        Order buyOrder = new Order(
+                buyer,
+                stock,
+                new BigDecimal("100.00"),
+                20,
+                OrderType.BUY
+        );
+
+        Order sellOrder = new Order(
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                20,
+                OrderType.SELL
+        );
+
+        Holding sellerHolding = new Holding(
+                seller,
+                stock,
+                100,
+                10
+        );
+
+        Trade trade = new Trade(
+                buyer,
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                20,
+                buyOrder,
+                sellOrder
+        );
+
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(Optional.of(sellerHolding));
+
+        assertThrows(
+                RuntimeException.class,
+                () -> settlementService.settleTrade(trade)
+        );
+
+        assertEquals(new BigDecimal("10000.00"), buyer.getBalance());
+        assertEquals(new BigDecimal("2000.00"), buyer.getReservedBalance());
+        assertEquals(new BigDecimal("5000.00"), seller.getBalance());
+        assertEquals(100, sellerHolding.getQuantity());
+        assertEquals(10, sellerHolding.getReservedQuantity());
+
+        verify(userRepository, never()).save(any());
+        verify(holdingRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldCreateBuyerHoldingWhenBuyerHasNoExistingHolding() {
+        User buyer = new User();
+        buyer.setBalance(new BigDecimal("10000.00"));
+        buyer.setReservedBalance(new BigDecimal("1000.00"));
+
+        User seller = new User();
+        seller.setBalance(new BigDecimal("5000.00"));
+        seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+
+        Order buyOrder = new Order(
+                buyer,
+                stock,
+                new BigDecimal("100.00"),
+                10,
+                OrderType.BUY
+        );
+
+        Order sellOrder = new Order(
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                10,
+                OrderType.SELL
+        );
+
+        Holding sellerHolding = new Holding(
+                seller,
+                stock,
+                50,
+                10
+        );
+
+        Trade trade = new Trade(
+                buyer,
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                10,
+                buyOrder,
+                sellOrder
+        );
+
+        when(holdingRepository.findByUserAndStock(buyer, stock))
+                .thenReturn(Optional.empty());
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(Optional.of(sellerHolding));
+
+        settlementService.settleTrade(trade);
+
+        assertEquals(new BigDecimal("9050.00"), buyer.getBalance());
+        assertEquals(new BigDecimal("0.00"), buyer.getReservedBalance());
+        assertEquals(new BigDecimal("5950.00"), seller.getBalance());
+
+        verify(holdingRepository).save(argThat(holding ->
+                holding.getUser() == buyer
+                        && holding.getStock() == stock
+                        && holding.getQuantity() == 10
+        ));
+        assertEquals(40, sellerHolding.getQuantity());
+        assertEquals(0, sellerHolding.getReservedQuantity());
+        verify(holdingRepository).save(sellerHolding);
+    }
+
 }
