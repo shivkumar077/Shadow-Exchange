@@ -5,6 +5,7 @@ import com.shadowexchange.entity.Holding;
 import com.shadowexchange.entity.OrderType;
 import com.shadowexchange.entity.Stock;
 import com.shadowexchange.entity.User;
+import com.shadowexchange.matching.MatchingEngine;
 import com.shadowexchange.orderbook.OrderBook;
 import com.shadowexchange.repository.HoldingRepository;
 import com.shadowexchange.repository.OrderRepository;
@@ -42,24 +43,20 @@ class OrderServiceTest {
     @Mock
     private OrderBook orderBook;
 
+    @Mock
+    private MatchingEngine matchingEngine;
+
     @InjectMocks
     private OrderService orderService;
 
     @Test
     void shouldRejectSellOrderWhenAvailableSharesAreInsufficient() {
-
         User seller = new User();
         seller.setBalance(new BigDecimal("5000.00"));
         seller.setReservedBalance(BigDecimal.ZERO);
 
         Stock stock = new Stock();
-
-        Holding holding = new Holding(
-                seller,
-                stock,
-                100,
-                80
-        );
+        Holding holding = new Holding(seller, stock, 100, 80);
 
         OrderRequestDTO request = new OrderRequestDTO();
         request.setUserId(1L);
@@ -68,19 +65,12 @@ class OrderServiceTest {
         request.setQuantity(30);
         request.setType(OrderType.SELL);
 
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(seller));
-
-        when(stockRepository.findById(1L))
-                .thenReturn(Optional.of(stock));
-
+        when(userRepository.findById(1L)).thenReturn(Optional.of(seller));
+        when(stockRepository.findById(1L)).thenReturn(Optional.of(stock));
         when(holdingRepository.findByUserAndStock(seller, stock))
                 .thenReturn(Optional.of(holding));
 
-        assertThrows(
-                RuntimeException.class,
-                () -> orderService.createOrder(request)
-        );
+        assertThrows(RuntimeException.class, () -> orderService.createOrder(request));
 
         assertEquals(100, holding.getQuantity());
         assertEquals(80, holding.getReservedQuantity());
@@ -88,32 +78,23 @@ class OrderServiceTest {
         verify(holdingRepository, never()).save(holding);
         verify(orderRepository, never()).save(any());
         verify(orderBook, never()).addOrder(any());
+        verify(matchingEngine, never()).match();
     }
 
     @Test
     void shouldTrackReservedSharesAcrossMultipleSellOrders() {
-
         User seller = new User();
         seller.setBalance(new BigDecimal("5000.00"));
         seller.setReservedBalance(BigDecimal.ZERO);
 
         Stock stock = new Stock();
+        Holding holding = new Holding(seller, stock, 100, 0);
 
-        Holding holding = new Holding(
-                seller,
-                stock,
-                100,
-                0
-        );
-
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(seller));
-
-        when(stockRepository.findById(1L))
-                .thenReturn(Optional.of(stock));
-
+        when(userRepository.findById(1L)).thenReturn(Optional.of(seller));
+        when(stockRepository.findById(1L)).thenReturn(Optional.of(stock));
         when(holdingRepository.findByUserAndStock(seller, stock))
                 .thenReturn(Optional.of(holding));
+        when(orderRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         OrderRequestDTO firstOrder = new OrderRequestDTO();
         firstOrder.setUserId(1L);
@@ -136,23 +117,16 @@ class OrderServiceTest {
         thirdOrder.setQuantity(31);
         thirdOrder.setType(OrderType.SELL);
 
-        when(orderRepository.save(any()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
         orderService.createOrder(firstOrder);
-
         assertEquals(30, holding.getReservedQuantity());
 
         orderService.createOrder(secondOrder);
-
         assertEquals(70, holding.getReservedQuantity());
 
-        assertThrows(
-                RuntimeException.class,
-                () -> orderService.createOrder(thirdOrder)
-        );
-
+        assertThrows(RuntimeException.class, () -> orderService.createOrder(thirdOrder));
         assertEquals(70, holding.getReservedQuantity());
+
+        verify(matchingEngine, times(2)).match();
     }
 
     @Test
@@ -162,7 +136,6 @@ class OrderServiceTest {
         buyer.setReservedBalance(new BigDecimal("1000.00"));
 
         Stock stock = new Stock();
-
         OrderRequestDTO request = new OrderRequestDTO();
         request.setUserId(1L);
         request.setStockId(1L);
@@ -170,22 +143,19 @@ class OrderServiceTest {
         request.setQuantity(20);
         request.setType(OrderType.BUY);
 
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(buyer));
-        when(stockRepository.findById(1L))
-                .thenReturn(Optional.of(stock));
-        when(orderRepository.save(any()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(buyer));
+        when(stockRepository.findById(1L)).thenReturn(Optional.of(stock));
+        when(orderRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         orderService.createOrder(request);
 
-        // 20 shares at the limit price of 100 reserve 2,000.
         assertEquals(new BigDecimal("3000.00"), buyer.getReservedBalance());
         assertEquals(new BigDecimal("10000.00"), buyer.getBalance());
 
         verify(userRepository).save(buyer);
         verify(orderRepository).save(any());
         verify(orderBook).addOrder(any());
+        verify(matchingEngine).match();
     }
 
     @Test
@@ -195,7 +165,6 @@ class OrderServiceTest {
         buyer.setReservedBalance(new BigDecimal("200.00"));
 
         Stock stock = new Stock();
-
         OrderRequestDTO request = new OrderRequestDTO();
         request.setUserId(1L);
         request.setStockId(1L);
@@ -203,16 +172,10 @@ class OrderServiceTest {
         request.setQuantity(9);
         request.setType(OrderType.BUY);
 
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(buyer));
-        when(stockRepository.findById(1L))
-                .thenReturn(Optional.of(stock));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(buyer));
+        when(stockRepository.findById(1L)).thenReturn(Optional.of(stock));
 
-        // Available funds are 1,000 - 200 = 800, but the order needs 900.
-        assertThrows(
-                RuntimeException.class,
-                () -> orderService.createOrder(request)
-        );
+        assertThrows(RuntimeException.class, () -> orderService.createOrder(request));
 
         assertEquals(new BigDecimal("1000.00"), buyer.getBalance());
         assertEquals(new BigDecimal("200.00"), buyer.getReservedBalance());
@@ -220,6 +183,6 @@ class OrderServiceTest {
         verify(userRepository, never()).save(any());
         verify(orderRepository, never()).save(any());
         verify(orderBook, never()).addOrder(any());
+        verify(matchingEngine, never()).match();
     }
-
 }
