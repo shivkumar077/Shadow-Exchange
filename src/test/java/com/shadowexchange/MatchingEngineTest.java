@@ -291,4 +291,86 @@ class MatchingEngineTest {
         assertEquals(0, sellB.getQuantity());
     }
 
+    @Test
+    void shouldPartiallyFillBuyOrderAndSettleOnlyAvailableSellShares() {
+        OrderBook orderBook = new OrderBook();
+        TradeRepository tradeRepository = mock(TradeRepository.class);
+        OrderRepository orderRepository = mock(OrderRepository.class);
+        com.shadowexchange.repository.HoldingRepository holdingRepository =
+                mock(com.shadowexchange.repository.HoldingRepository.class);
+        com.shadowexchange.repository.UserRepository userRepository =
+                mock(com.shadowexchange.repository.UserRepository.class);
+
+        SettlementService settlementService =
+                new SettlementService(holdingRepository, userRepository);
+        MatchingEngine matchingEngine = new MatchingEngine(
+                orderBook,
+                tradeRepository,
+                orderRepository,
+                settlementService
+        );
+
+        User buyer = new User();
+        buyer.setBalance(new BigDecimal("10000.00"));
+        buyer.setReservedBalance(new BigDecimal("1000.00"));
+
+        User seller = new User();
+        seller.setBalance(new BigDecimal("5000.00"));
+        seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+        stock.setSymbol("PART");
+        stock.setCompanyName("Partial Fill Test");
+        stock.setCurrentPrice(new BigDecimal("100.00"));
+
+        java.time.LocalDateTime earlier = java.time.LocalDateTime.now().minusSeconds(2);
+        Order buyOrder = new Order(
+                buyer, stock, new BigDecimal("100.00"), 10, OrderType.BUY
+        );
+        buyOrder.setCreatedAt(earlier);
+
+        Order sellOrder = new Order(
+                seller, stock, new BigDecimal("95.00"), 4, OrderType.SELL
+        );
+        sellOrder.setCreatedAt(earlier.plusSeconds(1));
+
+        com.shadowexchange.entity.Holding sellerHolding =
+                new com.shadowexchange.entity.Holding(seller, stock, 4, 4);
+
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(java.util.Optional.of(sellerHolding));
+        when(holdingRepository.findByUserAndStock(buyer, stock))
+                .thenReturn(java.util.Optional.empty());
+
+        orderBook.addOrder(buyOrder);
+        orderBook.addOrder(sellOrder);
+
+        matchingEngine.match();
+
+        assertEquals(6, buyOrder.getQuantity());
+        assertEquals(OrderStatus.PARTIALLY_FILLED, buyOrder.getStatus());
+        assertEquals(0, sellOrder.getQuantity());
+        assertEquals(OrderStatus.FILLED, sellOrder.getStatus());
+
+        // Only 4 shares were traded at the buyer's $100 limit price.
+        assertEquals(new BigDecimal("9600.00"), buyer.getBalance());
+        assertEquals(new BigDecimal("600.00"), buyer.getReservedBalance());
+        assertEquals(new BigDecimal("5400.00"), seller.getBalance());
+        assertEquals(0, sellerHolding.getQuantity());
+        assertEquals(0, sellerHolding.getReservedQuantity());
+
+        verify(holdingRepository).save(argThat(holding ->
+                holding.getUser() == buyer
+                        && holding.getStock() == stock
+                        && holding.getQuantity() == 4
+        ));
+        verify(holdingRepository).save(sellerHolding);
+        verify(tradeRepository).save(argThat(trade ->
+                trade.getQuantity() == 4
+                        && trade.getPrice().compareTo(new BigDecimal("100.00")) == 0
+        ));
+        verify(orderRepository).save(buyOrder);
+        verify(orderRepository).save(sellOrder);
+    }
+
 }
