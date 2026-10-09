@@ -322,10 +322,10 @@ function App() {
                   { buySize: "64", buy: selectedStock.price - 0.51, sell: selectedStock.price + 0.52, sellSize: "173", width: 34 },
                 ].map((level, index) => (
                   <div className="depth-row" key={index}>
-                    <span className="depth-size buy-depth" style={{ "--depth": `${level.width}%` } as CSSProperties}>{level.buySize}</span>
+                    <span className="depth-size buy-depth" style={{ "--depth": `${level.width}%` } as CSSProperties & { "--depth": string }}>{level.buySize}</span>
                     <strong className="positive">{level.buy.toFixed(2)}</strong>
                     <strong className="negative">{level.sell.toFixed(2)}</strong>
-                    <span className="depth-size sell-depth" style={{ "--depth": `${100 - level.width}%` } as CSSProperties}>{level.sellSize}</span>
+                    <span className="depth-size sell-depth" style={{ "--depth": `${100 - level.width}%` } as CSSProperties & { "--depth": string }}>{level.sellSize}</span>
                   </div>
                 ))}
                 <div className="depth-mid"><span>SPREAD</span><strong>$0.25 <small>0.17%</small></strong></div>
