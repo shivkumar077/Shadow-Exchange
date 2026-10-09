@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { cancelOrder, createDemoUser, getOrders, getStocks, getUser, submitOrder, type ApiOrder, type ApiStock } from "./api";
+import { cancelOrder, createDemoUser, getOrders, getPortfolio, getStocks, getUser, submitOrder, type ApiHolding, type ApiOrder, type ApiStock } from "./api";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -111,6 +111,8 @@ function App() {
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
   const [orders, setOrders] = useState<LocalOrder[]>([]);
+  const [portfolio, setPortfolio] = useState<ApiHolding[]>([]);
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,6 +194,19 @@ function App() {
     void loadDemoAccount();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!demoUserId) return;
+    let cancelled = false;
+    setPortfolioLoading(true);
+    getPortfolio(demoUserId)
+      .then((holdings) => { if (!cancelled) setPortfolio(holdings); })
+      .catch((error: unknown) => {
+        if (!cancelled) setToast(error instanceof Error ? `Portfolio unavailable: ${error.message}` : "Portfolio unavailable.");
+      })
+      .finally(() => { if (!cancelled) setPortfolioLoading(false); });
+    return () => { cancelled = true; };
+  }, [demoUserId, orders]);
 
   const selectedStock = stocks.find((stock) => stock.symbol === selectedSymbol) ?? stocks[0] ?? {
     id: 0,
@@ -364,6 +379,34 @@ function App() {
             <div className="ribbon-footnote">DELAYED DATA <span>·</span> ILLUSTRATIVE</div>
           </section>
 
+          {activeSection === "Portfolio" ? (
+            <section className="portfolio-view">
+              <div className="portfolio-summary-grid">
+                <article className="portfolio-metric"><span>POSITIONS</span><strong>{portfolio.length.toString().padStart(2, "0")}</strong><small>Instruments held</small></article>
+                <article className="portfolio-metric"><span>MARKET VALUE</span><strong>{money(portfolio.reduce((total, holding) => total + Number(holding.marketValue), 0))}</strong><small>Based on current listed prices</small></article>
+                <article className="portfolio-metric"><span>SHARES RESERVED</span><strong>{portfolio.reduce((total, holding) => total + holding.reservedQuantity, 0)}</strong><small>Committed to open sell orders</small></article>
+              </div>
+              <section className="panel portfolio-table-panel">
+                <div className="panel-topline"><div className="panel-label"><span className="panel-index">06</span> YOUR POSITIONS</div>
+                  <button className="subtle-button" onClick={() => { if (demoUserId) void getPortfolio(demoUserId).then(setPortfolio).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Unable to refresh portfolio.")); }}>Refresh <ArrowUpRight size={13} /></button>
+                </div>
+                <div className="portfolio-table">
+                  <div className="portfolio-table-head"><span>INSTRUMENT</span><span>SHARES</span><span>AVAILABLE</span><span>PRICE</span><span>MARKET VALUE</span></div>
+                  {portfolio.map((holding) => <button className="portfolio-row" key={holding.id} onClick={() => {
+                    const stock = stocks.find((item) => item.id === holding.stockId);
+                    if (stock) chooseStock(stock);
+                    setActiveSection("Overview");
+                  }}>
+                    <span className="portfolio-instrument"><span className="ticker-avatar">{holding.symbol.slice(0, 1)}</span><span><strong>{holding.symbol}</strong><small>{holding.companyName}</small></span></span>
+                    <strong>{holding.quantity}</strong><span>{holding.availableQuantity}</span><span>{money(Number(holding.currentPrice))}</span><strong>{money(Number(holding.marketValue))}</strong>
+                  </button>)}
+                  {portfolioLoading && <div className="empty-state">Loading account positions…</div>}
+                  {!portfolioLoading && portfolio.length === 0 && <div className="empty-state">No holdings in this account yet.</div>}
+                </div>
+                <div className="portfolio-note"><ShieldCheck size={14} /> Values use the exchange's listed prices and are illustrative, not live market data.</div>
+              </section>
+            </section>
+          ) : (
           <div className="content-grid">
             <div className="left-column">
               <section className="panel featured-panel">
@@ -516,6 +559,7 @@ function App() {
             <div><span className="footer-brand-mark">S.</span><span>SHADOW EXCHANGE</span><span className="footer-separator">/</span><span>BUILT FOR PRECISION.</span></div>
             <div><span>DEMO ENVIRONMENT</span><span className="footer-separator">·</span><span>NOT FINANCIAL ADVICE</span><span className="footer-version">v0.1.0</span></div>
           </footer>
+          )}
         </div>
       </main>
 
