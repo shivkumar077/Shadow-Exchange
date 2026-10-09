@@ -117,3 +117,14 @@ export async function submitOrder(order: {
     body: JSON.stringify(order),
   });
 }
+
+
+export type ApiOrderBook = {
+  stockId: number;
+  bids: ApiOrder[];
+  asks: ApiOrder[];
+};
+
+export async function getOrderBook(stockId: number): Promise<ApiOrderBook> {
+  return request<ApiOrderBook>(`/orders/book/${stockId}`);
+}
