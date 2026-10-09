@@ -156,7 +156,7 @@ function App() {
     let cancelled = false;
     async function loadDemoAccount() {
       try {
-        const storedId = window.localStorage.getItem("shadow-exchange-demo-user-id");
+        const storedId = window.localStorage.getItem("shadow-exchange-demo-user-id-v2");
         let user;
         if (storedId && /^\d+$/.test(storedId)) {
           try { user = await getUser(Number(storedId)); }
@@ -164,7 +164,7 @@ function App() {
         }
         if (!user) {
           user = await createDemoUser();
-          window.localStorage.setItem("shadow-exchange-demo-user-id", String(user.id));
+          window.localStorage.setItem("shadow-exchange-demo-user-id-v2", String(user.id));
         }
         if (!cancelled) setDemoUserId(user.id);
       } catch (error) {
