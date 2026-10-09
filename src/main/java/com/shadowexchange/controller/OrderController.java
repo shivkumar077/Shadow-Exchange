@@ -1,5 +1,6 @@
 package com.shadowexchange.controller;
 
+import com.shadowexchange.dto.OrderBookResponseDTO;
 import com.shadowexchange.dto.OrderRequestDTO;
 import com.shadowexchange.dto.OrderResponseDTO;
 import com.shadowexchange.entity.Order;
@@ -25,6 +26,11 @@ public class OrderController {
     @PostMapping
     public OrderResponseDTO createOrder(@RequestBody OrderRequestDTO orderRequestDTO) {
         return orderService.createOrder(orderRequestDTO);
+    }
+
+    @GetMapping("/book/{stockId}")
+    public OrderBookResponseDTO getOrderBook(@PathVariable Long stockId) {
+        return orderService.getOrderBook(stockId);
     }
 
     @GetMapping("/user/{userId}")
