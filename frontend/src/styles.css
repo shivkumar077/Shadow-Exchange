@@ -457,3 +457,8 @@ body { font-size: 14px; }
   .search-field input { font-size: 10px; }
   .page-footer { font-size: 8px; }
 }
+
+
+/* API integration states */
+.submit-order:disabled { opacity: .48; cursor: not-allowed; transform: none; }
+.status-light.is-error { background: var(--red); box-shadow: 0 0 0 3px #d8796120; }
