@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createDemoUser, getStocks, getUser, submitOrder, type ApiStock } from "./api";
+import { createDemoUser, getOrders, getStocks, getUser, submitOrder, type ApiOrder, type ApiStock } from "./api";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -166,7 +166,23 @@ function App() {
           user = await createDemoUser();
           window.localStorage.setItem("shadow-exchange-demo-user-id-v2", String(user.id));
         }
-        if (!cancelled) setDemoUserId(user.id);
+        if (!cancelled) {
+          setDemoUserId(user.id);
+          const savedOrders = await getOrders(user.id);
+          if (!cancelled) {
+            setOrders(savedOrders.map((order: ApiOrder) => ({
+              id: order.id,
+              side: order.type,
+              symbol: stocks.find((stock) => stock.id === order.stockId)?.symbol ?? `#${order.stockId}`,
+              quantity: order.quantity,
+              price: Number(order.price),
+              status: order.status,
+              time: order.createdAt
+                ? new Date(order.createdAt).toLocaleTimeString("en-GB", { hour12: false })
+                : "—",
+            })));
+          }
+        }
       } catch (error) {
         if (!cancelled) setToast(error instanceof Error ? `Demo account unavailable: ${error.message}` : "Demo account unavailable.");
       } finally {
