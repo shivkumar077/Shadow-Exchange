@@ -22,7 +22,7 @@ public class SettlementService {
     }
 
     @Transactional
-    public void settleTrade(Trade trade){
+    public void settleTrade(Trade trade) {
 
         User buyer = trade.getBuyer();
         User seller = trade.getSeller();
@@ -30,60 +30,85 @@ public class SettlementService {
         BigDecimal tradeValue = trade.getPrice()
                 .multiply(BigDecimal.valueOf(trade.getQuantity()));
 
-        BigDecimal buyPrice = trade.getBuyOrder() != null ? trade.getBuyOrder().getPrice() : trade.getPrice();
+        BigDecimal buyPrice = trade.getBuyOrder() != null
+                ? trade.getBuyOrder().getPrice()
+                : trade.getPrice();
+
         BigDecimal reservedAmount = buyPrice
                 .multiply(BigDecimal.valueOf(trade.getQuantity()));
 
+        // Release buyer's reserved money
         if (buyer.getReservedBalance() != null) {
-            buyer.setReservedBalance(buyer.getReservedBalance().subtract(reservedAmount));
+            buyer.setReservedBalance(
+                    buyer.getReservedBalance().subtract(reservedAmount)
+            );
         }
 
-        buyer.setBalance(buyer.getBalance().subtract(tradeValue));
+        // Deduct actual trade value from buyer
+        buyer.setBalance(
+                buyer.getBalance().subtract(tradeValue)
+        );
 
         userRepository.save(buyer);
 
-        seller.setBalance(seller.getBalance().add(tradeValue));
+        // Give seller the money
+        seller.setBalance(
+                seller.getBalance().add(tradeValue)
+        );
 
         userRepository.save(seller);
 
-        Holding buyerHolding = holdingRepository.findByUserAndStock(buyer, trade.getStock())
+        // Add shares to buyer
+        Holding buyerHolding = holdingRepository
+                .findByUserAndStock(buyer, trade.getStock())
                 .orElse(null);
 
+        if (buyerHolding != null) {
 
-        if(buyerHolding != null){
-
-            buyerHolding.setQuantity(buyerHolding.getQuantity() + trade.getQuantity());
+            buyerHolding.setQuantity(
+                    buyerHolding.getQuantity() + trade.getQuantity()
+            );
 
             holdingRepository.save(buyerHolding);
-        }
-        else {
+
+        } else {
+
             Holding newHolding = new Holding(
                     buyer,
                     trade.getStock(),
                     trade.getQuantity()
             );
+
             holdingRepository.save(newHolding);
         }
 
-        Holding sellerHolding = holdingRepository.
-                findByUserAndStock(seller, trade.getStock())
+        // Remove shares from seller
+        Holding sellerHolding = holdingRepository
+                .findByUserAndStock(seller, trade.getStock())
                 .orElse(null);
 
-        if(sellerHolding == null){
-            throw new RuntimeException("Seller does not have the stock to sell");
+        if (sellerHolding == null) {
+            throw new RuntimeException(
+                    "Seller does not have the stock to sell"
+            );
         }
 
-        if(sellerHolding.getQuantity() < trade.getQuantity()){
-            throw new RuntimeException("Seller does not have enough stock to sell");
+        if (sellerHolding.getQuantity() < trade.getQuantity()) {
+            throw new RuntimeException(
+                    "Seller does not have enough stock to sell"
+            );
         }
 
         sellerHolding.setQuantity(
                 sellerHolding.getQuantity() - trade.getQuantity()
         );
 
-        sellerHolding.setReservedQuantity(
-                sellerHolding.getReservedQuantity() - trade.getQuantity()
-        );
+        // Release seller's reserved shares
+        if (sellerHolding.getReservedQuantity() != null) {
+            sellerHolding.setReservedQuantity(
+                    sellerHolding.getReservedQuantity() - trade.getQuantity()
+            );
+        }
 
         holdingRepository.save(sellerHolding);
     }
