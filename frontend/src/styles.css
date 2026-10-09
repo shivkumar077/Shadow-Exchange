@@ -462,3 +462,83 @@ body { font-size: 14px; }
 /* API integration states */
 .submit-order:disabled { opacity: .48; cursor: not-allowed; transform: none; }
 .status-light.is-error { background: var(--red); box-shadow: 0 0 0 3px #d8796120; }
+
+
+/* Mobile refinement: keep the same art direction, improve touch targets and flow. */
+@media (max-width: 980px) {
+  .page-content { min-width: 0; }
+  .main-panel { min-width: 0; }
+  .panel, .content-grid, .left-column, .right-column { min-width: 0; }
+  .featured-panel, .watchlist-panel, .order-panel, .depth-panel, .session-panel, .activity-panel { overflow: hidden; }
+  .right-column { grid-template-columns: minmax(0, 1fr); }
+  .order-panel, .session-panel { grid-row: auto; grid-column: auto; }
+  .order-panel { order: -1; }
+}
+@media (max-width: 640px) {
+  .topbar { position: sticky; top: 0; z-index: 8; background: #12150f; }
+  .breadcrumbs { min-width: 0; overflow: hidden; white-space: nowrap; }
+  .topbar-actions { flex-shrink: 0; }
+  .page-heading h1 { font-size: clamp(34px, 9vw, 42px); line-height: .99; letter-spacing: -.055em; }
+  .heading-description { max-width: 34ch; }
+  .heading-meta { flex-wrap: wrap; }
+  .market-time { font-size: 16px; }
+  .market-open { width: 100%; margin-top: 3px; }
+  .market-ribbon { border-radius: 2px; }
+  .ribbon-stat { min-width: 0; padding: 12px 10px; }
+  .ribbon-stat strong { font-size: 15px; }
+  .ribbon-stat > span { white-space: nowrap; }
+  .panel-topline { gap: 8px; min-height: 48px; }
+  .panel-label { min-width: 0; gap: 7px; }
+  .featured-asset { gap: 10px; align-items: flex-start; }
+  .asset-identity { min-width: 0; }
+  .asset-identity > div:last-child { min-width: 0; }
+  .asset-name { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .asset-price-block { flex-shrink: 0; }
+  .asset-price { font-size: clamp(18px, 5vw, 22px); }
+  .asset-change { max-width: 45vw; text-align: right; font-size: 8px; line-height: 1.4; }
+  .chart-toolbar { flex-wrap: wrap; gap: 8px; }
+  .timeframes { width: 100%; justify-content: space-between; }
+  .timeframes button { min-height: 30px; min-width: 34px; }
+  .market-chart { width: 100%; height: auto; min-height: 0; aspect-ratio: 900 / 270; }
+  .chart-footer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding-bottom: 12px; }
+  .chart-footer span { display: flex; justify-content: space-between; gap: 8px; font-size: 9px; }
+  .chart-footer strong { font-size: 10px; }
+  .search-field { width: min(42%, 150px); min-width: 100px; }
+  .table-head, .watchlist-row { grid-template-columns: minmax(76px, 1.2fr) minmax(72px, 1fr) minmax(54px, .8fr) 10px; gap: 5px; padding-right: 8px; padding-left: 8px; }
+  .table-asset { gap: 7px; min-width: 0; }
+  .table-asset .ticker-avatar { flex: 0 0 27px; }
+  .table-asset small { max-width: 28vw; }
+  .table-price { font-size: 10px; }
+  .table-change { font-size: 9px; }
+  .watchlist-footer { gap: 8px; }
+  .watchlist-footer > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .order-panel { order: -1; }
+  .order-instrument { gap: 10px; }
+  .side-switch button { min-height: 43px; }
+  .order-field { margin-top: 17px; }
+  .number-input { min-height: 43px; }
+  .number-input input { min-width: 0; }
+  .quantity-presets button { min-width: 42px; min-height: 32px; }
+  .submit-order { min-height: 46px; }
+  .depth-head, .depth-row { grid-template-columns: .65fr 1fr 1fr .65fr; gap: 5px; padding-right: 9px; padding-left: 9px; }
+  .depth-row > strong { font-size: 10px; }
+  .activity-panel { overflow: hidden; }
+  .activity-table { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  .activity-table .table-head, .activity-row { min-width: 610px; }
+  .page-footer { gap: 10px; line-height: 1.8; }
+  .toast { left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); max-width: none; }
+  .mobile-menu { top: 10px; left: 10px; }
+}
+@media (max-width: 380px) {
+  .page-content { padding-right: 9px; padding-left: 9px; }
+  .topbar { padding-right: 9px; padding-left: 48px; }
+  .session-pill { max-width: 128px; overflow: hidden; text-overflow: ellipsis; }
+  .page-heading h1 { font-size: 33px; }
+  .ribbon-stat { padding-right: 7px; padding-left: 7px; }
+  .ribbon-stat strong { font-size: 14px; }
+  .panel-topline { padding-right: 9px; padding-left: 9px; }
+  .asset-price { font-size: 18px; }
+  .table-head, .watchlist-row { grid-template-columns: minmax(68px, 1.15fr) minmax(65px, 1fr) minmax(48px, .8fr) 8px; gap: 3px; }
+  .table-asset .ticker-avatar { display: none; }
+  .table-asset small { max-width: 24vw; }
+}
