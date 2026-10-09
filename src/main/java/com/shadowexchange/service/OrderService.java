@@ -2,19 +2,18 @@ package com.shadowexchange.service;
 
 import com.shadowexchange.dto.OrderRequestDTO;
 import com.shadowexchange.dto.OrderResponseDTO;
-import com.shadowexchange.dto.UserResponse;
+import com.shadowexchange.entity.Holding;
 import com.shadowexchange.entity.Order;
 import com.shadowexchange.entity.OrderType;
 import com.shadowexchange.entity.Stock;
 import com.shadowexchange.entity.User;
 import com.shadowexchange.orderbook.OrderBook;
+import com.shadowexchange.repository.HoldingRepository;
 import com.shadowexchange.repository.OrderRepository;
 import com.shadowexchange.repository.StockRepository;
 import com.shadowexchange.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.shadowexchange.entity.Holding;
-import com.shadowexchange.repository.HoldingRepository;
 
 import java.math.BigDecimal;
 
@@ -45,17 +44,19 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponseDTO createOrder(OrderRequestDTO orderRequestDTO){
+    public OrderResponseDTO createOrder(OrderRequestDTO orderRequestDTO) {
 
-        if(orderRequestDTO.getPrice() == null || orderRequestDTO.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+        if (orderRequestDTO.getPrice() == null
+                || orderRequestDTO.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Price must be greater than zero");
         }
 
-        if(orderRequestDTO.getQuantity() == null || orderRequestDTO.getQuantity() < 1) {
+        if (orderRequestDTO.getQuantity() == null
+                || orderRequestDTO.getQuantity() < 1) {
             throw new RuntimeException("Quantity must be at least 1");
         }
 
-        if(orderRequestDTO.getType() == null){
+        if (orderRequestDTO.getType() == null) {
             throw new RuntimeException("Order type must be specified");
         }
 
@@ -71,20 +72,20 @@ public class OrderService {
         BigDecimal availableBalance = user.getBalance()
                 .subtract(user.getReservedBalance());
 
-        if(orderRequestDTO.getType() == OrderType.BUY &&
-                availableBalance.compareTo(requiredFunds) < 0) {
+        if (orderRequestDTO.getType() == OrderType.BUY
+                && availableBalance.compareTo(requiredFunds) < 0) {
             throw new RuntimeException("Insufficient balance to place the order");
         }
 
-        if(orderRequestDTO.getType() == OrderType.BUY){
-            user.setReservedBalance(user.getReservedBalance()
-                    .add(requiredFunds));
+        if (orderRequestDTO.getType() == OrderType.BUY) {
+            user.setReservedBalance(
+                    user.getReservedBalance().add(requiredFunds)
+            );
 
             userRepository.save(user);
         }
 
         if (orderRequestDTO.getType() == OrderType.SELL) {
-
             Holding holding = holdingRepository.findByUserAndStock(user, stock)
                     .orElseThrow(() -> new RuntimeException("Holding not found"));
 
@@ -102,7 +103,6 @@ public class OrderService {
             holdingRepository.save(holding);
         }
 
-
         Order order = new Order(
                 user,
                 stock,
@@ -110,6 +110,7 @@ public class OrderService {
                 orderRequestDTO.getQuantity(),
                 orderRequestDTO.getType()
         );
+
         Order savedOrder = orderRepository.save(order);
         orderBook.addOrder(savedOrder);
 
