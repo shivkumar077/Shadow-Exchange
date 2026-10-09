@@ -6,12 +6,13 @@ import com.shadowexchange.entity.OrderStatus;
 import com.shadowexchange.entity.OrderType;
 import com.shadowexchange.entity.User;
 import com.shadowexchange.exception.OrderCannotBeCancelledException;
+import com.shadowexchange.exception.ResourceNotFoundException;
+import com.shadowexchange.orderbook.OrderBook;
 import com.shadowexchange.repository.HoldingRepository;
 import com.shadowexchange.repository.OrderRepository;
-import com.shadowexchange.orderbook.OrderBook;
 import com.shadowexchange.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.shadowexchange.exception.ResourceNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -24,6 +25,15 @@ public class OrderCancellationService {
     private final UserRepository userRepository;
     private final HoldingRepository holdingRepository;
 
+    public OrderCancellationService(OrderRepository orderRepository, OrderBook orderBook) {
+        this(orderRepository, orderBook, null, null);
+    }
+
+    public OrderCancellationService(OrderRepository orderRepository, OrderBook orderBook, UserRepository userRepository) {
+        this(orderRepository, orderBook, userRepository, null);
+    }
+
+    @Autowired
     public OrderCancellationService(
             OrderRepository orderRepository,
             OrderBook orderBook,
@@ -37,7 +47,6 @@ public class OrderCancellationService {
 
     @Transactional
     public void cancelOrder(Long orderId) {
-
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
@@ -47,15 +56,14 @@ public class OrderCancellationService {
         }
 
         boolean removed = orderBook.removeOrder(order);
-
         if (!removed) {
             throw new RuntimeException("Order not found in order book");
         }
 
-        BigDecimal reservedAmount = order.getPrice()
-                .multiply(BigDecimal.valueOf(order.getQuantity()));
-
         if (order.getType() == OrderType.BUY) {
+            BigDecimal reservedAmount = order.getPrice()
+                    .multiply(BigDecimal.valueOf(order.getQuantity()));
+
             User user = order.getUser();
             if (user != null) {
                 if (user.getReservedBalance() != null) {
@@ -65,19 +73,19 @@ public class OrderCancellationService {
                     userRepository.save(user);
                 }
             }
-        }
+        } else if (order.getType() == OrderType.SELL) {
+            if (holdingRepository != null && order.getUser() != null && order.getStock() != null) {
+                Holding holding = holdingRepository
+                        .findByUserAndStock(order.getUser(), order.getStock())
+                        .orElseThrow(() -> new ResourceNotFoundException("Holding not found"));
 
-        if (order.getType() == OrderType.SELL) {
-
-            Holding holding = holdingRepository
-                    .findByUserAndStock(order.getUser(), order.getStock())
-                    .orElseThrow(() -> new ResourceNotFoundException("Holding not found"));
-
-            holding.setReservedQuantity(
-                    holding.getReservedQuantity() - order.getQuantity()
-            );
-
-            holdingRepository.save(holding);
+                if (holding.getReservedQuantity() != null) {
+                    holding.setReservedQuantity(
+                            holding.getReservedQuantity() - order.getQuantity()
+                    );
+                }
+                holdingRepository.save(holding);
+            }
         }
 
         order.setStatus(OrderStatus.CANCELLED);
