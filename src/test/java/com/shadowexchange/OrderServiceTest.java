@@ -89,4 +89,69 @@ class OrderServiceTest {
         verify(orderRepository, never()).save(any());
         verify(orderBook, never()).addOrder(any());
     }
+
+    @Test
+    void shouldTrackReservedSharesAcrossMultipleSellOrders() {
+
+        User seller = new User();
+        seller.setBalance(new BigDecimal("5000.00"));
+        seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+
+        Holding holding = new Holding(
+                seller,
+                stock,
+                100,
+                0
+        );
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(seller));
+
+        when(stockRepository.findById(1L))
+                .thenReturn(Optional.of(stock));
+
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(Optional.of(holding));
+
+        OrderRequestDTO firstOrder = new OrderRequestDTO();
+        firstOrder.setUserId(1L);
+        firstOrder.setStockId(1L);
+        firstOrder.setPrice(new BigDecimal("100.00"));
+        firstOrder.setQuantity(30);
+        firstOrder.setType(OrderType.SELL);
+
+        OrderRequestDTO secondOrder = new OrderRequestDTO();
+        secondOrder.setUserId(1L);
+        secondOrder.setStockId(1L);
+        secondOrder.setPrice(new BigDecimal("100.00"));
+        secondOrder.setQuantity(40);
+        secondOrder.setType(OrderType.SELL);
+
+        OrderRequestDTO thirdOrder = new OrderRequestDTO();
+        thirdOrder.setUserId(1L);
+        thirdOrder.setStockId(1L);
+        thirdOrder.setPrice(new BigDecimal("100.00"));
+        thirdOrder.setQuantity(31);
+        thirdOrder.setType(OrderType.SELL);
+
+        when(orderRepository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.createOrder(firstOrder);
+
+        assertEquals(30, holding.getReservedQuantity());
+
+        orderService.createOrder(secondOrder);
+
+        assertEquals(70, holding.getReservedQuantity());
+
+        assertThrows(
+                RuntimeException.class,
+                () -> orderService.createOrder(thirdOrder)
+        );
+
+        assertEquals(70, holding.getReservedQuantity());
+    }
 }
