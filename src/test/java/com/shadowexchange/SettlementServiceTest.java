@@ -217,4 +217,84 @@ class SettlementServiceTest {
                 () -> settlementService.settleTrade(trade)
         );
     }
+
+    @Test
+    void shouldKeepReservationsForUnfilledRemainderAfterPartialSettlement() {
+        User buyer = new User();
+        buyer.setBalance(new BigDecimal("10000.00"));
+        buyer.setReservedBalance(new BigDecimal("10000.00"));
+
+        User seller = new User();
+        seller.setBalance(new BigDecimal("5000.00"));
+        seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+
+        Order buyOrder = new Order(
+                buyer,
+                stock,
+                new BigDecimal("100.00"),
+                100,
+                OrderType.BUY
+        );
+
+        Order sellOrder = new Order(
+                seller,
+                stock,
+                new BigDecimal("90.00"),
+                100,
+                OrderType.SELL
+        );
+
+        Holding buyerHolding = new Holding(
+                buyer,
+                stock,
+                10
+        );
+
+        Holding sellerHolding = new Holding(
+                seller,
+                stock,
+                100,
+                100
+        );
+
+        Trade partialTrade = new Trade(
+                buyer,
+                seller,
+                stock,
+                new BigDecimal("95.00"),
+                40,
+                buyOrder,
+                sellOrder
+        );
+
+        when(holdingRepository.findByUserAndStock(buyer, stock))
+                .thenReturn(Optional.of(buyerHolding));
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(Optional.of(sellerHolding));
+
+        settlementService.settleTrade(partialTrade);
+
+        // 40 shares cost 40 * 95 = 3,800.
+        assertEquals(new BigDecimal("6200.00"), buyer.getBalance());
+
+        // 40 * 100 = 4,000 is released from the BUY reservation;
+        // 6,000 remains reserved for the unfilled 60 shares.
+        assertEquals(new BigDecimal("6000.00"), buyer.getReservedBalance());
+
+        assertEquals(new BigDecimal("8800.00"), seller.getBalance());
+
+        assertEquals(50, buyerHolding.getQuantity());
+        assertEquals(60, sellerHolding.getQuantity());
+
+        // The seller's remaining 60 shares stay reserved for the open SELL order.
+        assertEquals(60, sellerHolding.getReservedQuantity());
+
+        verify(userRepository).save(buyer);
+        verify(userRepository).save(seller);
+        verify(holdingRepository).save(buyerHolding);
+        verify(holdingRepository).save(sellerHolding);
+    }
+
 }
