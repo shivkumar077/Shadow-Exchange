@@ -1,10 +1,12 @@
 package com.shadowexchange.service;
 
+import com.shadowexchange.dto.OrderBookResponseDTO;
 import com.shadowexchange.dto.OrderRequestDTO;
 import com.shadowexchange.dto.OrderResponseDTO;
 import com.shadowexchange.entity.Holding;
 import com.shadowexchange.entity.Order;
 import com.shadowexchange.entity.OrderType;
+import com.shadowexchange.entity.OrderStatus;
 import com.shadowexchange.entity.Stock;
 import com.shadowexchange.entity.User;
 import com.shadowexchange.matching.MatchingEngine;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class OrderService {
@@ -120,6 +123,35 @@ public class OrderService {
         matchingEngine.match();
 
         return toResponseDTO(savedOrder);
+    }
+
+
+    public OrderBookResponseDTO getOrderBook(Long stockId) {
+        Stock stock = stockRepository.findById(stockId)
+                .orElseThrow(() -> new RuntimeException("Stock not found"));
+
+        List<OrderStatus> openStatuses = List.of(
+                OrderStatus.PENDING,
+                OrderStatus.PARTIALLY_FILLED
+        );
+
+        List<OrderResponseDTO> bids = orderRepository
+                .findByStockAndStatusInAndTypeOrderByPriceDescCreatedAtAsc(
+                        stock, openStatuses, OrderType.BUY
+                )
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
+
+        List<OrderResponseDTO> asks = orderRepository
+                .findByStockAndStatusInAndTypeOrderByPriceAscCreatedAtAsc(
+                        stock, openStatuses, OrderType.SELL
+                )
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
+
+        return new OrderBookResponseDTO(stock.getId(), bids, asks);
     }
 
     public java.util.List<OrderResponseDTO> getOrdersForUser(Long userId) {
