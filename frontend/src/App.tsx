@@ -158,7 +158,7 @@ function App() {
       try {
         const storedId = window.localStorage.getItem("shadow-exchange-demo-user-id");
         let user;
-        if (storedId && /^\\d+$/.test(storedId)) {
+        if (storedId && /^\d+$/.test(storedId)) {
           try { user = await getUser(Number(storedId)); }
           catch { /* H2 may have restarted and cleared the user table. */ }
         }
