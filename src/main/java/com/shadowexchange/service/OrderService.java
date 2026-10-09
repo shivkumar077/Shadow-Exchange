@@ -7,6 +7,7 @@ import com.shadowexchange.entity.Order;
 import com.shadowexchange.entity.OrderType;
 import com.shadowexchange.entity.Stock;
 import com.shadowexchange.entity.User;
+import com.shadowexchange.matching.MatchingEngine;
 import com.shadowexchange.orderbook.OrderBook;
 import com.shadowexchange.repository.HoldingRepository;
 import com.shadowexchange.repository.OrderRepository;
@@ -25,18 +26,21 @@ public class OrderService {
     private final StockRepository stockRepository;
     private final OrderBook orderBook;
     private final HoldingRepository holdingRepository;
+    private final MatchingEngine matchingEngine;
 
     public OrderService(
             OrderRepository orderRepository,
             UserRepository userRepository,
             StockRepository stockRepository,
             HoldingRepository holdingRepository,
-            OrderBook orderBook) {
+            OrderBook orderBook,
+            MatchingEngine matchingEngine) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.stockRepository = stockRepository;
         this.holdingRepository = holdingRepository;
         this.orderBook = orderBook;
+        this.matchingEngine = matchingEngine;
     }
 
     public Order saveOrder(Order order) {
@@ -81,7 +85,6 @@ public class OrderService {
             user.setReservedBalance(
                     user.getReservedBalance().add(requiredFunds)
             );
-
             userRepository.save(user);
         }
 
@@ -99,7 +102,6 @@ public class OrderService {
             holding.setReservedQuantity(
                     holding.getReservedQuantity() + orderRequestDTO.getQuantity()
             );
-
             holdingRepository.save(holding);
         }
 
@@ -113,6 +115,9 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
         orderBook.addOrder(savedOrder);
+
+        // Try to match immediately so the API response reflects the latest order status.
+        matchingEngine.match();
 
         return toResponseDTO(savedOrder);
     }
