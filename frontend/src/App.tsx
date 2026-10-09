@@ -405,14 +405,14 @@ function App() {
                   <button className="subtle-button" onClick={() => { if (demoUserId) void getPortfolio(demoUserId).then(setPortfolio).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Unable to refresh portfolio.")); }}>Refresh <ArrowUpRight size={13} /></button>
                 </div>
                 <div className="portfolio-table">
-                  <div className="portfolio-table-head"><span>INSTRUMENT</span><span>SHARES</span><span>AVAILABLE</span><span>PRICE</span><span>MARKET VALUE</span></div>
+                  <div className="portfolio-table-head"><span>INSTRUMENT</span><span>TOTAL</span><span>AVAILABLE</span><span>RESERVED</span><span>PRICE</span><span>MARKET VALUE</span></div>
                   {portfolio.map((holding) => <button className="portfolio-row" key={holding.id} onClick={() => {
                     const stock = stocks.find((item) => item.id === holding.stockId);
                     if (stock) chooseStock(stock);
                     setActiveSection("Overview");
                   }}>
                     <span className="portfolio-instrument"><span className="ticker-avatar">{holding.symbol.slice(0, 1)}</span><span><strong>{holding.symbol}</strong><small>{holding.companyName}</small></span></span>
-                    <strong>{holding.quantity}</strong><span>{holding.availableQuantity}</span><span>{money(Number(holding.currentPrice))}</span><strong>{money(Number(holding.marketValue))}</strong>
+                    <strong>{holding.quantity}</strong><span>{holding.availableQuantity}</span><span>{holding.reservedQuantity}</span><span>{money(Number(holding.currentPrice))}</span><strong>{money(Number(holding.marketValue))}</strong>
                   </button>)}
                   {portfolioLoading && <div className="empty-state">Loading account positions…</div>}
                   {!portfolioLoading && portfolio.length === 0 && <div className="empty-state">No holdings in this account yet.</div>}
