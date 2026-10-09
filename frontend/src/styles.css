@@ -570,3 +570,24 @@ body { font-size: 14px; }
   .ribbon-stat .sparkline { right: 6px; width: 30px; height: 18px; opacity: .55; }
   .ribbon-footnote { font-size: 7px; letter-spacing: 0; }
 }
+
+
+/* Order cancellation control: quiet by default, clear on interaction. */
+.cancel-order-button {
+  justify-self: start;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  padding: 5px 8px;
+  font: 500 9px/1 "DM Mono", monospace;
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: color .16s ease, border-color .16s ease, background .16s ease;
+}
+.cancel-order-button:hover,
+.cancel-order-button:focus-visible {
+  color: var(--red);
+  border-color: var(--red);
+  background: #d8796110;
+}
+.cancel-order-button:focus-visible { outline: 1px solid var(--red); outline-offset: 2px; }
