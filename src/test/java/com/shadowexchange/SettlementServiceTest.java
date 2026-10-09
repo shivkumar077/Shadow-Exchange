@@ -66,7 +66,8 @@ class SettlementServiceTest {
         Holding sellerHolding = new Holding(
                 seller,
                 stock,
-                50
+                50,
+                20
         );
 
         Trade trade = new Trade(
@@ -105,6 +106,7 @@ class SettlementServiceTest {
 
         assertEquals(30, buyerHolding.getQuantity());
         assertEquals(30, sellerHolding.getQuantity());
+        assertEquals(0, sellerHolding.getReservedQuantity());
 
         verify(userRepository).save(buyer);
         verify(userRepository).save(seller);
