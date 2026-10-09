@@ -85,6 +85,10 @@ export async function getOrders(userId: number): Promise<ApiOrder[]> {
   return request<ApiOrder[]>(`/orders/user/${userId}`);
 }
 
+export async function cancelOrder(orderId: number): Promise<void> {
+  await request<void>(`/orders/${orderId}`, { method: "DELETE" });
+}
+
 export async function submitOrder(order: {
   userId: number;
   stockId: number;
