@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createDemoUser, getOrders, getStocks, getUser, submitOrder, type ApiOrder, type ApiStock } from "./api";
+import { cancelOrder, createDemoUser, getOrders, getStocks, getUser, submitOrder, type ApiOrder, type ApiStock } from "./api";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -248,6 +248,34 @@ function App() {
     }
   };
 
+  const cancelPendingOrder = async (order: LocalOrder) => {
+    if (order.status !== "PENDING" && order.status !== "PARTIALLY_FILLED") {
+      setToast("Only pending or partially filled orders can be cancelled.");
+      return;
+    }
+
+    try {
+      await cancelOrder(order.id);
+      if (demoUserId) {
+        const savedOrders = await getOrders(demoUserId);
+        setOrders(savedOrders.map((savedOrder: ApiOrder) => ({
+          id: savedOrder.id,
+          side: savedOrder.type,
+          symbol: stocks.find((stock) => stock.id === savedOrder.stockId)?.symbol ?? `#${savedOrder.stockId}`,
+          quantity: savedOrder.quantity,
+          price: Number(savedOrder.price),
+          status: savedOrder.status,
+          time: savedOrder.createdAt
+            ? new Date(savedOrder.createdAt).toLocaleTimeString("en-GB", { hour12: false })
+            : "—",
+        })));
+      }
+      setToast(`Order #${order.id} cancelled. Reserved funds or shares have been released.`);
+    } catch (error) {
+      setToast(error instanceof Error ? `Cancellation failed: ${error.message}` : "The exchange could not cancel this order.");
+    }
+  };
+
   const navigation = [
     { label: "Overview", icon: LayoutDashboard },
     { label: "Markets", icon: Activity },
@@ -471,6 +499,14 @@ function App() {
                   <span>{money(order.price)}</span>
                   <span><i className={`status-indicator ${order.status.toLowerCase()}`} />{order.status}</span>
                   <span className="activity-time">{order.time}</span>
+                  {(order.status === "PENDING" || order.status === "PARTIALLY_FILLED") && (
+                    <button
+                      className="cancel-order-button"
+                      onClick={() => void cancelPendingOrder(order)}
+                      aria-label={`Cancel order ${order.id}`}
+                      title="Cancel pending order"
+                    >CANCEL</button>
+                  )}
                 </div>
               ))}
             </div>
