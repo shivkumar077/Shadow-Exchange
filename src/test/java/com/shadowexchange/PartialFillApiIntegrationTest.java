@@ -88,6 +88,57 @@ class PartialFillApiIntegrationTest {
 
 
     @Test
+    void shouldReturnEmptyOrderBookWhenNoOpenOrdersExist() throws Exception {
+        mockMvc.perform(get("/orders/book/{stockId}", stock.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stockId").value(stock.getId()))
+                .andExpect(jsonPath("$.bids.length()").value(0))
+                .andExpect(jsonPath("$.asks.length()").value(0));
+    }
+
+    @Test
+    void shouldSortBidsHighestFirstAndAsksLowestFirst() throws Exception {
+        // These prices deliberately do not cross, so the orders stay open.
+        placeOrder(buyer.getId(), "BUY", "90.00", 1);
+        placeOrder(buyer.getId(), "BUY", "95.00", 1);
+        placeOrder(buyer.getId(), "BUY", "92.00", 1);
+
+        placeOrder(seller.getId(), "SELL", "110.00", 1);
+        placeOrder(seller.getId(), "SELL", "105.00", 1);
+        placeOrder(seller.getId(), "SELL", "108.00", 1);
+
+        mockMvc.perform(get("/orders/book/{stockId}", stock.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bids.length()").value(3))
+                .andExpect(jsonPath("$.bids[0].price").value(95.0))
+                .andExpect(jsonPath("$.bids[1].price").value(92.0))
+                .andExpect(jsonPath("$.bids[2].price").value(90.0))
+                .andExpect(jsonPath("$.asks.length()").value(3))
+                .andExpect(jsonPath("$.asks[0].price").value(105.0))
+                .andExpect(jsonPath("$.asks[1].price").value(108.0))
+                .andExpect(jsonPath("$.asks[2].price").value(110.0));
+    }
+
+    private void placeOrder(Long userId, String type, String price, int quantity)
+            throws Exception {
+        mockMvc.perform(post("/orders")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userId": %d,
+                                  "stockId": %d,
+                                  "type": "%s",
+                                  "price": %s,
+                                  "quantity": %d
+                                }
+                                """.formatted(
+                                userId, stock.getId(), type, price, quantity
+                        )))
+                .andExpect(status().isOk());
+    }
+
+
+    @Test
     void shouldExposeOpenBuyAndSellOrdersThroughOrderBookApi() throws Exception {
         mockMvc.perform(post("/orders")
                         .contentType(APPLICATION_JSON)
