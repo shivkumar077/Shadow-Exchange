@@ -371,3 +371,89 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Readability pass: preserve the compact terminal aesthetic, raise the floor on small text. */
+body { font-size: 14px; }
+.brand-word { font-size: 13px; }
+.brand-word > span { font-size: 9px; }
+.workspace-label { font-size: 10px; }
+.nav-item { font-size: 13px; }
+.nav-count { font-size: 10px; }
+.mini-stock-copy strong { font-size: 12px; }
+.mini-stock-copy small { font-size: 10px; }
+.mini-change { font-size: 10px; }
+.status-card strong { font-size: 11px; }
+.status-card small, .profile-copy small { font-size: 10px; }
+.profile-copy strong { font-size: 11px; }
+.breadcrumbs { font-size: 12px; }
+.session-pill { font-size: 9px; }
+.shortcut-button { font-size: 11px; }
+.eyebrow { font-size: 10px; }
+.heading-description { font-size: 12px; line-height: 1.55; }
+.date-label { font-size: 10px; }
+.market-time span { font-size: 11px; }
+.market-open { font-size: 9px; }
+.ribbon-heading { font-size: 10px; }
+.ribbon-stat > span { font-size: 9px; }
+.ribbon-stat strong { font-size: 16px; }
+.ribbon-stat small { font-size: 10px; }
+.ribbon-footnote { font-size: 9px; }
+.panel-label { font-size: 10px; }
+.panel-index { font-size: 10px; }
+.panel-count { font-size: 9px; }
+.subtle-button { font-size: 11px; }
+.asset-name { font-size: 11px; }
+.asset-change { font-size: 11px; }
+.asset-change span { font-size: 10px; }
+.chart-legend { font-size: 9px; }
+.legend-value { font-size: 11px; }
+.timeframes button { font-size: 9px; }
+.chart-axis-labels { font-size: 10px; }
+.chart-footer span { font-size: 9px; }
+.chart-footer strong { font-size: 11px; }
+.search-field input { font-size: 11px; }
+.table-head { font-size: 9px; }
+.table-asset strong { font-size: 11px; }
+.table-asset small { font-size: 10px; }
+.table-price { font-size: 11px; }
+.table-change { font-size: 10px; }
+.watchlist-footer, .watchlist-footer button { font-size: 9px; }
+.empty-state { font-size: 12px; }
+.order-instrument strong { font-size: 15px; }
+.field-caption { font-size: 9px; }
+.change-instrument { font-size: 9px; }
+.side-switch button { font-size: 11px; }
+.order-field > label { font-size: 9px; }
+.select-like { font-size: 12px; }
+.number-input { font-size: 13px; }
+.number-input input { font-size: 13px; }
+.number-input > button { font-size: 9px; }
+.stepper button { font-size: 13px; }
+.quantity-presets button { font-size: 10px; }
+.order-estimate span { font-size: 9px; }
+.order-estimate strong { font-size: 16px; }
+.order-note { font-size: 10px; line-height: 1.5; }
+.submit-order { font-size: 12px; }
+.ticket-footnote { font-size: 10px; line-height: 1.6; }
+.depth-live { font-size: 9px; }
+.depth-head { font-size: 8px; }
+.depth-row { font-size: 11px; }
+.depth-mid span { font-size: 9px; }
+.depth-mid strong { font-size: 12px; }
+.session-panel p { font-size: 11px; line-height: 1.65; }
+.session-panel button { font-size: 9px; }
+.activity-row { font-size: 10px; }
+.activity-side { font-size: 9px; }
+.activity-row > strong { font-size: 11px; }
+.page-footer { font-size: 9px; }
+.toast { font-size: 12px; }
+
+@media (max-width: 640px) {
+  .session-pill { font-size: 8px; }
+  .market-open { font-size: 8px; }
+  .chart-footer span { font-size: 8px; }
+  .chart-footer strong { font-size: 10px; }
+  .table-head { font-size: 8px; }
+  .search-field input { font-size: 10px; }
+  .page-footer { font-size: 8px; }
+}
