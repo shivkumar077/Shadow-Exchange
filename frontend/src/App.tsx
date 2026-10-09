@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getStocks, type ApiStock } from "./api";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -21,13 +22,11 @@ import {
 } from "lucide-react";
 
 type Stock = {
+  id: number;
   symbol: string;
   name: string;
   price: number;
-  change: number;
   points: number[];
-  volume: string;
-  marketCap: string;
 };
 
 type LocalOrder = {
@@ -40,13 +39,14 @@ type LocalOrder = {
   time: string;
 };
 
-const stocks: Stock[] = [
-  { symbol: "NVDA", name: "NVIDIA Corporation", price: 142.87, change: 2.84, points: [30, 28, 33, 27, 37, 35, 41, 39, 45, 42, 49, 47, 55, 53, 62, 58, 66, 63, 71, 68, 78, 75, 84, 81, 92], volume: "42.8M", marketCap: "$3.48T" },
-  { symbol: "AAPL", name: "Apple Inc.", price: 231.42, change: 1.26, points: [42, 39, 43, 40, 46, 44, 48, 43, 51, 48, 56, 52, 57, 55, 61, 58, 65, 62, 67, 65, 73, 69, 76, 74, 82], volume: "31.2M", marketCap: "$3.51T" },
-  { symbol: "MSFT", name: "Microsoft Corporation", price: 428.76, change: -0.38, points: [70, 73, 68, 72, 65, 69, 63, 66, 60, 65, 58, 62, 55, 59, 54, 57, 51, 55, 49, 52, 46, 50, 43, 46, 41], volume: "18.6M", marketCap: "$3.19T" },
-  { symbol: "TSLA", name: "Tesla, Inc.", price: 338.29, change: 4.17, points: [18, 24, 21, 32, 28, 38, 34, 46, 40, 51, 48, 60, 55, 66, 61, 73, 68, 78, 73, 84, 78, 89, 83, 94, 90], volume: "76.4M", marketCap: "$1.09T" },
-  { symbol: "AMZN", name: "Amazon.com, Inc.", price: 214.19, change: -0.72, points: [76, 72, 78, 70, 74, 67, 71, 65, 69, 62, 66, 58, 63, 57, 61, 54, 58, 50, 55, 48, 52, 45, 49, 43, 46], volume: "27.9M", marketCap: "$2.27T" },
-];
+const chartShapes: Record<string, number[]> = {
+  NVDA: [30, 28, 33, 27, 37, 35, 41, 39, 45, 42, 49, 47, 55, 53, 62, 58, 66, 63, 71, 68, 78, 75, 84, 81, 92],
+  AAPL: [42, 39, 43, 40, 46, 44, 48, 43, 51, 48, 56, 52, 57, 55, 61, 58, 65, 62, 67, 65, 73, 69, 76, 74, 82],
+  MSFT: [70, 73, 68, 72, 65, 69, 63, 66, 60, 65, 58, 62, 55, 59, 54, 57, 51, 55, 49, 52, 46, 50, 43, 46, 41],
+  TSLA: [18, 24, 21, 32, 28, 38, 34, 46, 40, 51, 48, 60, 55, 66, 61, 73, 68, 78, 73, 84, 78, 89, 83, 94, 90],
+  AMZN: [76, 72, 78, 70, 74, 67, 71, 65, 69, 62, 66, 58, 63, 57, 61, 54, 58, 50, 55, 48, 52, 45, 49, 43, 46],
+};
+const defaultChartPoints = [34, 38, 35, 43, 40, 47, 44, 51, 48, 56, 53, 61, 58, 66, 64, 70, 67, 75, 72, 79, 76, 83, 80, 87, 85];
 
 const money = (value: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
@@ -98,7 +98,10 @@ function MarketChart({ stock }: { stock: Stock }) {
 
 function App() {
   const [activeSection, setActiveSection] = useState("Overview");
-  const [selectedSymbol, setSelectedSymbol] = useState("NVDA");
+  const [selectedSymbol, setSelectedSymbol] = useState("");
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [stocksLoading, setStocksLoading] = useState(true);
+  const [stocksError, setStocksError] = useState("");
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
   const [quantity, setQuantity] = useState("10");
   const [limitPrice, setLimitPrice] = useState("142.87");
@@ -110,7 +113,53 @@ function App() {
     { id: 1046, side: "BUY", symbol: "NVDA", quantity: 8, price: 140.25, status: "FILLED", time: "10:31:52" },
   ]);
 
-  const selectedStock = stocks.find((stock) => stock.symbol === selectedSymbol) ?? stocks[0];
+  useEffect(() => {
+    let cancelled = false;
+
+    getStocks()
+      .then((apiStocks: ApiStock[]) => {
+        if (cancelled) return;
+
+        const mappedStocks: Stock[] = apiStocks.map((stock) => ({
+          id: stock.id,
+          symbol: stock.symbol,
+          name: stock.companyName,
+          price: Number(stock.currentPrice),
+          points: chartShapes[stock.symbol] ?? defaultChartPoints,
+        }));
+
+        setStocks(mappedStocks);
+        setStocksError("");
+        setSelectedSymbol((current) =>
+          mappedStocks.some((stock) => stock.symbol === current)
+            ? current
+            : (mappedStocks[0]?.symbol ?? ""),
+        );
+        if (mappedStocks.length === 0) {
+          setStocksError("The API responded, but there are no instruments in the exchange yet.");
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setStocksError(error instanceof Error ? error.message : "Unable to connect to the exchange API.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setStocksLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedStock = stocks.find((stock) => stock.symbol === selectedSymbol) ?? stocks[0] ?? {
+    id: 0,
+    symbol: "—",
+    name: "No instrument selected",
+    price: 0,
+    points: defaultChartPoints,
+  };
   const filteredStocks = stocks.filter((stock) =>
     `${stock.symbol} ${stock.name}`.toLowerCase().includes(search.toLowerCase()),
   );
@@ -171,18 +220,18 @@ function App() {
         <div className="workspace-label">YOUR MARKETS <button className="tiny-icon-button" aria-label="Market settings"><SlidersHorizontal size={13} /></button></div>
         <div className="mini-watchlist">
           {stocks.slice(0, 4).map((stock) => (
-            <button key={stock.symbol} className={`mini-stock ${selectedSymbol === stock.symbol ? "selected" : ""}`} onClick={() => chooseStock(stock)}>
+            <button key={stock.id} className={`mini-stock ${selectedSymbol === stock.symbol ? "selected" : ""}`} onClick={() => chooseStock(stock)}>
               <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
               <span className="mini-stock-copy"><strong>{stock.symbol}</strong><small>{stock.name.split(" ")[0]}</small></span>
-              <span className={`mini-change ${stock.change >= 0 ? "positive" : "negative"}`}>{stock.change > 0 ? "+" : ""}{stock.change.toFixed(2)}%</span>
+              <span className="mini-change">SIM</span>
             </button>
           ))}
         </div>
 
         <div className="sidebar-bottom">
           <div className="status-card">
-            <span className="status-light" />
-            <div><strong>Matching engine</strong><small>Simulation online</small></div>
+            <span className={`status-light ${stocksError ? "is-error" : ""}`} />
+            <div><strong>Exchange API</strong><small>{stocksLoading ? "Connecting…" : stocksError ? "Needs attention" : "Stocks endpoint ready"}</small></div>
             <span className="status-pulse" />
           </div>
           <button className="nav-item utility-item" onClick={() => setToast("Settings will be available in a later build.")}><Settings2 size={16} /><span>Preferences</span></button>
@@ -243,7 +292,7 @@ function App() {
                   </div>
                   <div className="asset-price-block">
                     <div className="asset-price">{money(selectedStock.price)}</div>
-                    <div className={`asset-change ${selectedStock.change >= 0 ? "positive" : "negative"}`}>{selectedStock.change >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{selectedStock.change > 0 ? "+" : ""}{selectedStock.change.toFixed(2)}% <span>today</span></div>
+                    <div className="asset-change"><span>SIMULATED PRICE · CHANGE DATA NOT CONNECTED</span></div>
                   </div>
                 </div>
                 <div className="chart-toolbar">
@@ -251,28 +300,32 @@ function App() {
                   <div className="timeframes">{["1D", "1W", "1M", "3M", "1Y", "ALL"].map((frame) => <button key={frame} className={frame === "1D" ? "selected" : ""} onClick={() => setToast(`${frame} chart range is a visual prototype.`)}>{frame}</button>)}</div>
                 </div>
                 <MarketChart stock={selectedStock} />
-                <div className="chart-footer"><span>OPEN <strong>{money(selectedStock.price * 0.986)}</strong></span><span>HIGH <strong className="positive">{money(selectedStock.price * 1.012)}</strong></span><span>LOW <strong>{money(selectedStock.price * 0.978)}</strong></span><span>VOLUME <strong>{selectedStock.volume}</strong></span></div>
+                <div className="chart-footer"><span>OPEN <strong>—</strong></span><span>HIGH <strong>—</strong></span><span>LOW <strong>—</strong></span><span>SOURCE <strong>EXCHANGE DB</strong></span></div>
               </section>
 
               <section className="panel watchlist-panel">
                 <div className="panel-topline">
-                  <div className="panel-label"><span className="panel-index">02</span> WATCHLIST <span className="panel-count">05 ASSETS</span></div>
+                  <div className="panel-label"><span className="panel-index">02</span> WATCHLIST <span className="panel-count">{stocks.length.toString().padStart(2, "0")} ASSETS</span></div>
                   <label className="search-field"><Search size={14} /><input id="market-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find an asset" /></label>
                 </div>
                 <div className="watchlist-table">
                   <div className="table-head"><span>INSTRUMENT</span><span>LAST PRICE</span><span>24H CHANGE</span><span className="spark-head">TREND</span><span /></div>
                   {filteredStocks.map((stock) => (
-                    <button key={stock.symbol} className={`watchlist-row ${selectedSymbol === stock.symbol ? "chosen" : ""}`} onClick={() => chooseStock(stock)}>
+                    <button key={stock.id} className={`watchlist-row ${selectedSymbol === stock.symbol ? "chosen" : ""}`} onClick={() => chooseStock(stock)}>
                       <span className="table-asset"><span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span><span><strong>{stock.symbol}</strong><small>{stock.name}</small></span></span>
                       <span className="table-price">{money(stock.price)}</span>
-                      <span className={`table-change ${stock.change >= 0 ? "positive" : "negative"}`}>{stock.change > 0 ? "+" : ""}{stock.change.toFixed(2)}%</span>
-                      <span className="table-spark"><Sparkline points={stock.points} negative={stock.change < 0} /></span>
+                      <span className="table-change">—</span>
+                      <span className="table-spark"><Sparkline points={stock.points} /></span>
                       <span className="row-arrow"><ArrowUpRight size={14} /></span>
                     </button>
                   ))}
-                  {filteredStocks.length === 0 && <div className="empty-state">No instruments match “{search}”.</div>}
+                  {filteredStocks.length === 0 && (
+                    <div className="empty-state">
+                      {stocksLoading ? "Connecting to exchange…" : stocksError || (search ? `No instruments match “${search}”.` : "No instruments available.")}
+                    </div>
+                  )}
                 </div>
-                <div className="watchlist-footer"><span>SHOWING {filteredStocks.length.toString().padStart(2, "0")} OF 05 INSTRUMENTS</span><button onClick={() => setSearch("")}>RESET FILTER <X size={11} /></button></div>
+                <div className="watchlist-footer"><span>SHOWING {filteredStocks.length.toString().padStart(2, "0")} OF {stocks.length.toString().padStart(2, "0")} INSTRUMENTS</span><button onClick={() => setSearch("")}>RESET FILTER <X size={11} /></button></div>
               </section>
             </div>
 
