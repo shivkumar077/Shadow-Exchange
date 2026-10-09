@@ -13,6 +13,18 @@ export type ApiUser = {
   reservedBalance: number | string;
 };
 
+export type ApiHolding = {
+  id: number;
+  stockId: number;
+  symbol: string;
+  companyName: string;
+  currentPrice: number | string;
+  quantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  marketValue: number | string;
+};
+
 export type ApiOrder = {
   id: number;
   userId: number;
@@ -79,6 +91,10 @@ export async function createDemoUser(): Promise<ApiUser> {
       password: crypto.randomUUID(),
     }),
   });
+}
+
+export async function getPortfolio(userId: number): Promise<ApiHolding[]> {
+  return request<ApiHolding[]>(`/api/users/${userId}/portfolio`);
 }
 
 export async function getOrders(userId: number): Promise<ApiOrder[]> {
