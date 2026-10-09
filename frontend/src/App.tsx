@@ -237,6 +237,19 @@ function App() {
     setLimitPrice(stock.price.toFixed(2));
   };
 
+  const mapApiOrders = (savedOrders: ApiOrder[]): LocalOrder[] =>
+    savedOrders.slice(0, 5).map((savedOrder) => ({
+      id: savedOrder.id,
+      side: savedOrder.type,
+      symbol: stocks.find((stock) => stock.id === savedOrder.stockId)?.symbol ?? `#${savedOrder.stockId}`,
+      quantity: savedOrder.quantity,
+      price: Number(savedOrder.price),
+      status: savedOrder.status,
+      time: savedOrder.createdAt
+        ? new Date(savedOrder.createdAt).toLocaleTimeString("en-GB", { hour12: false })
+        : "—",
+    }));
+
   const placeDemoOrder = async () => {
     const parsedQuantity = Number(quantity);
     const parsedPrice = Number(limitPrice);
@@ -257,17 +270,11 @@ function App() {
         price: parsedPrice,
         quantity: parsedQuantity,
       });
-      const createdOrder: LocalOrder = {
-        id: response.id,
-        side: response.type,
-        symbol: selectedStock.symbol,
-        quantity: response.quantity,
-        price: Number(response.price),
-        status: response.status,
-        time: new Date().toLocaleTimeString("en-GB", { hour12: false }),
-      };
-      setOrders((current) => [createdOrder, ...current].slice(0, 5));
-      setToast(`Order #${response.id} accepted by the exchange · ${response.status}`);
+      const savedOrders = await getOrders(demoUserId);
+      const refreshedOrders = mapApiOrders(savedOrders);
+      setOrders(refreshedOrders);
+      const latestOrder = refreshedOrders.find((order) => order.id === response.id);
+      setToast(`Order #${response.id} accepted by the exchange · ${latestOrder?.status ?? response.status}`);
     } catch (error) {
       setToast(error instanceof Error ? `Order rejected: ${error.message}` : "The exchange could not place this order.");
     } finally {
@@ -276,7 +283,7 @@ function App() {
   };
 
   const cancelPendingOrder = async (order: LocalOrder) => {
-    if (order.status !== "PENDING") {
+    if (order.status !== "PENDING" && order.status !== "PARTIALLY_FILLED") {
       setToast("Only pending or partially filled orders can be cancelled.");
       return;
     }
@@ -285,17 +292,7 @@ function App() {
       await cancelOrder(order.id);
       if (demoUserId) {
         const savedOrders = await getOrders(demoUserId);
-        setOrders(savedOrders.map((savedOrder: ApiOrder) => ({
-          id: savedOrder.id,
-          side: savedOrder.type,
-          symbol: stocks.find((stock) => stock.id === savedOrder.stockId)?.symbol ?? `#${savedOrder.stockId}`,
-          quantity: savedOrder.quantity,
-          price: Number(savedOrder.price),
-          status: savedOrder.status,
-          time: savedOrder.createdAt
-            ? new Date(savedOrder.createdAt).toLocaleTimeString("en-GB", { hour12: false })
-            : "—",
-        })));
+        setOrders(mapApiOrders(savedOrders));
       }
       setToast(`Order #${order.id} cancelled. Reserved funds or shares have been released.`);
     } catch (error) {
@@ -556,7 +553,7 @@ function App() {
                   <span>{money(order.price)}</span>
                   <span><i className={`status-indicator ${order.status.toLowerCase()}`} />{order.status}</span>
                   <span className="activity-time">{order.time}</span>
-                  {order.status === "PENDING" && (
+                  {(order.status === "PENDING" || order.status === "PARTIALLY_FILLED") && (
                     <button
                       className="cancel-order-button"
                       onClick={() => void cancelPendingOrder(order)}
