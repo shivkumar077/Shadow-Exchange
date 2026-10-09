@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { cancelOrder, createDemoUser, getOrders, getPortfolio, getStocks, getUser, submitOrder, type ApiHolding, type ApiOrder, type ApiStock, type ApiUser } from "./api";
+import { cancelOrder, createDemoUser, getOrderBook, getOrders, getPortfolio, getStocks, getUser, submitOrder, type ApiHolding, type ApiOrder, type ApiOrderBook, type ApiStock, type ApiUser } from "./api";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -114,6 +114,9 @@ function App() {
   const [portfolio, setPortfolio] = useState<ApiHolding[]>([]);
   const [account, setAccount] = useState<ApiUser | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [orderBook, setOrderBook] = useState<ApiOrderBook | null>(null);
+  const [orderBookLoading, setOrderBookLoading] = useState(false);
+  const [orderBookError, setOrderBookError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -219,6 +222,36 @@ function App() {
       .finally(() => { if (!cancelled) setPortfolioLoading(false); });
     return () => { cancelled = true; };
   }, [demoUserId, orders]);
+
+  const selectedStockId = stocks.find((stock) => stock.symbol === selectedSymbol)?.id ?? 0;
+
+  useEffect(() => {
+    if (!selectedStockId) {
+      setOrderBook(null);
+      return;
+    }
+
+    let cancelled = false;
+    setOrderBookLoading(true);
+    getOrderBook(selectedStockId)
+      .then((book) => {
+        if (!cancelled) {
+          setOrderBook(book);
+          setOrderBookError("");
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setOrderBook(null);
+          setOrderBookError(error instanceof Error ? error.message : "Unable to load market depth.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setOrderBookLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [selectedStockId, orders]);
 
   const selectedStock = stocks.find((stock) => stock.symbol === selectedSymbol) ?? stocks[0] ?? {
     id: 0,
@@ -508,25 +541,59 @@ function App() {
                   <span className="depth-live"><span className="status-light" /> LIVE SIM</span>
                 </div>
                 <div className="depth-head"><span>SIZE</span><span>BUY PRICE</span><span>SELL PRICE</span><span>SIZE</span></div>
-                {stocks.length > 0 ? (
-                  <>
-                    {[
-                      { buySize: "124", buy: selectedStock.price - 0.12, sell: selectedStock.price + 0.13, sellSize: "86", width: 66 },
-                      { buySize: "82", buy: selectedStock.price - 0.24, sell: selectedStock.price + 0.25, sellSize: "142", width: 45 },
-                      { buySize: "206", buy: selectedStock.price - 0.37, sell: selectedStock.price + 0.38, sellSize: "98", width: 82 },
-                      { buySize: "64", buy: selectedStock.price - 0.51, sell: selectedStock.price + 0.52, sellSize: "173", width: 34 },
-                    ].map((level, index) => (
-                      <div className="depth-row" key={index}>
-                        <span className="depth-size buy-depth" style={{ "--depth": `${level.width}%` } as CSSProperties & { "--depth": string }}>{level.buySize}</span>
-                        <strong className="positive">{level.buy.toFixed(2)}</strong>
-                        <strong className="negative">{level.sell.toFixed(2)}</strong>
-                        <span className="depth-size sell-depth" style={{ "--depth": `${100 - level.width}%` } as CSSProperties & { "--depth": string }}>{level.sellSize}</span>
-                      </div>
-                    ))}
-                    <div className="depth-mid"><span>SPREAD</span><strong>$0.25 <small>0.17%</small></strong></div>
-                  </>
-                ) : (
+                {orderBookLoading && !orderBook ? (
+                  <div className="empty-state">Loading persisted orders…</div>
+                ) : orderBookError ? (
+                  <div className="empty-state">{orderBookError}</div>
+                ) : stocks.length === 0 ? (
                   <div className="empty-state">{stocksLoading ? "Connecting to exchange…" : "Market depth will appear when an instrument is available."}</div>
+                ) : (
+                  <>
+                    {(() => {
+                      const aggregate = (orders: ApiOrder[]) => {
+                        const levels = new Map<number, number>();
+                        orders.forEach((order) => {
+                          const price = Number(order.price);
+                          levels.set(price, (levels.get(price) ?? 0) + order.quantity);
+                        });
+                        return [...levels.entries()]
+                          .map(([price, size]) => ({ price, size }))
+                          .sort((a, b) => a.price - b.price);
+                      };
+                      const bids = aggregate(orderBook?.bids ?? []).sort((a, b) => b.price - a.price).slice(0, 4);
+                      const asks = aggregate(orderBook?.asks ?? []).slice(0, 4);
+                      const rowCount = Math.max(bids.length, asks.length);
+                      const bestBid = bids[0]?.price;
+                      const bestAsk = asks[0]?.price;
+                      const spread = bestBid !== undefined && bestAsk !== undefined ? bestAsk - bestBid : null;
+                      const spreadPercent = spread !== null && bestAsk ? (spread / bestAsk) * 100 : null;
+                      if (rowCount === 0) {
+                        return <div className="empty-state">No open orders for {selectedStock.symbol}. Place a limit order to add liquidity.</div>;
+                      }
+                      return (
+                        <>
+                          {Array.from({ length: rowCount }, (_, index) => {
+                            const bid = bids[index];
+                            const ask = asks[index];
+                            const maxSize = Math.max(1, ...bids.map((level) => level.size), ...asks.map((level) => level.size));
+                            return (
+                              <div className="depth-row" key={index}>
+                                <span className="depth-size buy-depth" style={{ "--depth": `${((bid?.size ?? 0) / maxSize) * 100}%` } as CSSProperties & { "--depth": string }}>{bid?.size ?? "—"}</span>
+                                <strong className="positive">{bid ? money(bid.price) : "—"}</strong>
+                                <strong className="negative">{ask ? money(ask.price) : "—"}</strong>
+                                <span className="depth-size sell-depth" style={{ "--depth": `${((ask?.size ?? 0) / maxSize) * 100}%` } as CSSProperties & { "--depth": string }}>{ask?.size ?? "—"}</span>
+                              </div>
+                            );
+                          })}
+                          <div className="depth-mid">
+                            <span>{spread === null ? "SPREAD UNAVAILABLE" : "BEST BID / ASK SPREAD"}</span>
+                            <strong>{spread === null ? "—" : money(spread)}{spreadPercent === null ? null : <small> {spreadPercent.toFixed(2)}%</small>}</strong>
+                          </div>
+                          <div className="depth-footnote">DATABASE ORDERS · {orderBook?.bids.length ?? 0} BIDS / {orderBook?.asks.length ?? 0} ASKS</div>
+                        </>
+                      );
+                    })()}
+                  </>
                 )}
               </section>
 
