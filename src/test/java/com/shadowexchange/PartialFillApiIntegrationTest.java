@@ -86,6 +86,52 @@ class PartialFillApiIntegrationTest {
         holdingRepository.save(new Holding(seller, stock, 4));
     }
 
+
+    @Test
+    void shouldExposeOpenBuyAndSellOrdersThroughOrderBookApi() throws Exception {
+        mockMvc.perform(post("/orders")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userId": %d,
+                                  "stockId": %d,
+                                  "type": "BUY",
+                                  "price": 90.00,
+                                  "quantity": 2
+                                }
+                                """.formatted(buyer.getId(), stock.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"));
+
+        mockMvc.perform(post("/orders")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userId": %d,
+                                  "stockId": %d,
+                                  "type": "SELL",
+                                  "price": 100.00,
+                                  "quantity": 3
+                                }
+                                """.formatted(seller.getId(), stock.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"));
+
+        mockMvc.perform(get("/orders/book/{stockId}", stock.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stockId").value(stock.getId()))
+                .andExpect(jsonPath("$.bids.length()").value(1))
+                .andExpect(jsonPath("$.bids[0].type").value("BUY"))
+                .andExpect(jsonPath("$.bids[0].price").value(90.0))
+                .andExpect(jsonPath("$.bids[0].quantity").value(2))
+                .andExpect(jsonPath("$.bids[0].status").value("PENDING"))
+                .andExpect(jsonPath("$.asks.length()").value(1))
+                .andExpect(jsonPath("$.asks[0].type").value("SELL"))
+                .andExpect(jsonPath("$.asks[0].price").value(100.0))
+                .andExpect(jsonPath("$.asks[0].quantity").value(3))
+                .andExpect(jsonPath("$.asks[0].status").value("PENDING"));
+    }
+
     @Test
     void shouldReturnAndPersistPartiallyFilledOrderThroughHttpApi() throws Exception {
         // First, place a SELL order for only four shares.
