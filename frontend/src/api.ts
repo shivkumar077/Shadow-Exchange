@@ -21,6 +21,7 @@ export type ApiOrder = {
   price: number | string;
   quantity: number;
   status: "PENDING" | "PARTIALLY_FILLED" | "FILLED" | "CANCELLED";
+  createdAt?: string;
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
@@ -78,6 +79,10 @@ export async function createDemoUser(): Promise<ApiUser> {
       password: crypto.randomUUID(),
     }),
   });
+}
+
+export async function getOrders(userId: number): Promise<ApiOrder[]> {
+  return request<ApiOrder[]>(`/orders/user/${userId}`);
 }
 
 export async function submitOrder(order: {
