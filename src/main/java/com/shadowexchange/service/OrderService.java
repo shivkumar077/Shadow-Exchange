@@ -12,6 +12,7 @@ import com.shadowexchange.repository.OrderRepository;
 import com.shadowexchange.repository.StockRepository;
 import com.shadowexchange.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.shadowexchange.entity.Holding;
 import com.shadowexchange.repository.HoldingRepository;
 
@@ -20,7 +21,6 @@ import java.math.BigDecimal;
 @Service
 public class OrderService {
 
-    // SYNC TEST: if you can see this after git pull, GitHub -> Antigravity sync works.
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final StockRepository stockRepository;
@@ -44,6 +44,7 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+    @Transactional
     public OrderResponseDTO createOrder(OrderRequestDTO orderRequestDTO){
 
         if(orderRequestDTO.getPrice() == null || orderRequestDTO.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
