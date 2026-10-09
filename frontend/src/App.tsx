@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { cancelOrder, createDemoUser, getOrders, getPortfolio, getStocks, getUser, submitOrder, type ApiHolding, type ApiOrder, type ApiStock } from "./api";
+import { cancelOrder, createDemoUser, getOrders, getPortfolio, getStocks, getUser, submitOrder, type ApiHolding, type ApiOrder, type ApiStock, type ApiUser } from "./api";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -112,6 +112,7 @@ function App() {
   const [toast, setToast] = useState("");
   const [orders, setOrders] = useState<LocalOrder[]>([]);
   const [portfolio, setPortfolio] = useState<ApiHolding[]>([]);
+  const [account, setAccount] = useState<ApiUser | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
 
   useEffect(() => {
@@ -194,6 +195,17 @@ function App() {
     void loadDemoAccount();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!demoUserId) return;
+    let cancelled = false;
+    getUser(demoUserId)
+      .then((user) => { if (!cancelled) setAccount(user); })
+      .catch((error: unknown) => {
+        if (!cancelled) setToast(error instanceof Error ? `Account balance unavailable: ${error.message}` : "Account balance unavailable.");
+      });
+    return () => { cancelled = true; };
+  }, [demoUserId, orders]);
 
   useEffect(() => {
     if (!demoUserId) return;
@@ -382,6 +394,8 @@ function App() {
           {activeSection === "Portfolio" ? (
             <section className="portfolio-view">
               <div className="portfolio-summary-grid">
+                <article className="portfolio-metric"><span>CASH BALANCE</span><strong>{money(Number(account?.balance ?? 0))}</strong><small>Account cash before reservations</small></article>
+                <article className="portfolio-metric"><span>RESERVED CASH</span><strong>{money(Number(account?.reservedBalance ?? 0))}</strong><small>Committed to open buy orders</small></article>
                 <article className="portfolio-metric"><span>POSITIONS</span><strong>{portfolio.length.toString().padStart(2, "0")}</strong><small>Instruments held</small></article>
                 <article className="portfolio-metric"><span>MARKET VALUE</span><strong>{money(portfolio.reduce((total, holding) => total + Number(holding.marketValue), 0))}</strong><small>Based on current listed prices</small></article>
                 <article className="portfolio-metric"><span>SHARES RESERVED</span><strong>{portfolio.reduce((total, holding) => total + holding.reservedQuantity, 0)}</strong><small>Committed to open sell orders</small></article>
