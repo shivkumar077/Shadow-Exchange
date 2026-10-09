@@ -70,7 +70,7 @@ export async function getUser(userId: number): Promise<ApiUser> {
 }
 
 export async function createDemoUser(): Promise<ApiUser> {
-  return request<ApiUser>("/api/users", {
+  return request<ApiUser>("/api/users/demo", {
     method: "POST",
     body: JSON.stringify({
       username: "Shadow Demo Operator",
