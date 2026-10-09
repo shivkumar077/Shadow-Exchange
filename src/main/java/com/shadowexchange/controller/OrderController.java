@@ -27,6 +27,11 @@ public class OrderController {
         return orderService.createOrder(orderRequestDTO);
     }
 
+    @GetMapping("/user/{userId}")
+    public java.util.List<OrderResponseDTO> getUserOrders(@PathVariable Long userId) {
+        return orderService.getOrdersForUser(userId);
+    }
+
     @DeleteMapping("/{orderId}")
     public void cancelOrder(@PathVariable Long orderId) {
         CancellationService.cancelOrder(orderId);
