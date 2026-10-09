@@ -19,6 +19,8 @@ import java.math.BigDecimal;
 
 @Service
 public class OrderService {
+
+    // SYNC TEST: if you can see this after git pull, GitHub -> Antigravity sync works.
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final StockRepository stockRepository;
