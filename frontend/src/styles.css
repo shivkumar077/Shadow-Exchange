@@ -621,3 +621,15 @@ body { font-size: 14px; }
   .portfolio-table-head, .portfolio-row { min-width: 730px; padding-right: 12px; padding-left: 12px; }
   .portfolio-view { gap: 13px; }
 }
+
+
+/* Market depth now reflects persisted exchange orders rather than illustrative levels. */
+.depth-footnote {
+  padding: 0 14px 12px;
+  color: #697062;
+  font: 8px/1.5 var(--mono);
+  letter-spacing: .08em;
+}
+@media (max-width: 640px) {
+  .depth-footnote { padding-right: 9px; padding-left: 9px; font-size: 7px; }
+}
