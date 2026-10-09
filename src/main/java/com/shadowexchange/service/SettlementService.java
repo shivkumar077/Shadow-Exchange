@@ -81,6 +81,10 @@ public class SettlementService {
                 sellerHolding.getQuantity() - trade.getQuantity()
         );
 
+        sellerHolding.setReservedQuantity(
+                sellerHolding.getReservedQuantity() - trade.getQuantity()
+        );
+
         holdingRepository.save(sellerHolding);
     }
 }
