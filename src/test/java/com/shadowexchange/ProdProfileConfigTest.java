@@ -46,11 +46,12 @@ class ProdProfileConfigTest {
                     "prod"
             );
 
-            // Canonical property checks from application-prod.properties
             assertThat(environment.getProperty("spring.datasource.driver-class-name"))
                     .isEqualTo("org.postgresql.Driver");
             assertThat(environment.getProperty("spring.jpa.database-platform"))
                     .isEqualTo("org.hibernate.dialect.PostgreSQLDialect");
+            assertThat(environment.getProperty("spring.jpa.show-sql"))
+                    .isEqualTo("false");
 
             // Spring Boot DataSourceProperties binding verification
             DataSourceProperties properties = new DataSourceProperties();
@@ -131,6 +132,8 @@ class ProdProfileConfigTest {
                 .contains("jdbc:h2:mem:shadow_exchange");
         assertThat(environment.getProperty("spring.jpa.database-platform"))
                 .isEqualTo("org.hibernate.dialect.H2Dialect");
+        assertThat(environment.getProperty("spring.jpa.show-sql"))
+                .isEqualTo("true");
 
         // Spring Boot DataSourceProperties binding verification
         DataSourceProperties properties = new DataSourceProperties();
