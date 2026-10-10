@@ -232,25 +232,34 @@ function App() {
     }
 
     let cancelled = false;
-    setOrderBookLoading(true);
-    getOrderBook(selectedStockId)
-      .then((book) => {
+
+    const refreshOrderBook = async (showLoading = false) => {
+      if (showLoading) setOrderBookLoading(true);
+      try {
+        const book = await getOrderBook(selectedStockId);
         if (!cancelled) {
           setOrderBook(book);
           setOrderBookError("");
         }
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         if (!cancelled) {
-          setOrderBook(null);
-          setOrderBookError(error instanceof Error ? error.message : "Unable to load market depth.");
+          setOrderBookError(error instanceof Error ? error.message : "Unable to refresh market depth.");
         }
-      })
-      .finally(() => {
-        if (!cancelled) setOrderBookLoading(false);
-      });
+      } finally {
+        if (!cancelled && showLoading) setOrderBookLoading(false);
+      }
+    };
 
-    return () => { cancelled = true; };
+    // Load immediately, then poll for changes while this instrument is selected.
+    void refreshOrderBook(true);
+    const intervalId = window.setInterval(() => {
+      void refreshOrderBook();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
   }, [selectedStockId, orders]);
 
   const selectedStock = stocks.find((stock) => stock.symbol === selectedSymbol) ?? stocks[0] ?? {
