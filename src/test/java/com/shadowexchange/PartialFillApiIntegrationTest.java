@@ -230,6 +230,15 @@ class PartialFillApiIntegrationTest {
                 .andExpect(jsonPath("$[0].status").value("PARTIALLY_FILLED"))
                 .andExpect(jsonPath("$[0].quantity").value(6));
 
+        // The order book must expose the unfilled remainder, not the original quantity.
+        mockMvc.perform(get("/orders/book/{stockId}", stock.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bids.length()").value(1))
+                .andExpect(jsonPath("$.bids[0].id").value(buyOrderId))
+                .andExpect(jsonPath("$.bids[0].status").value("PARTIALLY_FILLED"))
+                .andExpect(jsonPath("$.bids[0].quantity").value(6))
+                .andExpect(jsonPath("$.asks.length()").value(0));
+
         User persistedBuyer = userRepository.findById(buyer.getId()).orElseThrow();
         User persistedSeller = userRepository.findById(seller.getId()).orElseThrow();
         Holding buyerHolding = holdingRepository
