@@ -1,0 +1,24 @@
+.git
+.gitignore
+.gitattributes
+.env*
+.neon*
+.agents
+target/
+frontend/
+node_modules/
+package.json
+package-lock.json
+neon.ts
+skills-lock.json
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Build and temp artifacts
+*.log
+scratch/
