@@ -538,7 +538,7 @@ function App() {
               <section className="panel depth-panel">
                 <div className="panel-topline">
                   <div className="panel-label"><span className="panel-index">04</span> MARKET DEPTH</div>
-                  <span className="depth-live"><span className="status-light" /> LIVE SIM</span>
+                  <span className="depth-live"><span className="status-light" /> API SYNC</span>
                 </div>
                 <div className="depth-head"><span>SIZE</span><span>BUY PRICE</span><span>SELL PRICE</span><span>SIZE</span></div>
                 {orderBookLoading && !orderBook ? (
