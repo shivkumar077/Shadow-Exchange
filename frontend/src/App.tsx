@@ -460,7 +460,8 @@ function App() {
               </section>
             </section>
           ) : (
-          <div className="content-grid">
+            <>
+              <div className="content-grid">
             <div className="left-column">
               <section className="panel featured-panel">
                 <div className="panel-topline">
@@ -646,6 +647,7 @@ function App() {
             <div><span className="footer-brand-mark">S.</span><span>SHADOW EXCHANGE</span><span className="footer-separator">/</span><span>BUILT FOR PRECISION.</span></div>
             <div><span>DEMO ENVIRONMENT</span><span className="footer-separator">·</span><span>NOT FINANCIAL ADVICE</span><span className="footer-version">v0.1.0</span></div>
           </footer>
+            </>
           )}
         </div>
       </main>

@@ -8,6 +8,7 @@ import com.shadowexchange.entity.User;
 import com.shadowexchange.repository.HoldingRepository;
 import com.shadowexchange.repository.OrderRepository;
 import com.shadowexchange.repository.StockRepository;
+import com.shadowexchange.repository.TradeRepository;
 import com.shadowexchange.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,12 +51,16 @@ class PartialFillApiIntegrationTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private TradeRepository tradeRepository;
+
     private User buyer;
     private User seller;
     private Stock stock;
 
     @BeforeEach
     void setUp() {
+        tradeRepository.deleteAll();
         holdingRepository.deleteAll();
         orderRepository.deleteAll();
         stockRepository.deleteAll();
