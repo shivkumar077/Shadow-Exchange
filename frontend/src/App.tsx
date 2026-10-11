@@ -98,6 +98,7 @@ function MarketChart({ stock }: { stock: Stock }) {
 
 function App() {
   const [activeSection, setActiveSection] = useState("Overview");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedSymbol, setSelectedSymbol] = useState("");
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [stocksLoading, setStocksLoading] = useState(true);
@@ -351,7 +352,7 @@ function App() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileNavOpen ? "mobile-open" : ""}`}>
         <a className="brand" href="#" onClick={() => setActiveSection("Overview")} aria-label="Shadow Exchange home">
           <span className="brand-mark"><span /><span /><span /></span>
           <span className="brand-word">SHADOW<span>EXCHANGE</span></span>
@@ -360,7 +361,7 @@ function App() {
         <div className="workspace-label">WORKSPACE <span>01</span></div>
         <nav className="primary-nav" aria-label="Primary navigation">
           {navigation.map(({ label, icon: Icon }) => (
-            <button key={label} className={`nav-item ${activeSection === label ? "active" : ""}`} onClick={() => setActiveSection(label)}>
+            <button key={label} className={`nav-item ${activeSection === label ? "active" : ""}`} onClick={() => { setActiveSection(label); setMobileNavOpen(false); }}>
               <Icon size={16} strokeWidth={1.7} />
               <span>{label}</span>
               {label === "Activity" && <span className="nav-count">{orders.length}</span>}
@@ -653,7 +654,7 @@ function App() {
       </main>
 
       {toast && <div className="toast" role="status"><span className="toast-mark">S.</span><span>{toast}</span><button aria-label="Dismiss message" onClick={() => setToast("")}><X size={14} /></button></div>}
-      <button className="mobile-menu" aria-label="Open navigation" onClick={() => setToast("For the best terminal experience, use a wider screen.")}><Menu size={20} /></button>
+      <button className="mobile-menu" type="button" aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}>{mobileNavOpen ? <X size={20} /> : <Menu size={20} />}</button>
     </div>
   );
 }
