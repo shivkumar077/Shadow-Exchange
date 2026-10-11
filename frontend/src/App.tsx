@@ -297,35 +297,101 @@ function App() {
   const availableShares = selectedHolding ? selectedHolding.availableQuantity : 0;
   const reservedShares = selectedHolding ? selectedHolding.reservedQuantity : 0;
 
-  const orderValidationWarning = useMemo(() => {
-    const qty = Number(quantity) || 0;
+  const isPriceValid = useMemo(() => {
+    const p = Number(limitPrice);
+    return Number.isFinite(p) && p > 0;
+  }, [limitPrice]);
+
+  const isQuantityValid = useMemo(() => {
+    const q = Number(quantity);
+    return Number.isInteger(q) && q >= 1;
+  }, [quantity]);
+
+  const isDataReady = Boolean(
+    !stocksLoading &&
+    stocks.length > 0 &&
+    !stocksError &&
+    selectedStock.id &&
+    !accountLoading &&
+    account &&
+    demoUserId &&
+    !submittingOrder &&
+    (side === "BUY" || !portfolioLoading)
+  );
+
+  const hasSufficientFundsOrShares = useMemo(() => {
+    if (!isPriceValid || !isQuantityValid) return false;
+    const parsedPrice = Number(limitPrice);
+    const parsedQuantity = Number(quantity);
+
     if (side === "BUY") {
-      if (estimatedValue > availableCash) {
+      const requiredFunds = Number((parsedPrice * parsedQuantity).toFixed(2));
+      const roundedAvailableCash = Number(availableCash.toFixed(2));
+      return requiredFunds <= roundedAvailableCash;
+    } else {
+      return parsedQuantity <= availableShares;
+    }
+  }, [isPriceValid, isQuantityValid, side, limitPrice, quantity, availableCash, availableShares]);
+
+  const canSubmitOrder = Boolean(isDataReady && isPriceValid && isQuantityValid && hasSufficientFundsOrShares);
+
+  const orderValidationWarning = useMemo(() => {
+    if (side === "SELL" && availableShares === 0) {
+      return `You hold 0 available shares of ${selectedStock.symbol}.`;
+    }
+    if (!isPriceValid) {
+      return "Enter a valid limit price greater than $0.00.";
+    }
+    if (!isQuantityValid) {
+      return "Enter a whole-share quantity of at least 1.";
+    }
+
+    const parsedPrice = Number(limitPrice);
+    const parsedQuantity = Number(quantity);
+
+    if (side === "BUY") {
+      const requiredFunds = Number((parsedPrice * parsedQuantity).toFixed(2));
+      const roundedAvailableCash = Number(availableCash.toFixed(2));
+      if (requiredFunds > roundedAvailableCash) {
         return `Order value exceeds available cash (${money(availableCash)}).`;
       }
     } else {
-      if (qty > availableShares) {
-        return availableShares === 0
-          ? `You hold 0 available shares of ${selectedStock.symbol}.`
-          : `Quantity exceeds available shares (${availableShares} ${selectedStock.symbol}).`;
+      if (parsedQuantity > availableShares) {
+        return `Quantity exceeds available shares (${availableShares} ${selectedStock.symbol}).`;
       }
     }
+
     return null;
-  }, [side, estimatedValue, availableCash, quantity, availableShares, selectedStock.symbol]);
+  }, [
+    side,
+    availableShares,
+    selectedStock.symbol,
+    isPriceValid,
+    isQuantityValid,
+    limitPrice,
+    quantity,
+    availableCash,
+  ]);
 
   const applyMaxQuantity = () => {
     if (side === "BUY") {
       const price = Number(limitPrice) || selectedStock.price;
-      if (price > 0 && availableCash > 0) {
+      if (Number.isFinite(price) && price > 0) {
         const maxShares = Math.floor(availableCash / price);
-        setQuantity(String(Math.max(1, maxShares)));
+        if (maxShares >= 1) {
+          setQuantity(String(maxShares));
+        } else {
+          setQuantity("0");
+          setToast("Insufficient available cash to afford a whole share.");
+        }
       } else {
-        setToast("Insufficient available cash to calculate max shares.");
+        setToast("Enter a valid limit price to calculate max shares.");
       }
     } else {
-      if (availableShares > 0) {
+      if (availableShares >= 1) {
         setQuantity(String(availableShares));
       } else {
+        setQuantity("0");
         setToast(`You do not have any available shares of ${selectedStock.symbol} to sell.`);
       }
     }
@@ -350,6 +416,7 @@ function App() {
     }));
 
   const placeDemoOrder = async () => {
+    if (!canSubmitOrder) return;
     const parsedQuantity = Number(quantity);
     const parsedPrice = Number(limitPrice);
     if (!Number.isInteger(parsedQuantity) || parsedQuantity < 1 || !Number.isFinite(parsedPrice) || parsedPrice <= 0) {
@@ -681,7 +748,16 @@ function App() {
                 <div className="order-estimate"><span>ESTIMATED ORDER VALUE</span><strong>{money(estimatedValue)}</strong></div>
                 {orderValidationWarning && <div className="order-warning-note">{orderValidationWarning}</div>}
                 <div className="order-note"><ShieldCheck size={14} /><span>Simulation only. No real funds or securities.</span></div>
-                <button className={`submit-order ${side === "SELL" ? "sell-submit" : ""}`} onClick={placeDemoOrder} disabled={stocksLoading || stocks.length === 0 || Boolean(stocksError) || accountLoading || !demoUserId || submittingOrder}>{submittingOrder ? "Submitting order…" : side === "BUY" ? "Place buy order" : "Place sell order"} <ArrowUpRight size={16} /></button>
+                <button
+                  className={`submit-order ${side === "SELL" ? "sell-submit" : ""}`}
+                  onClick={placeDemoOrder}
+                  disabled={!canSubmitOrder}
+                  aria-disabled={!canSubmitOrder}
+                  title={!canSubmitOrder && orderValidationWarning ? orderValidationWarning : undefined}
+                >
+                  {submittingOrder ? "Submitting order…" : side === "BUY" ? "Place buy order" : "Place sell order"}{" "}
+                  <ArrowUpRight size={16} />
+                </button>
                 <div className="ticket-footnote">By continuing, you acknowledge this is a simulated market.</div>
               </section>
 

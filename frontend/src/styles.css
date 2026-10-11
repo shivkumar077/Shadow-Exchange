@@ -234,8 +234,26 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .submit-order { width: calc(100% - 32px); display: flex; align-items: center; justify-content: space-between; margin: 0 16px; padding: 12px 13px; border: 1px solid var(--signal); background: var(--signal); color: #1b2111; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 160ms ease, transform 160ms ease; }
 .submit-order:hover { background: #e0f89a; transform: translateY(-1px); }
 .submit-order:active { transform: translateY(0); }
+.submit-order:disabled,
+.submit-order:disabled:hover,
+.submit-order:disabled:active {
+  opacity: .42;
+  cursor: not-allowed;
+  transform: none;
+  border-color: #2f3627;
+  background: #1c2216;
+  color: #79836f;
+  box-shadow: none;
+}
 .submit-order.sell-submit { border-color: var(--red); background: var(--red); color: #261511; }
 .submit-order.sell-submit:hover { background: #ff9488; }
+.submit-order.sell-submit:disabled,
+.submit-order.sell-submit:disabled:hover,
+.submit-order.sell-submit:disabled:active {
+  border-color: #3f2420;
+  background: #231614;
+  color: #8c6a64;
+}
 .ticket-footnote { margin: 10px 16px 0; color: #656c60; font-size: 9px; line-height: 1.5; }
 
 .depth-panel { padding-bottom: 0; }
