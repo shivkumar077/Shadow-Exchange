@@ -203,25 +203,36 @@ function App() {
   useEffect(() => {
     if (!demoUserId) return;
     let cancelled = false;
-    getUser(demoUserId)
-      .then((user) => { if (!cancelled) setAccount(user); })
-      .catch((error: unknown) => {
-        if (!cancelled) setToast(error instanceof Error ? `Account balance unavailable: ${error.message}` : "Account balance unavailable.");
-      });
-    return () => { cancelled = true; };
-  }, [demoUserId, orders]);
 
-  useEffect(() => {
-    if (!demoUserId) return;
-    let cancelled = false;
-    setPortfolioLoading(true);
-    getPortfolio(demoUserId)
-      .then((holdings) => { if (!cancelled) setPortfolio(holdings); })
-      .catch((error: unknown) => {
-        if (!cancelled) setToast(error instanceof Error ? `Portfolio unavailable: ${error.message}` : "Portfolio unavailable.");
-      })
-      .finally(() => { if (!cancelled) setPortfolioLoading(false); });
-    return () => { cancelled = true; };
+    const syncAccountAndPortfolio = async (showLoading = false) => {
+      if (showLoading) setPortfolioLoading(true);
+      try {
+        const [user, holdings] = await Promise.all([
+          getUser(demoUserId),
+          getPortfolio(demoUserId),
+        ]);
+        if (!cancelled) {
+          setAccount(user);
+          setPortfolio(holdings);
+        }
+      } catch (error: unknown) {
+        if (!cancelled && showLoading) {
+          setToast(error instanceof Error ? `Account data unavailable: ${error.message}` : "Account data unavailable.");
+        }
+      } finally {
+        if (!cancelled && showLoading) setPortfolioLoading(false);
+      }
+    };
+
+    void syncAccountAndPortfolio(true);
+    const intervalId = window.setInterval(() => {
+      void syncAccountAndPortfolio(false);
+    }, 10000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
   }, [demoUserId, orders]);
 
   const selectedStockId = stocks.find((stock) => stock.symbol === selectedSymbol)?.id ?? 0;
@@ -275,6 +286,51 @@ function App() {
   );
   const estimatedValue = Math.max(0, Number(quantity) || 0) * Math.max(0, Number(limitPrice) || 0);
 
+  const cashBalance = Number(account?.balance ?? 0);
+  const reservedCash = Number(account?.reservedBalance ?? 0);
+  const availableCash = Math.max(0, cashBalance - reservedCash);
+  const totalMarketValue = portfolio.reduce((total, holding) => total + Number(holding.marketValue), 0);
+  const totalEquity = cashBalance + totalMarketValue;
+  const totalSharesReserved = portfolio.reduce((total, holding) => total + holding.reservedQuantity, 0);
+
+  const selectedHolding = portfolio.find((item) => item.stockId === selectedStock.id || item.symbol === selectedStock.symbol);
+  const availableShares = selectedHolding ? selectedHolding.availableQuantity : 0;
+  const reservedShares = selectedHolding ? selectedHolding.reservedQuantity : 0;
+
+  const orderValidationWarning = useMemo(() => {
+    const qty = Number(quantity) || 0;
+    if (side === "BUY") {
+      if (estimatedValue > availableCash) {
+        return `Order value exceeds available cash (${money(availableCash)}).`;
+      }
+    } else {
+      if (qty > availableShares) {
+        return availableShares === 0
+          ? `You hold 0 available shares of ${selectedStock.symbol}.`
+          : `Quantity exceeds available shares (${availableShares} ${selectedStock.symbol}).`;
+      }
+    }
+    return null;
+  }, [side, estimatedValue, availableCash, quantity, availableShares, selectedStock.symbol]);
+
+  const applyMaxQuantity = () => {
+    if (side === "BUY") {
+      const price = Number(limitPrice) || selectedStock.price;
+      if (price > 0 && availableCash > 0) {
+        const maxShares = Math.floor(availableCash / price);
+        setQuantity(String(Math.max(1, maxShares)));
+      } else {
+        setToast("Insufficient available cash to calculate max shares.");
+      }
+    } else {
+      if (availableShares > 0) {
+        setQuantity(String(availableShares));
+      } else {
+        setToast(`You do not have any available shares of ${selectedStock.symbol} to sell.`);
+      }
+    }
+  };
+
   const chooseStock = (stock: Stock) => {
     setSelectedSymbol(stock.symbol);
     setLimitPrice(stock.price.toFixed(2));
@@ -313,9 +369,15 @@ function App() {
         price: parsedPrice,
         quantity: parsedQuantity,
       });
-      const savedOrders = await getOrders(demoUserId);
+      const [savedOrders, refreshedUser, refreshedPortfolio] = await Promise.all([
+        getOrders(demoUserId),
+        getUser(demoUserId),
+        getPortfolio(demoUserId),
+      ]);
       const refreshedOrders = mapApiOrders(savedOrders);
       setOrders(refreshedOrders);
+      setAccount(refreshedUser);
+      setPortfolio(refreshedPortfolio);
       const latestOrder = refreshedOrders.find((order) => order.id === response.id);
       setToast(`Order #${response.id} accepted by the exchange · ${latestOrder?.status ?? response.status}`);
     } catch (error) {
@@ -334,8 +396,14 @@ function App() {
     try {
       await cancelOrder(order.id);
       if (demoUserId) {
-        const savedOrders = await getOrders(demoUserId);
+        const [savedOrders, refreshedUser, refreshedPortfolio] = await Promise.all([
+          getOrders(demoUserId),
+          getUser(demoUserId),
+          getPortfolio(demoUserId),
+        ]);
         setOrders(mapApiOrders(savedOrders));
+        setAccount(refreshedUser);
+        setPortfolio(refreshedPortfolio);
       }
       setToast(`Order #${order.id} cancelled. Reserved funds or shares have been released.`);
     } catch (error) {
@@ -413,7 +481,10 @@ function App() {
           <button className="nav-item utility-item" onClick={() => setToast("Help centre is coming soon.")}><CircleHelp size={16} /><span>Help & documentation</span></button>
           <div className="profile-row">
             <div className="profile-avatar">SK</div>
-            <div className="profile-copy"><strong>Demo operator</strong><small>Personal workspace</small></div>
+            <div className="profile-copy">
+              <strong>Demo operator</strong>
+              <small>{accountLoading ? "Connecting…" : `${money(availableCash)} cash`}</small>
+            </div>
             <ChevronDown size={15} className="profile-chevron" />
           </div>
         </div>
@@ -456,15 +527,25 @@ function App() {
           {activeSection === "Portfolio" ? (
             <section className="portfolio-view">
               <div className="portfolio-summary-grid">
-                <article className="portfolio-metric"><span>CASH BALANCE</span><strong>{money(Number(account?.balance ?? 0))}</strong><small>Account cash before reservations</small></article>
-                <article className="portfolio-metric"><span>RESERVED CASH</span><strong>{money(Number(account?.reservedBalance ?? 0))}</strong><small>Committed to open buy orders</small></article>
-                <article className="portfolio-metric"><span>POSITIONS</span><strong>{portfolio.length.toString().padStart(2, "0")}</strong><small>Instruments held</small></article>
-                <article className="portfolio-metric"><span>MARKET VALUE</span><strong>{money(portfolio.reduce((total, holding) => total + Number(holding.marketValue), 0))}</strong><small>Based on current listed prices</small></article>
-                <article className="portfolio-metric"><span>SHARES RESERVED</span><strong>{portfolio.reduce((total, holding) => total + holding.reservedQuantity, 0)}</strong><small>Committed to open sell orders</small></article>
+                <article className="portfolio-metric"><span>NET ACCOUNT VALUE</span><strong>{money(totalEquity)}</strong><small>Cash + stock market value</small></article>
+                <article className="portfolio-metric"><span>AVAILABLE CASH</span><strong>{money(availableCash)}</strong><small>Cash ready to deploy</small></article>
+                <article className="portfolio-metric"><span>RESERVED CASH</span><strong>{money(reservedCash)}</strong><small>Committed to open buy orders</small></article>
+                <article className="portfolio-metric"><span>MARKET VALUE</span><strong>{money(totalMarketValue)}</strong><small>Based on current listed prices</small></article>
+                <article className="portfolio-metric"><span>POSITIONS &amp; RESERVED</span><strong>{portfolio.length.toString().padStart(2, "0")} <span style={{ fontSize: "11px", fontWeight: 400, color: "var(--muted)" }}>/ {totalSharesReserved} res</span></strong><small>Active holdings / shares locked</small></article>
               </div>
               <section className="panel portfolio-table-panel">
                 <div className="panel-topline"><div className="panel-label"><span className="panel-index">06</span> YOUR POSITIONS</div>
-                  <button className="subtle-button" onClick={() => { if (demoUserId) void getPortfolio(demoUserId).then(setPortfolio).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Unable to refresh portfolio.")); }}>Refresh <ArrowUpRight size={13} /></button>
+                  <button className="subtle-button" onClick={() => {
+                    if (demoUserId) {
+                      setPortfolioLoading(true);
+                      Promise.all([
+                        getPortfolio(demoUserId).then(setPortfolio),
+                        getUser(demoUserId).then(setAccount),
+                      ])
+                        .catch((error: unknown) => setToast(error instanceof Error ? error.message : "Unable to refresh portfolio."))
+                        .finally(() => setPortfolioLoading(false));
+                    }
+                  }}>Refresh <ArrowUpRight size={13} /></button>
                 </div>
                 <div className="portfolio-table">
                   <div className="portfolio-table-head"><span>INSTRUMENT</span><span>TOTAL</span><span>AVAILABLE</span><span>RESERVED</span><span>PRICE</span><span>MARKET VALUE</span></div>
@@ -549,6 +630,22 @@ function App() {
                   <button className={side === "BUY" ? "buy-active" : ""} onClick={() => setSide("BUY")}><ArrowUpRight size={15} /> BUY</button>
                   <button className={side === "SELL" ? "sell-active" : ""} onClick={() => setSide("SELL")}><ArrowDownRight size={15} /> SELL</button>
                 </div>
+                <div className={`order-balance-pill ${orderValidationWarning ? "is-warning" : ""}`}>
+                  <span>{side === "BUY" ? "AVAILABLE CASH" : `AVAILABLE ${selectedStock.symbol}`}</span>
+                  <strong>
+                    {side === "BUY" ? (
+                      <>
+                        {money(availableCash)}
+                        {reservedCash > 0 && <small>({money(reservedCash)} res)</small>}
+                      </>
+                    ) : (
+                      <>
+                        {availableShares} SHARES
+                        {reservedShares > 0 && <small>({reservedShares} res)</small>}
+                      </>
+                    )}
+                  </strong>
+                </div>
                 <div className="order-field">
                   <label htmlFor="order-type">ORDER TYPE</label>
                   <button id="order-type" className="select-like" onClick={() => setToast("Limit orders are the supported order type in this prototype.")}>Limit order <ChevronDown size={14} /></button>
@@ -560,9 +657,29 @@ function App() {
                 <div className="order-field">
                   <label htmlFor="quantity">QUANTITY <span>SHARES</span></label>
                   <div className="number-input"><input id="quantity" inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} /><div className="stepper"><button aria-label="Decrease quantity" onClick={() => setQuantity(String(Math.max(1, (Number(quantity) || 1) - 1)))}>−</button><button aria-label="Increase quantity" onClick={() => setQuantity(String(Math.max(1, Number(quantity) || 1) + 1))}>+</button></div></div>
-                  <div className="quantity-presets">{[1, 5, 10, 25].map((amount) => <button key={amount} className={Number(quantity) === amount ? "selected" : ""} onClick={() => setQuantity(String(amount))}>{amount}</button>)}</div>
+                  <div className="quantity-presets">
+                    {[1, 5, 10, 25].map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        className={Number(quantity) === amount ? "selected" : ""}
+                        onClick={() => setQuantity(String(amount))}
+                      >
+                        {amount}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="max-preset-btn"
+                      onClick={applyMaxQuantity}
+                      title={side === "BUY" ? "Max shares with available cash" : "Max available shares"}
+                    >
+                      MAX
+                    </button>
+                  </div>
                 </div>
                 <div className="order-estimate"><span>ESTIMATED ORDER VALUE</span><strong>{money(estimatedValue)}</strong></div>
+                {orderValidationWarning && <div className="order-warning-note">{orderValidationWarning}</div>}
                 <div className="order-note"><ShieldCheck size={14} /><span>Simulation only. No real funds or securities.</span></div>
                 <button className={`submit-order ${side === "SELL" ? "sell-submit" : ""}`} onClick={placeDemoOrder} disabled={stocksLoading || stocks.length === 0 || Boolean(stocksError) || accountLoading || !demoUserId || submittingOrder}>{submittingOrder ? "Submitting order…" : side === "BUY" ? "Place buy order" : "Place sell order"} <ArrowUpRight size={16} /></button>
                 <div className="ticket-footnote">By continuing, you acknowledge this is a simulated market.</div>

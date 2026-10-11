@@ -200,6 +200,11 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .side-switch button { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 6px; border: 1px solid transparent; background: transparent; color: #7e8578; font-family: var(--mono); font-size: 10px; cursor: pointer; transition: color 160ms ease, background 160ms ease; }
 .side-switch button.buy-active { border-color: #3b482a; background: #27301d; color: var(--signal); }
 .side-switch button.sell-active { border-color: #54332d; background: #32201d; color: var(--red); }
+.order-balance-pill { display: flex; align-items: center; justify-content: space-between; margin: 0 16px 14px; padding: 7px 11px; border: 1px solid #283023; background: #131610; font-family: var(--mono); font-size: 8px; letter-spacing: .08em; color: var(--muted); }
+.order-balance-pill strong { color: var(--text); font-weight: 500; font-size: 11px; }
+.order-balance-pill strong small { color: #767d6f; font-size: 8px; font-weight: 400; margin-left: 4px; }
+.order-balance-pill.is-warning { border-color: #522d27; background: #221512; color: var(--red); }
+.order-balance-pill.is-warning strong { color: var(--red); }
 .order-field { display: grid; gap: 8px; margin: 0 16px 16px; }
 .order-field > label { display: flex; justify-content: space-between; color: #82897b; font-family: var(--mono); font-size: 8px; letter-spacing: .08em; }
 .order-field > label span { color: #596054; }
@@ -215,12 +220,15 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .stepper { display: flex; gap: 4px; }
 .stepper button { width: 23px; height: 23px; border: 1px solid #363b31; background: #20231d; color: #c0c6b5; cursor: pointer; }
 .stepper button:hover { border-color: #65744c; color: var(--signal); }
-.quantity-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 1px; }
+.quantity-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 1px; }
 .quantity-presets button { padding: 6px; border: 1px solid #2d3229; background: transparent; color: #858c7e; font-family: var(--mono); font-size: 9px; cursor: pointer; transition: background 150ms ease, color 150ms ease; }
 .quantity-presets button:hover, .quantity-presets button.selected { border-color: #3c472d; background: #242a1e; color: var(--signal); }
+.quantity-presets .max-preset-btn { border-color: #343f2a; color: var(--signal); font-weight: 600; }
+.quantity-presets .max-preset-btn:hover { background: #232a1c; }
 .order-estimate { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 16px; padding: 13px 0; border-top: 1px solid var(--line); }
 .order-estimate span { color: #7a8174; font-family: var(--mono); font-size: 8px; letter-spacing: .07em; }
 .order-estimate strong { color: #ecece2; font-family: var(--mono); font-size: 15px; font-weight: 400; letter-spacing: -.04em; }
+.order-warning-note { margin: 0 16px 10px; color: var(--red); font-family: var(--mono); font-size: 9px; letter-spacing: .03em; line-height: 1.4; }
 .order-note { display: flex; align-items: center; gap: 7px; margin: 0 16px 12px; color: #858b7e; font-size: 9px; }
 .order-note svg { flex: 0 0 auto; color: #9eac82; }
 .submit-order { width: calc(100% - 32px); display: flex; align-items: center; justify-content: space-between; margin: 0 16px; padding: 12px 13px; border: 1px solid var(--signal); background: var(--signal); color: #1b2111; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 160ms ease, transform 160ms ease; }
