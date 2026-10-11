@@ -352,11 +352,33 @@ function App() {
 
   return (
     <div className="app-shell">
-      <aside className={`sidebar ${mobileNavOpen ? "mobile-open" : ""}`}>
-        <a className="brand" href="#" onClick={() => setActiveSection("Overview")} aria-label="Shadow Exchange home">
-          <span className="brand-mark"><span /><span /><span /></span>
-          <span className="brand-word">SHADOW<span>EXCHANGE</span></span>
-        </a>
+      {mobileNavOpen && (
+        <div
+          className="mobile-nav-backdrop"
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <aside className={`sidebar ${mobileNavOpen ? "mobile-open" : ""}`} aria-label="Sidebar">
+        <div className="sidebar-header">
+          <a
+            className="brand"
+            href="#"
+            onClick={() => { setActiveSection("Overview"); setMobileNavOpen(false); }}
+            aria-label="Shadow Exchange home"
+          >
+            <span className="brand-mark"><span /><span /><span /></span>
+            <span className="brand-word">SHADOW<span>EXCHANGE</span></span>
+          </a>
+          <button
+            className="mobile-nav-close"
+            type="button"
+            aria-label="Close navigation"
+            onClick={() => setMobileNavOpen(false)}
+          >
+            <X size={18} />
+          </button>
+        </div>
 
         <div className="workspace-label">WORKSPACE <span>01</span></div>
         <nav className="primary-nav" aria-label="Primary navigation">
@@ -373,7 +395,7 @@ function App() {
         <div className="workspace-label">YOUR MARKETS <button className="tiny-icon-button" aria-label="Market settings"><SlidersHorizontal size={13} /></button></div>
         <div className="mini-watchlist">
           {stocks.slice(0, 4).map((stock) => (
-            <button key={stock.id} className={`mini-stock ${selectedSymbol === stock.symbol ? "selected" : ""}`} onClick={() => chooseStock(stock)}>
+            <button key={stock.id} className={`mini-stock ${selectedSymbol === stock.symbol ? "selected" : ""}`} onClick={() => { chooseStock(stock); setMobileNavOpen(false); }}>
               <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
               <span className="mini-stock-copy"><strong>{stock.symbol}</strong><small>{stock.name.split(" ")[0]}</small></span>
               <span className="mini-change">SIM</span>
