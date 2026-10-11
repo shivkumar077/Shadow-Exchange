@@ -367,7 +367,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .activity-table .table-head, .activity-row { min-width: 630px; }
   .page-footer { align-items: flex-start; flex-direction: column; padding-top: 18px; }
   .page-footer > div { flex-wrap: wrap; }
-  .footer-version { display: none; }
+  .footer-version { display: inline-block; }
   .mobile-menu { position: fixed; top: 11px; left: 12px; z-index: 10; width: 31px; height: 31px; display: grid; place-items: center; border: 1px solid #30362a; background: #1b1f17; color: var(--signal); }
   .toast { right: 12px; bottom: 12px; }
 }
