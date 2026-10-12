@@ -36,7 +36,7 @@ export type ApiOrder = {
   createdAt?: string;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "http://localhost:8080";
 
 async function readError(response: Response): Promise<string> {
   const body = await response.text();
@@ -127,4 +127,74 @@ export type ApiOrderBook = {
 
 export async function getOrderBook(stockId: number): Promise<ApiOrderBook> {
   return request<ApiOrderBook>(`/orders/book/${stockId}`);
+}
+
+export type PublicTradeResponse = {
+  tradeId: number;
+  stockId: number;
+  symbol: string;
+  price: number;
+  quantity: number;
+  executedAt: string;
+};
+
+export function resolveWebSocketUrl(apiBase?: string, explicitWs?: string): string {
+  if (typeof explicitWs === "string" && explicitWs.trim().length > 0) {
+    return explicitWs.trim();
+  }
+
+  const rawBase = typeof apiBase === "string" && apiBase.trim().length > 0
+    ? apiBase.trim()
+    : "http://localhost:8080";
+
+  try {
+    const url = new URL(rawBase.startsWith("http") ? rawBase : `http://${rawBase}`);
+    const protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${url.host}/ws`;
+  } catch {
+    return "ws://localhost:8080/ws";
+  }
+}
+
+export function getWebSocketUrl(): string {
+  return resolveWebSocketUrl(
+    import.meta.env?.VITE_API_BASE_URL,
+    import.meta.env?.VITE_WS_URL
+  );
+}
+
+export function validatePublicTrade(data: unknown): PublicTradeResponse | null {
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+
+  const tradeId = Number(record.tradeId);
+  const stockId = Number(record.stockId);
+  const symbol = typeof record.symbol === "string" ? record.symbol.trim() : "";
+  const price = Number(record.price);
+  const quantity = Number(record.quantity);
+  const executedAt = typeof record.executedAt === "string" ? record.executedAt.trim() : "";
+
+  if (
+    !Number.isFinite(tradeId) ||
+    tradeId <= 0 ||
+    !Number.isFinite(stockId) ||
+    stockId <= 0 ||
+    symbol.length === 0 ||
+    !Number.isFinite(price) ||
+    price < 0 ||
+    !Number.isFinite(quantity) ||
+    quantity <= 0 ||
+    executedAt.length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    tradeId,
+    stockId,
+    symbol,
+    price,
+    quantity,
+    executedAt,
+  };
 }

@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "test": "node --test test/tradeStream.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.4.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

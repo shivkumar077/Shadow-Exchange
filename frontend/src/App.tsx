@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { cancelOrder, createDemoUser, getOrderBook, getOrders, getPortfolio, getStocks, getUser, submitOrder, type ApiHolding, type ApiOrder, type ApiOrderBook, type ApiStock, type ApiUser } from "./api";
+import { useTradeStream } from "./useTradeStream";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -10,7 +11,6 @@ import {
   ChevronDown,
   CircleHelp,
   Command,
-  Eye,
   LayoutDashboard,
   Menu,
   Search,
@@ -118,6 +118,7 @@ function App() {
   const [orderBook, setOrderBook] = useState<ApiOrderBook | null>(null);
   const [orderBookLoading, setOrderBookLoading] = useState(false);
   const [orderBookError, setOrderBookError] = useState("");
+  const { trades: recentTrades, status: tradeStreamStatus } = useTradeStream();
 
   useEffect(() => {
     let cancelled = false;
@@ -823,16 +824,72 @@ function App() {
                 )}
               </section>
 
-              <section className="panel session-panel">
-                <div className="session-emblem"><Eye size={16} /></div>
-                <div><strong>A market in miniature.</strong><p>Orders, matching and settlement run on your local exchange simulation.</p><button onClick={() => setToast("Exchange documentation is coming soon.")}>HOW IT WORKS <ArrowUpRight size={12} /></button></div>
+              <section className="panel recent-trades-panel">
+                <div className="panel-topline">
+                  <div className="panel-label">
+                    <span className="panel-index">05</span> RECENT TRADES
+                  </div>
+                  <span className={`trade-stream-status ${tradeStreamStatus.toLowerCase()}`}>
+                    <span className={`status-light ${tradeStreamStatus === "CONNECTED" ? "" : tradeStreamStatus === "DISCONNECTED" ? "is-error" : "is-warning"}`} />
+                    {tradeStreamStatus === "CONNECTED"
+                      ? "LIVE STREAM"
+                      : tradeStreamStatus === "RECONNECTING"
+                      ? "RECONNECTING"
+                      : tradeStreamStatus === "CONNECTING"
+                      ? "CONNECTING"
+                      : "OFFLINE"}
+                  </span>
+                </div>
+                <div className="recent-trades-table">
+                  <div className="trades-table-head">
+                    <span>TIME</span>
+                    <span>TICKER</span>
+                    <span>PRICE</span>
+                    <span>QTY</span>
+                  </div>
+                  {recentTrades.length === 0 ? (
+                    <div className="empty-state">
+                      {tradeStreamStatus === "CONNECTED"
+                        ? "Listening for market prints on /topic/trades…"
+                        : tradeStreamStatus === "RECONNECTING"
+                        ? "Connection interrupted. Reconnecting…"
+                        : tradeStreamStatus === "CONNECTING"
+                        ? "Connecting to live trades feed…"
+                        : "Live trade feed is offline."}
+                    </div>
+                  ) : (
+                    <div className="trades-table-body">
+                      {recentTrades.slice(0, 8).map((trade) => {
+                        const timeStr = trade.executedAt
+                          ? trade.executedAt.includes("T")
+                            ? trade.executedAt.split("T")[1].slice(0, 8)
+                            : trade.executedAt.slice(-8)
+                          : "—";
+                        return (
+                          <div className="trade-row" key={trade.tradeId}>
+                            <span className="trade-time">{timeStr}</span>
+                            <span className="trade-symbol">
+                              <strong>{trade.symbol}</strong>
+                            </span>
+                            <span className="trade-price">{money(trade.price)}</span>
+                            <span className="trade-quantity">{trade.quantity}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="trades-footnote">
+                  <span>TOPIC <strong>/topic/trades</strong></span>
+                  <span>FEED <strong>STOMP / WS</strong></span>
+                </div>
               </section>
             </div>
           </div>
 
           <section className="panel activity-panel">
             <div className="panel-topline">
-              <div className="panel-label"><span className="panel-index">05</span> ORDER ACTIVITY <span className="panel-count">BACKEND CONFIRMED</span></div>
+              <div className="panel-label"><span className="panel-index">06</span> ORDER ACTIVITY <span className="panel-count">BACKEND CONFIRMED</span></div>
               <button className="subtle-button" onClick={() => setActiveSection("Activity")}>View activity <ArrowUpRight size={13} /></button>
             </div>
             <div className="activity-table">
