@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Client } from "@stomp/stompjs";
 import { getWebSocketUrl, validatePublicTrade, type PublicTradeResponse } from "./api.ts";
 
@@ -8,6 +8,10 @@ export interface UseTradeStreamResult {
   trades: PublicTradeResponse[];
   status: StreamStatus;
   connected: boolean;
+}
+
+export interface UseTradeStreamOptions {
+  onTrade?: (trade: PublicTradeResponse) => void;
 }
 
 export const MAX_TRADES = 30;
@@ -25,10 +29,123 @@ export function updateRecentTrades(
   return [newTrade, ...current].slice(0, max);
 }
 
-export function useTradeStream(): UseTradeStreamResult {
+export interface TradeRefreshCoalescerOptions {
+  debounceMs?: number;
+  refresh: () => Promise<void>;
+  onError?: (err: unknown) => void;
+}
+
+export interface TradeRefreshCoalescer {
+  schedule: () => void;
+  cancel: () => void;
+  dispose: () => void;
+  isRefreshing: () => boolean;
+  isQueued: () => boolean;
+  isDisposed: () => boolean;
+}
+
+export function createTradeRefreshCoalescer(options: TradeRefreshCoalescerOptions): TradeRefreshCoalescer {
+  const debounceMs = options.debounceMs ?? 100;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let inFlight = false;
+  let queued = false;
+  let disposed = false;
+
+  const execute = async () => {
+    if (disposed) return;
+    if (inFlight) {
+      queued = true;
+      return;
+    }
+
+    inFlight = true;
+    try {
+      await options.refresh();
+    } catch (err) {
+      options.onError?.(err);
+    } finally {
+      inFlight = false;
+      if (!disposed && queued) {
+        queued = false;
+        void execute();
+      }
+    }
+  };
+
+  const schedule = () => {
+    if (disposed) return;
+    if (timer !== null) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => {
+      timer = null;
+      void execute();
+    }, debounceMs);
+  };
+
+  const cancel = () => {
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    queued = false;
+  };
+
+  const dispose = () => {
+    disposed = true;
+    cancel();
+  };
+
+  return {
+    schedule,
+    cancel,
+    dispose,
+    isRefreshing: () => inFlight,
+    isQueued: () => queued,
+    isDisposed: () => disposed,
+  };
+}
+
+export function useTradeRefresh(
+  refresh: () => Promise<void>,
+  debounceMs: number = 100
+): { scheduleRefresh: () => void; cancelRefresh: () => void } {
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+
+  const coalescerRef = useRef<TradeRefreshCoalescer | null>(null);
+
+  if (!coalescerRef.current) {
+    coalescerRef.current = createTradeRefreshCoalescer({
+      debounceMs,
+      refresh: () => refreshRef.current(),
+      onError: (err) => console.warn("Trade refresh error:", err),
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      coalescerRef.current?.dispose();
+    };
+  }, []);
+
+  const scheduleRefresh = useCallback(() => {
+    coalescerRef.current?.schedule();
+  }, []);
+
+  const cancelRefresh = useCallback(() => {
+    coalescerRef.current?.cancel();
+  }, []);
+
+  return { scheduleRefresh, cancelRefresh };
+}
+
+export function useTradeStream(options?: UseTradeStreamOptions): UseTradeStreamResult {
   const [trades, setTrades] = useState<PublicTradeResponse[]>([]);
   const [status, setStatus] = useState<StreamStatus>("CONNECTING");
   const clientRef = useRef<Client | null>(null);
+  const onTradeRef = useRef(options?.onTrade);
+  onTradeRef.current = options?.onTrade;
 
   useEffect(() => {
     let unmounted = false;
@@ -56,6 +173,14 @@ export function useTradeStream(): UseTradeStreamResult {
             }
 
             setTrades((current) => updateRecentTrades(current, validated, MAX_TRADES));
+
+            if (onTradeRef.current) {
+              try {
+                onTradeRef.current(validated);
+              } catch (err) {
+                console.error("Error in onTrade handler:", err);
+              }
+            }
           } catch (err) {
             console.error("Failed to parse incoming WebSocket message body:", err);
           }

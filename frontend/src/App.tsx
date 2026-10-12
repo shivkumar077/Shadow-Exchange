@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { cancelOrder, createDemoUser, getOrderBook, getOrders, getPortfolio, getStocks, getUser, submitOrder, type ApiHolding, type ApiOrder, type ApiOrderBook, type ApiStock, type ApiUser } from "./api";
-import { useTradeStream } from "./useTradeStream";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cancelOrder, createDemoUser, getOrderBook, getOrders, getPortfolio, getStocks, getUser, mapApiOrders, submitOrder, type ApiHolding, type ApiOrder, type ApiOrderBook, type ApiStock, type ApiUser, type LocalOrder } from "./api";
+import { useTradeRefresh, useTradeStream } from "./useTradeStream";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -27,16 +27,6 @@ type Stock = {
   name: string;
   price: number;
   points: number[];
-};
-
-type LocalOrder = {
-  id: number;
-  side: "BUY" | "SELL";
-  symbol: string;
-  quantity: number;
-  price: number;
-  status: "PENDING" | "PARTIALLY_FILLED" | "FILLED" | "CANCELLED";
-  time: string;
 };
 
 const chartShapes: Record<string, number[]> = {
@@ -118,7 +108,48 @@ function App() {
   const [orderBook, setOrderBook] = useState<ApiOrderBook | null>(null);
   const [orderBookLoading, setOrderBookLoading] = useState(false);
   const [orderBookError, setOrderBookError] = useState("");
-  const { trades: recentTrades, status: tradeStreamStatus } = useTradeStream();
+  const isMountedRef = useRef(true);
+  const activeUserIdRef = useRef(demoUserId);
+  activeUserIdRef.current = demoUserId;
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const refreshUserOrdersAndPortfolio = useCallback(async () => {
+    const currentId = demoUserId;
+    if (!currentId) return;
+    try {
+      const [savedOrders, refreshedUser, refreshedPortfolio] = await Promise.all([
+        getOrders(currentId),
+        getUser(currentId),
+        getPortfolio(currentId),
+      ]);
+      if (!isMountedRef.current || activeUserIdRef.current !== currentId) {
+        return;
+      }
+      setOrders(mapApiOrders(savedOrders, stocks));
+      setAccount(refreshedUser);
+      setPortfolio(refreshedPortfolio);
+    } catch (err) {
+      if (isMountedRef.current && activeUserIdRef.current === currentId) {
+        console.warn("Failed to refresh user orders/portfolio after trade:", err);
+      }
+    }
+  }, [demoUserId, stocks]);
+
+  const { scheduleRefresh, cancelRefresh } = useTradeRefresh(refreshUserOrdersAndPortfolio, 100);
+
+  useEffect(() => {
+    cancelRefresh();
+  }, [demoUserId, cancelRefresh]);
+
+  const { trades: recentTrades, status: tradeStreamStatus } = useTradeStream({
+    onTrade: scheduleRefresh,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -178,17 +209,7 @@ function App() {
           setDemoUserId(user.id);
           const savedOrders = await getOrders(user.id);
           if (!cancelled) {
-            setOrders(savedOrders.map((order: ApiOrder) => ({
-              id: order.id,
-              side: order.type,
-              symbol: stocks.find((stock) => stock.id === order.stockId)?.symbol ?? `#${order.stockId}`,
-              quantity: order.quantity,
-              price: Number(order.price),
-              status: order.status,
-              time: order.createdAt
-                ? new Date(order.createdAt).toLocaleTimeString("en-GB", { hour12: false })
-                : "—",
-            })));
+            setOrders(mapApiOrders(savedOrders, stocks));
           }
         }
       } catch (error) {
@@ -403,19 +424,6 @@ function App() {
     setLimitPrice(stock.price.toFixed(2));
   };
 
-  const mapApiOrders = (savedOrders: ApiOrder[]): LocalOrder[] =>
-    savedOrders.slice(0, 5).map((savedOrder) => ({
-      id: savedOrder.id,
-      side: savedOrder.type,
-      symbol: stocks.find((stock) => stock.id === savedOrder.stockId)?.symbol ?? `#${savedOrder.stockId}`,
-      quantity: savedOrder.quantity,
-      price: Number(savedOrder.price),
-      status: savedOrder.status,
-      time: savedOrder.createdAt
-        ? new Date(savedOrder.createdAt).toLocaleTimeString("en-GB", { hour12: false })
-        : "—",
-    }));
-
   const placeDemoOrder = async () => {
     if (!canSubmitOrder) return;
     const parsedQuantity = Number(quantity);
@@ -442,7 +450,7 @@ function App() {
         getUser(demoUserId),
         getPortfolio(demoUserId),
       ]);
-      const refreshedOrders = mapApiOrders(savedOrders);
+      const refreshedOrders = mapApiOrders(savedOrders, stocks);
       setOrders(refreshedOrders);
       setAccount(refreshedUser);
       setPortfolio(refreshedPortfolio);
@@ -469,7 +477,7 @@ function App() {
           getUser(demoUserId),
           getPortfolio(demoUserId),
         ]);
-        setOrders(mapApiOrders(savedOrders));
+        setOrders(mapApiOrders(savedOrders, stocks));
         setAccount(refreshedUser);
         setPortfolio(refreshedPortfolio);
       }

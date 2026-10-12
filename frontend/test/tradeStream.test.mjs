@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveWebSocketUrl, validatePublicTrade } from "../src/api.ts";
-import { updateRecentTrades } from "../src/useTradeStream.ts";
+import { resolveWebSocketUrl, validatePublicTrade, mapApiOrders } from "../src/api.ts";
+import { updateRecentTrades, createTradeRefreshCoalescer } from "../src/useTradeStream.ts";
 import { Client } from "@stomp/stompjs";
 
 test("resolveWebSocketUrl prioritizes explicit VITE_WS_URL override", () => {
@@ -130,4 +130,155 @@ test("STOMP Client initialization and deactivation lifecycle", async () => {
   assert.equal(client.active, true);
   await client.deactivate();
   assert.equal(client.active, false);
+});
+
+test("mapApiOrders maps API orders with stock symbols and formats time", () => {
+  const apiOrders = [
+    {
+      id: 10,
+      userId: 1,
+      stockId: 1,
+      type: "BUY",
+      price: 142.50,
+      quantity: 5,
+      status: "FILLED",
+      createdAt: "2026-10-13T10:00:00",
+    },
+    {
+      id: 11,
+      userId: 1,
+      stockId: 99,
+      type: "SELL",
+      price: 200,
+      quantity: 2,
+      status: "PENDING",
+    },
+  ];
+  const stocks = [{ id: 1, symbol: "NVDA" }];
+  const localOrders = mapApiOrders(apiOrders, stocks);
+
+  assert.equal(localOrders.length, 2);
+  assert.equal(localOrders[0].id, 10);
+  assert.equal(localOrders[0].symbol, "NVDA");
+  assert.equal(localOrders[0].status, "FILLED");
+  assert.equal(localOrders[0].price, 142.50);
+  assert.equal(localOrders[0].side, "BUY");
+  assert.equal(localOrders[1].id, 11);
+  assert.equal(localOrders[1].symbol, "#99");
+  assert.equal(localOrders[1].status, "PENDING");
+  assert.equal(localOrders[1].time, "—");
+});
+
+test("createTradeRefreshCoalescer coalesces multiple rapid schedule calls into one execution", async () => {
+  let callCount = 0;
+  const coalescer = createTradeRefreshCoalescer({
+    debounceMs: 50,
+    refresh: async () => {
+      callCount++;
+    },
+  });
+
+  coalescer.schedule();
+  coalescer.schedule();
+  coalescer.schedule();
+
+  assert.equal(callCount, 0);
+  await new Promise((r) => setTimeout(r, 80));
+  assert.equal(callCount, 1);
+  coalescer.dispose();
+});
+
+test("createTradeRefreshCoalescer queues subsequent schedule while a refresh is in-flight without overlapping", async () => {
+  let callCount = 0;
+  let inFlightOverlap = false;
+  let currentlyExecuting = false;
+
+  const coalescer = createTradeRefreshCoalescer({
+    debounceMs: 20,
+    refresh: async () => {
+      if (currentlyExecuting) inFlightOverlap = true;
+      currentlyExecuting = true;
+      callCount++;
+      await new Promise((r) => setTimeout(r, 60));
+      currentlyExecuting = false;
+    },
+  });
+
+  coalescer.schedule();
+  await new Promise((r) => setTimeout(r, 35));
+  assert.equal(callCount, 1);
+  assert.equal(coalescer.isRefreshing(), true);
+
+  // Trigger another schedule while in flight
+  coalescer.schedule();
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(coalescer.isQueued(), true);
+
+  // Wait for 1st to complete and 2nd to complete
+  await new Promise((r) => setTimeout(r, 80));
+  assert.equal(callCount, 2);
+  assert.equal(inFlightOverlap, false);
+  coalescer.dispose();
+});
+
+test("createTradeRefreshCoalescer cancel clears pending timer and remains reusable", async () => {
+  let callCount = 0;
+  const coalescer = createTradeRefreshCoalescer({
+    debounceMs: 40,
+    refresh: async () => {
+      callCount++;
+    },
+  });
+
+  coalescer.schedule();
+  coalescer.cancel();
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(callCount, 0); // cancelled, did not fire
+
+  // Reusable after cancel:
+  coalescer.schedule();
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(callCount, 1);
+  coalescer.dispose();
+});
+
+test("createTradeRefreshCoalescer dispose permanently halts execution", async () => {
+  let callCount = 0;
+  const coalescer = createTradeRefreshCoalescer({
+    debounceMs: 40,
+    refresh: async () => {
+      callCount++;
+    },
+  });
+
+  coalescer.schedule();
+  coalescer.dispose();
+  assert.equal(coalescer.isDisposed(), true);
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(callCount, 0);
+
+  // Future schedules ignored after disposal
+  coalescer.schedule();
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(callCount, 0);
+});
+
+test("createTradeRefreshCoalescer handles refresh errors safely via onError", async () => {
+  let errorHandled = null;
+  const coalescer = createTradeRefreshCoalescer({
+    debounceMs: 20,
+    refresh: async () => {
+      throw new Error("Simulated network failure");
+    },
+    onError: (err) => {
+      errorHandled = err;
+    },
+  });
+
+  coalescer.schedule();
+  await new Promise((r) => setTimeout(r, 40));
+  assert.ok(errorHandled);
+  assert.equal(errorHandled.message, "Simulated network failure");
+  assert.equal(coalescer.isRefreshing(), false);
+  coalescer.dispose();
 });

@@ -118,7 +118,6 @@ export async function submitOrder(order: {
   });
 }
 
-
 export type ApiOrderBook = {
   stockId: number;
   bids: ApiOrder[];
@@ -197,4 +196,32 @@ export function validatePublicTrade(data: unknown): PublicTradeResponse | null {
     quantity,
     executedAt,
   };
+}
+
+export type LocalOrder = {
+  id: number;
+  side: "BUY" | "SELL";
+  symbol: string;
+  quantity: number;
+  price: number;
+  status: "PENDING" | "PARTIALLY_FILLED" | "FILLED" | "CANCELLED";
+  time: string;
+};
+
+export function mapApiOrders(
+  savedOrders: ApiOrder[],
+  stocks?: { id: number; symbol: string }[],
+  limit: number = 5
+): LocalOrder[] {
+  return savedOrders.slice(0, limit).map((savedOrder) => ({
+    id: savedOrder.id,
+    side: savedOrder.type,
+    symbol: stocks?.find((stock) => stock.id === savedOrder.stockId)?.symbol ?? `#${savedOrder.stockId}`,
+    quantity: savedOrder.quantity,
+    price: Number(savedOrder.price),
+    status: savedOrder.status,
+    time: savedOrder.createdAt
+      ? new Date(savedOrder.createdAt).toLocaleTimeString("en-GB", { hour12: false })
+      : "—",
+  }));
 }
