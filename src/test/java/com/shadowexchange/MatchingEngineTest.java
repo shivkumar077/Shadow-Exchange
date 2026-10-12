@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -407,14 +408,18 @@ class MatchingEngineTest {
                 seller, stock, new BigDecimal("98.00"), 15, OrderType.SELL
         );
 
+        LocalDateTime earlier = LocalDateTime.of(2026, 10, 13, 10, 0, 0);
+        sellOrder.setCreatedAt(earlier);
+        buyOrder.setCreatedAt(earlier.plusSeconds(1));
+
         when(tradeRepository.save(any(Trade.class))).thenAnswer(invocation -> {
             Trade trade = invocation.getArgument(0);
             trade.setId(101L);
             return trade;
         });
 
-        orderBook.addOrder(buyOrder);
         orderBook.addOrder(sellOrder);
+        orderBook.addOrder(buyOrder);
 
         matchingEngine.match();
 
