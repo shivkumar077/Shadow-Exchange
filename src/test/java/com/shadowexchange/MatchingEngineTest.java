@@ -11,11 +11,17 @@ import com.shadowexchange.orderbook.OrderBook;
 import com.shadowexchange.repository.OrderRepository;
 import com.shadowexchange.repository.TradeRepository;
 import com.shadowexchange.service.SettlementService;
+import com.shadowexchange.dto.PublicTradeResponse;
+import com.shadowexchange.event.TradeExecutedEvent;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -371,6 +377,164 @@ class MatchingEngineTest {
         ));
         verify(orderRepository).save(buyOrder);
         verify(orderRepository).save(sellOrder);
+    }
+
+    @Test
+    void shouldPublishOneEventPerExecutedTrade() {
+        OrderBook orderBook = new OrderBook();
+        TradeRepository tradeRepository = mock(TradeRepository.class);
+        OrderRepository orderRepository = mock(OrderRepository.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+
+        MatchingEngine matchingEngine = new MatchingEngine(
+                orderBook,
+                tradeRepository,
+                orderRepository,
+                null,
+                eventPublisher
+        );
+
+        User buyer = new User();
+        User seller = new User();
+        Stock stock = new Stock();
+        stock.setId(10L);
+        stock.setSymbol("SHDW");
+
+        Order buyOrder = new Order(
+                buyer, stock, new BigDecimal("100.00"), 15, OrderType.BUY
+        );
+        Order sellOrder = new Order(
+                seller, stock, new BigDecimal("98.00"), 15, OrderType.SELL
+        );
+
+        when(tradeRepository.save(any(Trade.class))).thenAnswer(invocation -> {
+            Trade trade = invocation.getArgument(0);
+            trade.setId(101L);
+            return trade;
+        });
+
+        orderBook.addOrder(buyOrder);
+        orderBook.addOrder(sellOrder);
+
+        matchingEngine.match();
+
+        ArgumentCaptor<TradeExecutedEvent> eventCaptor = ArgumentCaptor.forClass(TradeExecutedEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
+
+        TradeExecutedEvent capturedEvent = eventCaptor.getValue();
+        PublicTradeResponse publicTrade = capturedEvent.getTrade();
+
+        assertEquals(101L, publicTrade.getTradeId());
+        assertEquals(10L, publicTrade.getStockId());
+        assertEquals("SHDW", publicTrade.getSymbol());
+        assertEquals(15, publicTrade.getQuantity());
+        assertEquals(new BigDecimal("98.00"), publicTrade.getPrice());
+        assertNotNull(publicTrade.getExecutedAt());
+    }
+
+    @Test
+    void shouldPublishTwoEventsWithExpectedQuantitiesWhenOrderMatchesTwoCounterparties() {
+        OrderBook orderBook = new OrderBook();
+        TradeRepository tradeRepository = mock(TradeRepository.class);
+        OrderRepository orderRepository = mock(OrderRepository.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+
+        MatchingEngine matchingEngine = new MatchingEngine(
+                orderBook,
+                tradeRepository,
+                orderRepository,
+                null,
+                eventPublisher
+        );
+
+        User buyer = new User();
+        User seller1 = new User();
+        User seller2 = new User();
+        Stock stock = new Stock();
+        stock.setId(10L);
+        stock.setSymbol("SHDW");
+
+        Order buyOrder = new Order(
+                buyer, stock, new BigDecimal("100.00"), 50, OrderType.BUY
+        );
+        Order sellOrder1 = new Order(
+                seller1, stock, new BigDecimal("95.00"), 30, OrderType.SELL
+        );
+        Order sellOrder2 = new Order(
+                seller2, stock, new BigDecimal("96.00"), 20, OrderType.SELL
+        );
+
+        AtomicLong idGenerator = new AtomicLong(201L);
+        when(tradeRepository.save(any(Trade.class))).thenAnswer(invocation -> {
+            Trade trade = invocation.getArgument(0);
+            trade.setId(idGenerator.getAndIncrement());
+            return trade;
+        });
+
+        orderBook.addOrder(buyOrder);
+        orderBook.addOrder(sellOrder1);
+        orderBook.addOrder(sellOrder2);
+
+        matchingEngine.match();
+
+        ArgumentCaptor<TradeExecutedEvent> eventCaptor = ArgumentCaptor.forClass(TradeExecutedEvent.class);
+        verify(eventPublisher, times(2)).publishEvent(eventCaptor.capture());
+
+        List<TradeExecutedEvent> publishedEvents = eventCaptor.getAllValues();
+        PublicTradeResponse trade1 = publishedEvents.get(0).getTrade();
+        assertEquals(201L, trade1.getTradeId());
+        assertEquals(30, trade1.getQuantity());
+        assertEquals(10L, trade1.getStockId());
+        assertEquals("SHDW", trade1.getSymbol());
+
+        PublicTradeResponse trade2 = publishedEvents.get(1).getTrade();
+        assertEquals(202L, trade2.getTradeId());
+        assertEquals(20, trade2.getQuantity());
+        assertEquals(10L, trade2.getStockId());
+        assertEquals("SHDW", trade2.getSymbol());
+    }
+
+    @Test
+    void shouldNotPublishEventWhenSavedTradeIdIsNull() {
+        OrderBook orderBook = new OrderBook();
+        TradeRepository tradeRepository = mock(TradeRepository.class);
+        OrderRepository orderRepository = mock(OrderRepository.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+
+        MatchingEngine matchingEngine = new MatchingEngine(
+                orderBook,
+                tradeRepository,
+                orderRepository,
+                null,
+                eventPublisher
+        );
+
+        User buyer = new User();
+        User seller = new User();
+        Stock stock = new Stock();
+        stock.setId(10L);
+        stock.setSymbol("SHDW");
+
+        Order buyOrder = new Order(
+                buyer, stock, new BigDecimal("100.00"), 10, OrderType.BUY
+        );
+        Order sellOrder = new Order(
+                seller, stock, new BigDecimal("95.00"), 10, OrderType.SELL
+        );
+
+        // Simulate save returning trade with null ID
+        when(tradeRepository.save(any(Trade.class))).thenAnswer(invocation -> {
+            Trade trade = invocation.getArgument(0);
+            trade.setId(null);
+            return trade;
+        });
+
+        orderBook.addOrder(buyOrder);
+        orderBook.addOrder(sellOrder);
+
+        matchingEngine.match();
+
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
 }
