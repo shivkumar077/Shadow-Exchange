@@ -12,11 +12,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class UserService {
+
+    public static final BigDecimal MIN_DEMO_CASH = new BigDecimal("3000.00");
+    public static final BigDecimal MAX_DEMO_CASH = new BigDecimal("35000.00");
+    public static final int MIN_DEMO_HOLDINGS = 2;
+    public static final int MAX_DEMO_HOLDINGS = 6;
+    public static final int MIN_HOLDING_QUANTITY = 5;
+    public static final int MAX_HOLDING_QUANTITY = 50;
 
     private final UserRepository userRepository;
     private final StockRepository stockRepository;
@@ -43,8 +53,9 @@ public class UserService {
     }
 
     /**
-     * Creates a local-only demo account with virtual cash and starter positions
-     * so both BUY and SELL workflows can be exercised in the simulator.
+     * Creates a new demo account with randomized virtual cash and starter positions
+     * within sensible, configurable bounds.
+     * Cash precision uses scale 2 BigDecimal, and positions reference valid exchange stocks.
      */
     @Transactional
     public UserResponse createDemoUser() {
@@ -52,13 +63,29 @@ public class UserService {
         user.setUsername("Shadow Demo Operator");
         user.setEmail("shadow-demo-" + UUID.randomUUID() + "@example.test");
         user.setPassword(UUID.randomUUID().toString());
-        user.setBalance(new BigDecimal("10000.00"));
+
+        long minCents = MIN_DEMO_CASH.movePointRight(2).longValueExact();
+        long maxCents = MAX_DEMO_CASH.movePointRight(2).longValueExact();
+        long randomCents = ThreadLocalRandom.current().nextLong(minCents, maxCents + 1);
+        BigDecimal startingCash = BigDecimal.valueOf(randomCents, 2);
+
+        user.setBalance(startingCash);
         user.setReservedBalance(BigDecimal.ZERO);
         User savedUser = userRepository.save(user);
 
-        List<Stock> stocks = stockRepository.findAll();
-        for (Stock stock : stocks) {
-            holdingRepository.save(new Holding(savedUser, stock, 100));
+        List<Stock> allStocks = stockRepository.findAll();
+        if (!allStocks.isEmpty()) {
+            List<Stock> shuffled = new ArrayList<>(allStocks);
+            Collections.shuffle(shuffled);
+            int targetHoldingsCount = Math.min(
+                    shuffled.size(),
+                    ThreadLocalRandom.current().nextInt(MIN_DEMO_HOLDINGS, MAX_DEMO_HOLDINGS + 1)
+            );
+            for (int i = 0; i < targetHoldingsCount; i++) {
+                Stock stock = shuffled.get(i);
+                int quantity = ThreadLocalRandom.current().nextInt(MIN_HOLDING_QUANTITY, MAX_HOLDING_QUANTITY + 1);
+                holdingRepository.save(new Holding(savedUser, stock, quantity));
+            }
         }
 
         return toResponse(savedUser);

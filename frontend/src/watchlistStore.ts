@@ -108,6 +108,74 @@ export function removeStockFromPersonalizedMarket(symbol: string, userId?: numbe
    USER FAVORITES / WATCHLIST (EXPLICIT USER ACTIONS ONLY)
    ========================================================================= */
 
+type WatchlistSubscriber = (symbols: string[]) => void;
+const subscribersMap = new Map<string, Set<WatchlistSubscriber>>();
+
+function getSubscriberKey(userId?: number | null): string {
+  if (userId && Number.isFinite(userId) && userId > 0) {
+    return `user_${userId}`;
+  }
+  return "user_default";
+}
+
+function notifySubscribers(userId: number | null | undefined, symbols: string[]): void {
+  const key = getSubscriberKey(userId);
+  const subs = subscribersMap.get(key);
+  if (subs) {
+    subs.forEach((callback) => {
+      try {
+        callback(symbols);
+      } catch {
+        // Non-fatal subscriber error
+      }
+    });
+  }
+}
+
+// Listen to storage events for cross-tab sync if running in a browser
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("storage", (event) => {
+    if (!event.key || !event.key.startsWith(WATCHLIST_STORAGE_PREFIX)) return;
+    const rawUserId = event.key.replace(WATCHLIST_STORAGE_PREFIX, "");
+    const userId = rawUserId === "default" ? null : Number(rawUserId);
+    const symbols = loadUserWatchlist(userId);
+    notifySubscribers(userId, symbols);
+  });
+}
+
+/**
+ * Subscribes to watchlist updates for a specific user ID.
+ * Fires immediately with the current watchlist state, then on every change.
+ * Returns an unsubscribe cleanup function.
+ */
+export function subscribeWatchlist(
+  userId: number | null | undefined,
+  callback: WatchlistSubscriber
+): () => void {
+  const key = getSubscriberKey(userId);
+  if (!subscribersMap.has(key)) {
+    subscribersMap.set(key, new Set());
+  }
+  subscribersMap.get(key)!.add(callback);
+
+  // Immediately notify subscriber with current persisted state
+  try {
+    callback(loadUserWatchlist(userId));
+  } catch {
+    // Non-fatal
+  }
+
+  return () => {
+    const subs = subscribersMap.get(key);
+    if (subs) {
+      subs.delete(callback);
+      if (subs.size === 0) {
+        subscribersMap.delete(key);
+      }
+    }
+  };
+}
+
 export function getWatchlistStorageKey(userId?: number | null): string {
   if (userId && Number.isFinite(userId) && userId > 0) {
     return `${WATCHLIST_STORAGE_PREFIX}${userId}`;
@@ -126,22 +194,29 @@ export function loadUserWatchlist(userId?: number | null): string[] {
     const data = window.localStorage.getItem(key);
     if (!data) return [];
     const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Deduplicate and filter out empty strings
+    return Array.from(new Set(parsed.map((s) => String(s).trim().toUpperCase()).filter(Boolean)));
   } catch {
     return [];
   }
 }
 
 export function saveUserWatchlist(symbols: string[], userId?: number | null): void {
+  const deduplicated = Array.from(
+    new Set(symbols.map((s) => String(s).trim().toUpperCase()).filter(Boolean))
+  );
   try {
     const key = getWatchlistStorageKey(userId);
-    window.localStorage.setItem(key, JSON.stringify(symbols));
+    window.localStorage.setItem(key, JSON.stringify(deduplicated));
   } catch {
     // Non-fatal
   }
+  notifySubscribers(userId, deduplicated);
 }
 
 export function toggleWatchlistSymbol(symbol: string, userId?: number | null): string[] {
+  if (!symbol || !symbol.trim()) return loadUserWatchlist(userId);
   const current = loadUserWatchlist(userId);
   const upper = symbol.trim().toUpperCase();
   let updated: string[];
@@ -154,6 +229,26 @@ export function toggleWatchlistSymbol(symbol: string, userId?: number | null): s
   return updated;
 }
 
+export function addWatchlistSymbol(symbol: string, userId?: number | null): string[] {
+  if (!symbol || !symbol.trim()) return loadUserWatchlist(userId);
+  const current = loadUserWatchlist(userId);
+  const upper = symbol.trim().toUpperCase();
+  if (current.includes(upper)) return current;
+  const updated = [...current, upper];
+  saveUserWatchlist(updated, userId);
+  return updated;
+}
+
+export function removeWatchlistSymbol(symbol: string, userId?: number | null): string[] {
+  if (!symbol || !symbol.trim()) return loadUserWatchlist(userId);
+  const current = loadUserWatchlist(userId);
+  const upper = symbol.trim().toUpperCase();
+  const updated = current.filter((s) => s !== upper);
+  saveUserWatchlist(updated, userId);
+  return updated;
+}
+
 export function isSymbolWatched(symbol: string, userId?: number | null): boolean {
+  if (!symbol || !symbol.trim()) return false;
   return loadUserWatchlist(userId).includes(symbol.trim().toUpperCase());
 }

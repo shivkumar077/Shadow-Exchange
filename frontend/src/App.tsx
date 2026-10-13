@@ -72,12 +72,14 @@ import {
   loadPersonalizedMarket,
   addStockToPersonalizedMarket,
   removeStockFromPersonalizedMarket,
+  subscribeWatchlist,
 } from "./watchlistStore";
 import { YourMarketView } from "./components/YourMarketView";
 import { CommandPaletteModal } from "./components/CommandPaletteModal";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { unlockAchievement } from "./achievements";
 import { OrderCelebrationModal, type CelebrationOrderDetails } from "./components/OrderCelebrationModal";
+import { ExtremeOrderPlacementModal, type PlacementOrderDetails } from "./components/ExtremeOrderPlacementModal";
 
 type Stock = StockItem;
 
@@ -195,6 +197,7 @@ function App() {
   const [watchedSymbols, setWatchedSymbols] = useState<string[]>(() => loadUserWatchlist(demoUserId));
   const [personalizedSymbols, setPersonalizedSymbols] = useState<string[]>(() => loadPersonalizedMarket(demoUserId));
   const [celebrationOrder, setCelebrationOrder] = useState<CelebrationOrderDetails | null>(null);
+  const [placementOrder, setPlacementOrder] = useState<PlacementOrderDetails | null>(null);
   const [notifications, setNotifications] = useState<UserNotification[]>(() => loadUserNotifications(demoUserId));
 
   // Identity state isolated per demo user
@@ -205,7 +208,22 @@ function App() {
     setNotifications(loadUserNotifications(demoUserId));
     setWatchedSymbols(loadUserWatchlist(demoUserId));
     setPersonalizedSymbols(loadPersonalizedMarket(demoUserId));
+
+    // Subscribe to reactive watchlist updates for this demo user
+    const unsubscribe = subscribeWatchlist(demoUserId, (symbols) => {
+      setWatchedSymbols(symbols);
+    });
+    return unsubscribe;
   }, [demoUserId]);
+
+  // Auto-dismiss ordinary bottom-right toasts after approximately 6 seconds with cleanup
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast("");
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const handleSelectIdentity = (selected: SignatureIdentity) => {
     setIdentity(selected);
@@ -921,6 +939,19 @@ function App() {
           price: parsedPrice,
         });
         unlockAchievement("first_order", demoUserId);
+
+        // Prominent manual-dismiss celebration popup for order placement under Extreme mode
+        if (preferences.personalityMode === "extreme") {
+          setPlacementOrder({
+            orderId: response.id,
+            symbol: selectedStock.symbol,
+            side,
+            quantity: parsedQuantity,
+            price: parsedPrice,
+            status: finalStatus,
+            dialogueIndex: Math.floor(Math.random() * 6),
+          });
+        }
       }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : "The exchange could not place this order.";
@@ -1260,11 +1291,11 @@ function App() {
           ) : activeSection === "Your Market" ? (
             <YourMarketView
               allStocks={stocks}
-              watchedSymbols={personalizedSymbols}
-              favoriteSymbols={watchedSymbols}
+              watchedSymbols={watchedSymbols}
+              personalizedSymbols={personalizedSymbols}
               onSelectStock={chooseStock}
-              onToggleWatchSymbol={handleRemovePersonalizedSymbol}
-              onToggleFavoriteSymbol={handleToggleWatchSymbol}
+              onToggleWatchSymbol={handleToggleWatchSymbol}
+              onRemovePersonalizedSymbol={handleRemovePersonalizedSymbol}
               onNavigateToOverview={() => navigateToSection("Overview")}
               onOpenInstrumentPicker={() => {
                 setPickerMode("BUY");
@@ -1352,25 +1383,33 @@ function App() {
                         {filteredStocks.map((stock) => {
                           const isFavorited = watchedSymbols.includes(stock.symbol);
                           return (
-                            <button
+                            <div
                               key={stock.id}
                               className={`watchlist-row ${selectedSymbol === stock.symbol ? "chosen" : ""}`}
                               onClick={() => chooseStock(stock)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  if (e.target === e.currentTarget) {
+                                    chooseStock(stock);
+                                  }
+                                }
+                              }}
                             >
                               <span className="table-asset">
-                                <span
+                                <button
+                                  type="button"
                                   className={`star-watch-btn inline-star-btn ${isFavorited ? "is-watched" : ""}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleToggleWatchSymbol(stock.symbol);
                                   }}
-                                  role="button"
-                                  tabIndex={0}
                                   title={isFavorited ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
                                   aria-label={isFavorited ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
                                 >
                                   <Star size={11} fill={isFavorited ? "currentColor" : "none"} />
-                                </span>
+                                </button>
                                 <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
                                 <span><strong>{stock.symbol}</strong><small>{stock.name}</small></span>
                               </span>
@@ -1378,7 +1417,7 @@ function App() {
                               <span className="table-change">—</span>
                               <span className="table-spark"><Sparkline points={stock.points} /></span>
                               <span className="row-arrow"><ArrowUpRight size={14} /></span>
-                            </button>
+                            </div>
                           );
                         })}
                         {stocksLoading && (
@@ -1715,6 +1754,13 @@ function App() {
         isOpen={Boolean(celebrationOrder)}
         onClose={() => setCelebrationOrder(null)}
         order={celebrationOrder}
+        reduceMotion={preferences.reduceMotion}
+      />
+
+      <ExtremeOrderPlacementModal
+        isOpen={Boolean(placementOrder)}
+        onClose={() => setPlacementOrder(null)}
+        order={placementOrder}
         reduceMotion={preferences.reduceMotion}
       />
 

@@ -1,17 +1,20 @@
 import { useState } from "react";
-import { ArrowUpRight, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { ArrowUpRight, Compass, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { ShadowCat } from "./ShadowCat";
 import type { StockItem } from "./InstrumentPickerModal";
 
-interface YourMarketViewProps {
+export interface YourMarketViewProps {
   allStocks: StockItem[];
   watchedSymbols: string[];
+  personalizedSymbols?: string[];
   onToggleWatchSymbol: (symbol: string) => void;
-  favoriteSymbols?: string[];
-  onToggleFavoriteSymbol?: (symbol: string) => void;
+  onRemovePersonalizedSymbol?: (symbol: string) => void;
   onSelectStock: (stock: StockItem) => void;
   onNavigateToOverview: () => void;
   onOpenInstrumentPicker: () => void;
+  // Backward compatibility aliases if any existing callers use them
+  favoriteSymbols?: string[];
+  onToggleFavoriteSymbol?: (symbol: string) => void;
 }
 
 const money = (value: number) =>
@@ -45,19 +48,28 @@ function Sparkline({ points, negative = false }: { points: number[]; negative?: 
 export function YourMarketView({
   allStocks,
   watchedSymbols,
+  personalizedSymbols = [],
   onToggleWatchSymbol,
-  favoriteSymbols = [],
-  onToggleFavoriteSymbol,
+  onRemovePersonalizedSymbol,
   onSelectStock,
   onNavigateToOverview,
   onOpenInstrumentPicker,
+  favoriteSymbols,
+  onToggleFavoriteSymbol,
 }: YourMarketViewProps) {
+  // Support either watchedSymbols or favoriteSymbols as user favorites
+  const activeFavorites = favoriteSymbols ?? watchedSymbols;
+  const toggleFavorite = onToggleFavoriteSymbol ?? onToggleWatchSymbol;
+
+  const [activeTab, setActiveTab] = useState<"watchlist" | "curated">("watchlist");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"symbol" | "price_desc" | "price_asc">("symbol");
 
-  const watchedStocks = allStocks.filter((s) => watchedSymbols.includes(s.symbol));
+  // Symbols to display depending on tab
+  const activeSymbolList = activeTab === "watchlist" ? activeFavorites : personalizedSymbols;
+  const displayedStocks = allStocks.filter((s) => activeSymbolList.includes(s.symbol));
 
-  const filtered = watchedStocks.filter(
+  const filtered = displayedStocks.filter(
     (s) =>
       s.symbol.toLowerCase().includes(search.toLowerCase()) ||
       s.name.toLowerCase().includes(search.toLowerCase())
@@ -69,7 +81,7 @@ export function YourMarketView({
     return a.symbol.localeCompare(b.symbol);
   });
 
-  const validPrices = watchedStocks.filter((s) => Number.isFinite(s.price) && s.price > 0);
+  const validPrices = displayedStocks.filter((s) => Number.isFinite(s.price) && s.price > 0);
   const maxPrice = validPrices.length > 0 ? Math.max(...validPrices.map((s) => s.price)) : 0;
   const avgPrice = validPrices.length > 0 ? validPrices.reduce((a, s) => a + s.price, 0) / validPrices.length : 0;
 
@@ -77,17 +89,17 @@ export function YourMarketView({
     <section className="markets-view your-market-view" aria-label="Your Market Watchlist">
       <div className="markets-summary-grid">
         <article className="portfolio-metric">
-          <span>WATCHED ASSETS</span>
-          <strong>{watchedStocks.length.toString().padStart(2, "0")}</strong>
-          <small>Curated operator watchlist</small>
+          <span>{activeTab === "watchlist" ? "WATCHED FAVORITES" : "CURATED ASSETS"}</span>
+          <strong>{displayedStocks.length.toString().padStart(2, "0")}</strong>
+          <small>{activeTab === "watchlist" ? "Operator-starred instruments" : "Account personalized market"}</small>
         </article>
         <article className="portfolio-metric">
           <span>HIGHEST BENCHMARK</span>
           <strong>{maxPrice > 0 ? money(maxPrice) : "—"}</strong>
-          <small>Peak watchlist asset</small>
+          <small>Peak view asset</small>
         </article>
         <article className="portfolio-metric">
-          <span>WATCHLIST MEAN</span>
+          <span>VIEW MEAN</span>
           <strong>{avgPrice > 0 ? money(avgPrice) : "—"}</strong>
           <small>Average benchmark quote</small>
         </article>
@@ -95,7 +107,7 @@ export function YourMarketView({
           <span>UNIVERSE COVERAGE</span>
           <strong>
             {allStocks.length > 0
-              ? `${Math.round((watchedStocks.length / allStocks.length) * 100)}%`
+              ? `${Math.round((displayedStocks.length / allStocks.length) * 100)}%`
               : "0%"}
           </strong>
           <small>Fraction of exchange catalog</small>
@@ -104,9 +116,29 @@ export function YourMarketView({
 
       <section className="panel markets-table-panel your-market-table-panel">
         <div className="panel-topline your-market-topline">
-          <div className="panel-label">
-            <span className="panel-index">02</span> YOUR WATCHLIST ({sorted.length})
+          <div className="your-market-tab-switcher" role="tablist" aria-label="Market view selection">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "watchlist"}
+              className={`your-market-tab-btn ${activeTab === "watchlist" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("watchlist")}
+            >
+              <Star size={12} fill={activeTab === "watchlist" ? "currentColor" : "none"} />
+              <span>Watchlist ({activeFavorites.length})</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "curated"}
+              className={`your-market-tab-btn ${activeTab === "curated" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("curated")}
+            >
+              <Compass size={12} />
+              <span>Curated Market ({personalizedSymbols.length})</span>
+            </button>
           </div>
+
           <div className="markets-controls your-market-controls">
             <label className="search-field your-market-search-field">
               <Search size={14} />
@@ -114,8 +146,8 @@ export function YourMarketView({
                 id="your-market-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter watched stocks…"
-                aria-label="Filter watched stocks"
+                placeholder={activeTab === "watchlist" ? "Filter watchlist…" : "Filter curated market…"}
+                aria-label="Filter stocks"
               />
               {search && (
                 <button
@@ -169,7 +201,7 @@ export function YourMarketView({
               type="button"
               className="subtle-button add-watch-btn"
               onClick={onOpenInstrumentPicker}
-              title="Add instruments to watchlist"
+              title="Add instruments to view"
             >
               <Plus size={13} />
               <span>Add Stock</span>
@@ -188,6 +220,8 @@ export function YourMarketView({
 
           {sorted.map((stock) => {
             const hasValidPrice = Number.isFinite(stock.price) && stock.price > 0;
+            const isFavorited = activeFavorites.includes(stock.symbol);
+
             return (
               <div
                 key={stock.id}
@@ -217,16 +251,16 @@ export function YourMarketView({
                 <div className="table-status-cell your-market-status-cell">
                   <button
                     type="button"
-                    className={`star-watch-btn ${favoriteSymbols.includes(stock.symbol) ? "is-watched" : ""}`}
+                    className={`star-watch-btn ${isFavorited ? "is-watched" : ""}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onToggleFavoriteSymbol?.(stock.symbol);
+                      toggleFavorite(stock.symbol);
                     }}
-                    title={favoriteSymbols.includes(stock.symbol) ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
-                    aria-label={favoriteSymbols.includes(stock.symbol) ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
+                    title={isFavorited ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
+                    aria-label={isFavorited ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
                   >
-                    <Star size={11} fill={favoriteSymbols.includes(stock.symbol) ? "currentColor" : "none"} />
-                    <span className="status-chip-text">{favoriteSymbols.includes(stock.symbol) ? "FAVORITE" : "WATCHED"}</span>
+                    <Star size={11} fill={isFavorited ? "currentColor" : "none"} />
+                    <span className="status-chip-text">{isFavorited ? "FAVORITE" : "WATCH"}</span>
                   </button>
                 </div>
 
@@ -248,10 +282,16 @@ export function YourMarketView({
                     className="icon-button unwatch-icon-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onToggleWatchSymbol(stock.symbol);
+                      if (activeTab === "watchlist") {
+                        toggleFavorite(stock.symbol);
+                      } else if (onRemovePersonalizedSymbol) {
+                        onRemovePersonalizedSymbol(stock.symbol);
+                      } else {
+                        toggleFavorite(stock.symbol);
+                      }
                     }}
-                    title={`Remove ${stock.symbol} from watchlist`}
-                    aria-label={`Remove ${stock.symbol} from watchlist`}
+                    title={activeTab === "watchlist" ? `Remove ${stock.symbol} from watchlist` : `Remove ${stock.symbol} from curated market`}
+                    aria-label={activeTab === "watchlist" ? `Remove ${stock.symbol} from watchlist` : `Remove ${stock.symbol} from curated market`}
                   >
                     <Trash2 size={13} />
                   </button>
@@ -260,9 +300,9 @@ export function YourMarketView({
             );
           })}
 
-          {sorted.length === 0 && watchedStocks.length > 0 && (
+          {sorted.length === 0 && displayedStocks.length > 0 && (
             <div className="empty-state your-market-search-empty">
-              <p>No watched instruments match “{search}”.</p>
+              <p>No instruments match “{search}”.</p>
               <button
                 type="button"
                 className="subtle-button"
@@ -274,20 +314,36 @@ export function YourMarketView({
             </div>
           )}
 
-          {watchedStocks.length === 0 && (
+          {displayedStocks.length === 0 && (
             <div className="empty-state your-market-empty-state">
               <ShadowCat expression="thinking" size={56} />
-              <p>Your watchlist is currently empty.</p>
-              <small>Select instruments from the exchange universe to build your custom market view.</small>
-              <button
-                type="button"
-                className="not-found-primary-btn"
-                onClick={onOpenInstrumentPicker}
-                style={{ marginTop: "14px" }}
-              >
-                <Plus size={14} />
-                <span>Add First Instrument</span>
-              </button>
+              <p>{activeTab === "watchlist" ? "Your watchlist is currently empty." : "Your curated market is empty."}</p>
+              <small>
+                {activeTab === "watchlist"
+                  ? "Star instruments from Markets or Overview to track them here, or add instruments directly."
+                  : "Add instruments from the exchange universe to build your custom market view."}
+              </small>
+              <div style={{ display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap", justifyContent: "center" }}>
+                <button
+                  type="button"
+                  className="not-found-primary-btn"
+                  onClick={onOpenInstrumentPicker}
+                >
+                  <Plus size={14} />
+                  <span>Add First Instrument</span>
+                </button>
+                {activeTab === "watchlist" && personalizedSymbols.length > 0 && (
+                  <button
+                    type="button"
+                    className="subtle-button"
+                    onClick={() => setActiveTab("curated")}
+                    style={{ padding: "8px 14px", border: "1px solid var(--line)" }}
+                  >
+                    <Compass size={14} />
+                    <span>View Curated Market ({personalizedSymbols.length})</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

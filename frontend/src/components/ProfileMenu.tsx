@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Copy, PlusCircle, Shield, Sparkles } from "lucide-react";
+import { Copy, PlusCircle, Shield, Sparkles, X } from "lucide-react";
 import type { ApiUser } from "../api";
 import type { SignatureIdentity } from "../identities";
 import { IdentityIcon } from "./IdentityIcon";
@@ -75,15 +75,25 @@ export function ProfileMenu({
     <div className="profile-menu-popover" ref={menuRef} role="menu" aria-label="Demo operator profile menu">
       <div className="profile-menu-header">
         <div className="profile-avatar-lg" style={{ borderColor: identity.accentColor }}>
-          <IdentityIcon identity={identity} size={22} />
+          <IdentityIcon identity={identity} size={20} />
         </div>
         <div className="profile-header-copy">
           <div className="profile-identity-name-row">
             <strong>{identity.name}</strong>
             <span className="profile-persona-tag">PERSONA</span>
           </div>
-          <small>{account?.email ?? `operator-${demoUserId ?? "none"}@shadow.test`}</small>
+          <small title={account?.email ?? `operator-${demoUserId ?? "none"}@shadow.test`}>
+            {account?.email ?? `operator-${demoUserId ?? "none"}@shadow.test`}
+          </small>
         </div>
+        <button
+          type="button"
+          className="icon-button profile-close-btn"
+          onClick={onClose}
+          aria-label="Close profile menu"
+        >
+          <X size={14} />
+        </button>
       </div>
 
       <div className="profile-stats-card">

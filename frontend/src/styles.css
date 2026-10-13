@@ -1431,11 +1431,18 @@ body { font-size: 14px; }
 }
 
 /* Preferences Dialog */
+.preferences-dialog {
+  max-width: 540px;
+  width: 92vw;
+}
+
 .preferences-body {
-  padding: 18px 20px;
+  padding: 20px 22px;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow-y: auto;
+  max-height: calc(85vh - 120px);
 }
 
 .pref-section {
@@ -1456,11 +1463,14 @@ body { font-size: 14px; }
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .pref-icon {
   margin-top: 2px;
   color: var(--signal);
+  flex-shrink: 0;
 }
 
 .pref-info strong {
@@ -1473,7 +1483,7 @@ body { font-size: 14px; }
   margin: 3px 0 0 0;
   color: var(--muted);
   font: 11px/1.4 "DM Sans", sans-serif;
-  max-width: 260px;
+  max-width: 270px;
 }
 
 /* Toggle Switch */
@@ -1581,13 +1591,15 @@ body { font-size: 14px; }
   position: absolute;
   bottom: calc(100% + 8px);
   left: 0;
-  right: 0;
-  z-index: 40;
+  width: 275px;
+  min-width: 275px;
+  max-width: calc(100vw - 32px);
+  z-index: 100;
   display: flex;
   flex-direction: column;
   background: #151812;
   border: 1px solid var(--line);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.88);
   border-radius: 3px;
   overflow: hidden;
   animation: popoverFade 150ms ease-out;
@@ -1601,28 +1613,36 @@ body { font-size: 14px; }
 .profile-menu-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 12px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--line);
   background: #12140f;
 }
 
 .profile-avatar-lg {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  background: var(--signal);
-  color: var(--ink);
-  font: 700 12px var(--mono);
-  border-radius: 2px;
+  background: #191c16;
+  border: 1px solid var(--signal-dim);
+  border-radius: 3px;
   flex-shrink: 0;
+}
+
+.profile-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
 }
 
 .profile-header-copy strong {
   display: block;
   color: var(--text);
-  font: 600 12px "DM Sans", sans-serif;
+  font: 600 12.5px "DM Sans", sans-serif;
+  letter-spacing: -0.01em;
 }
 
 .profile-header-copy small {
@@ -1632,16 +1652,27 @@ body { font-size: 14px; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 140px;
+  max-width: 155px;
+}
+
+.profile-close-btn {
+  margin-left: auto;
+  color: var(--muted);
+  flex-shrink: 0;
+  padding: 4px;
+}
+
+.profile-close-btn:hover {
+  color: var(--text);
 }
 
 .profile-stats-card {
-  padding: 10px 14px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   border-bottom: 1px solid var(--line-soft);
-  background: #181c15;
+  background: #171b14;
 }
 
 .profile-stat-row {
@@ -1653,6 +1684,7 @@ body { font-size: 14px; }
 
 .profile-stat-row span {
   color: #7b8274;
+  letter-spacing: 0.04em;
 }
 
 .profile-stat-row strong {
@@ -1667,23 +1699,25 @@ body { font-size: 14px; }
 .profile-menu-actions {
   display: flex;
   flex-direction: column;
-  padding: 4px;
+  padding: 6px 8px;
+  gap: 2px;
 }
 
 .profile-action-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   width: 100%;
   padding: 8px 10px;
   border: 0;
   border-radius: 2px;
   background: transparent;
   color: #c0c6b7;
-  font: 500 11px "DM Sans", sans-serif;
+  font: 500 11.5px "DM Sans", sans-serif;
   text-align: left;
   cursor: pointer;
   transition: all 130ms ease;
+  white-space: nowrap;
 }
 
 .profile-action-btn:hover {
@@ -1695,11 +1729,11 @@ body { font-size: 14px; }
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-top: 1px solid var(--line-soft);
   background: #11130e;
   color: #5d6356;
-  font: 400 8px var(--mono);
+  font: 400 8.5px var(--mono);
   letter-spacing: .08em;
 }
 
@@ -1732,15 +1766,6 @@ body { font-size: 14px; }
   display: grid;
   place-items: center;
   transition: all 140ms ease;
-}
-
-.profile-avatar-lg {
-  border: 1px solid var(--signal-dim);
-  border-radius: 4px;
-  overflow: hidden;
-  background: #191c16;
-  display: grid;
-  place-items: center;
 }
 
 .profile-identity-name-row {
@@ -3289,4 +3314,187 @@ body { font-size: 14px; }
 .celebration-backdrop.reduced-motion {
   animation: none !important;
   transform: none !important;
+}
+
+/* =========================================================================
+   YOUR MARKET TAB SWITCHER
+   ========================================================================= */
+
+.your-market-tab-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #10130d;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+.your-market-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--muted);
+  font: 500 11px/1 var(--mono);
+  cursor: pointer;
+  transition: all 130ms ease;
+  white-space: nowrap;
+}
+
+.your-market-tab-btn:hover {
+  color: var(--text);
+  background: #181d13;
+}
+
+.your-market-tab-btn.is-active {
+  background: #212819;
+  color: var(--signal);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* =========================================================================
+   EXTREME ORDER PLACEMENT CELEBRATION MODAL (MANUAL DISMISSAL REQUIRED)
+   ========================================================================= */
+
+.extreme-placement-backdrop {
+  z-index: 105;
+  background: rgba(6, 8, 5, 0.92);
+  backdrop-filter: blur(5px);
+  animation: celebrationFadeIn 220ms ease-out both;
+}
+
+.extreme-placement-card {
+  position: relative;
+  max-width: 520px;
+  width: 92vw;
+  text-align: center;
+  padding: 32px 28px 24px;
+  background: #141812;
+  border: 1px solid #43572d;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.9), 0 0 45px rgba(211, 241, 123, 0.15);
+  animation: celebrationPop 260ms cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+}
+
+.extreme-placement-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  z-index: 2;
+}
+
+.extreme-placement-close-btn:hover {
+  color: var(--text);
+}
+
+.extreme-status-badge-row {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0 4px;
+}
+
+.extreme-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 2px;
+  font: 600 10px/1 var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.extreme-status-pill.is-pending {
+  background: #252814;
+  color: #e5c463;
+  border: 1px solid #4a451e;
+}
+
+.extreme-status-pill.is-filled {
+  background: #172413;
+  color: var(--signal);
+  border: 1px solid #334e23;
+}
+
+.extreme-cat-speech-bubble {
+  margin: 16px 0 20px;
+  padding: 12px 16px;
+  background: #11140e;
+  border: 1px dashed #344325;
+  border-radius: 3px;
+  text-align: left;
+}
+
+.extreme-cat-speech-bubble .speech-tag {
+  display: block;
+  font: 700 8.5px/1 var(--mono);
+  color: var(--signal);
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+
+.extreme-cat-speech-bubble .speech-quote {
+  margin: 0;
+  font: 400 12px/1.5 "DM Sans", sans-serif;
+  color: #cfd4c5;
+  font-style: italic;
+}
+
+.extreme-modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.extreme-placement-backdrop.reduced-motion *,
+.extreme-placement-backdrop.reduced-motion {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* =========================================================================
+   RESPONSIVE MODAL & PROFILE ALIGNMENT POLISH
+   ========================================================================= */
+
+@media (max-width: 600px) {
+  .preferences-dialog {
+    max-width: 100%;
+    width: 95vw;
+  }
+  .preferences-body {
+    padding: 16px 14px;
+    gap: 14px;
+    max-height: calc(85vh - 110px);
+  }
+  .pref-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-bottom: 14px;
+  }
+  .pref-info p {
+    max-width: none;
+  }
+  .pref-section .segmented-switch {
+    width: 100%;
+  }
+  .pref-section .segmented-switch button {
+    flex: 1;
+    text-align: center;
+    padding: 6px 4px;
+  }
+  .pref-section .toggle-switch {
+    align-self: flex-start;
+  }
+  .extreme-subcontrols-panel {
+    padding: 12px 12px;
+  }
+  .subcontrol-row {
+    flex-direction: row;
+    justify-content: space-between;
+  }
 }
