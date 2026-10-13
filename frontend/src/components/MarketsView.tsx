@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpRight, RefreshCw, Search, X } from "lucide-react";
+import { ArrowUpRight, RefreshCw, Search, Star, X } from "lucide-react";
 import type { StockItem } from "./InstrumentPickerModal";
 
 interface MarketsViewProps {
@@ -10,6 +10,8 @@ interface MarketsViewProps {
   onSelectStock: (stock: StockItem) => void;
   onNavigateToOverview: () => void;
   onRetry?: () => void;
+  watchedSymbols?: string[];
+  onToggleWatchSymbol?: (symbol: string) => void;
 }
 
 const money = (value: number) =>
@@ -32,6 +34,8 @@ export function MarketsView({
   onSelectStock,
   onNavigateToOverview,
   onRetry,
+  watchedSymbols = [],
+  onToggleWatchSymbol,
 }: MarketsViewProps) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"symbol" | "price_desc" | "price_asc">("symbol");
@@ -200,6 +204,20 @@ export function MarketsView({
                     <span>Trade</span>
                     <ArrowUpRight size={13} />
                   </button>
+                  {onToggleWatchSymbol && (
+                    <button
+                      type="button"
+                      className={`icon-button star-watch-btn ${watchedSymbols.includes(stock.symbol) ? "is-watched" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleWatchSymbol(stock.symbol);
+                      }}
+                      title={watchedSymbols.includes(stock.symbol) ? `Remove ${stock.symbol} from favorites` : `Add ${stock.symbol} to favorites`}
+                      aria-label={watchedSymbols.includes(stock.symbol) ? `Remove ${stock.symbol} from favorites` : `Add ${stock.symbol} to favorites`}
+                    >
+                      <Star size={13} fill={watchedSymbols.includes(stock.symbol) ? "currentColor" : "none"} />
+                    </button>
+                  )}
                 </div>
               </div>
             );

@@ -7,6 +7,8 @@ interface YourMarketViewProps {
   allStocks: StockItem[];
   watchedSymbols: string[];
   onToggleWatchSymbol: (symbol: string) => void;
+  favoriteSymbols?: string[];
+  onToggleFavoriteSymbol?: (symbol: string) => void;
   onSelectStock: (stock: StockItem) => void;
   onNavigateToOverview: () => void;
   onOpenInstrumentPicker: () => void;
@@ -44,6 +46,8 @@ export function YourMarketView({
   allStocks,
   watchedSymbols,
   onToggleWatchSymbol,
+  favoriteSymbols = [],
+  onToggleFavoriteSymbol,
   onSelectStock,
   onNavigateToOverview,
   onOpenInstrumentPicker,
@@ -211,9 +215,19 @@ export function YourMarketView({
                 </div>
 
                 <div className="table-status-cell your-market-status-cell">
-                  <span className="status-chip is-active">
-                    <Star size={10} fill="currentColor" /> WATCHED
-                  </span>
+                  <button
+                    type="button"
+                    className={`star-watch-btn ${favoriteSymbols.includes(stock.symbol) ? "is-watched" : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFavoriteSymbol?.(stock.symbol);
+                    }}
+                    title={favoriteSymbols.includes(stock.symbol) ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
+                    aria-label={favoriteSymbols.includes(stock.symbol) ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
+                  >
+                    <Star size={11} fill={favoriteSymbols.includes(stock.symbol) ? "currentColor" : "none"} />
+                    <span className="status-chip-text">{favoriteSymbols.includes(stock.symbol) ? "FAVORITE" : "WATCHED"}</span>
+                  </button>
                 </div>
 
                 <div className="table-action-cell your-market-action-cell">

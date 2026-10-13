@@ -56,12 +56,28 @@ import { getMarketPulseIndicators } from "./marketPulse";
 import { PersonalityReactionBanner } from "./components/PersonalityReactionBanner";
 import { createReaction, shouldShowReaction, type PersonalityEvent, type PersonalityReaction } from "./personality/personalitySystem";
 import { NotificationsFlyout } from "./components/NotificationsFlyout";
-import { loadUserNotifications, saveUserNotifications, createNotification, type UserNotification } from "./notifications/notificationStore";
-import { loadUserWatchlist, toggleWatchlistSymbol } from "./watchlistStore";
+import {
+  loadUserNotifications,
+  saveUserNotifications,
+  createNotification,
+  type UserNotification,
+  hasOrderNotificationBeenSent,
+  recordOrderNotificationSent,
+  formatOrderFilledMessage,
+  formatOrderPartiallyFilledMessage,
+} from "./notifications/notificationStore";
+import {
+  loadUserWatchlist,
+  toggleWatchlistSymbol,
+  loadPersonalizedMarket,
+  addStockToPersonalizedMarket,
+  removeStockFromPersonalizedMarket,
+} from "./watchlistStore";
 import { YourMarketView } from "./components/YourMarketView";
 import { CommandPaletteModal } from "./components/CommandPaletteModal";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { unlockAchievement } from "./achievements";
+import { OrderCelebrationModal, type CelebrationOrderDetails } from "./components/OrderCelebrationModal";
 
 type Stock = StockItem;
 
@@ -177,6 +193,8 @@ function App() {
   const [selectedTimeframe, setSelectedTimeframe] = useState<ChartTimeframe>("1D");
   const [personalityReaction, setPersonalityReaction] = useState<PersonalityReaction | null>(null);
   const [watchedSymbols, setWatchedSymbols] = useState<string[]>(() => loadUserWatchlist(demoUserId));
+  const [personalizedSymbols, setPersonalizedSymbols] = useState<string[]>(() => loadPersonalizedMarket(demoUserId));
+  const [celebrationOrder, setCelebrationOrder] = useState<CelebrationOrderDetails | null>(null);
   const [notifications, setNotifications] = useState<UserNotification[]>(() => loadUserNotifications(demoUserId));
 
   // Identity state isolated per demo user
@@ -186,6 +204,7 @@ function App() {
     setIdentity(getStoredIdentity(demoUserId));
     setNotifications(loadUserNotifications(demoUserId));
     setWatchedSymbols(loadUserWatchlist(demoUserId));
+    setPersonalizedSymbols(loadPersonalizedMarket(demoUserId));
   }, [demoUserId]);
 
   const handleSelectIdentity = (selected: SignatureIdentity) => {
@@ -199,8 +218,21 @@ function App() {
       const sound = window.localStorage.getItem("shadow_pref_sound") === "true";
       const density = (window.localStorage.getItem("shadow_pref_density") as "comfortable" | "compact") || "comfortable";
       const defaultQty = Number(window.localStorage.getItem("shadow_pref_default_qty")) || 10;
-      const personalityMode = (window.localStorage.getItem("shadow_pref_personality") as "full" | "minimal" | "muted") || "full";
-      return { soundEnabled: sound, density, defaultQuantity: defaultQty, personalityMode };
+      const personalityMode = (window.localStorage.getItem("shadow_pref_personality") as any) || "full";
+      const extremeCursorTrack = window.localStorage.getItem("shadow_pref_extreme_cursor") !== "false";
+      const extremeAmbientAnim = window.localStorage.getItem("shadow_pref_extreme_ambient") !== "false";
+      const extremeCelebrations = window.localStorage.getItem("shadow_pref_extreme_celebration") !== "false";
+      const reduceMotion = window.localStorage.getItem("shadow_pref_reduce_motion") === "true";
+      return {
+        soundEnabled: sound,
+        density,
+        defaultQuantity: defaultQty,
+        personalityMode,
+        extremeCursorTrack,
+        extremeAmbientAnim,
+        extremeCelebrations,
+        reduceMotion,
+      };
     } catch {
       return { soundEnabled: false, density: "comfortable", defaultQuantity: 10, personalityMode: "full" };
     }
@@ -214,6 +246,10 @@ function App() {
         if (updated.density !== undefined) window.localStorage.setItem("shadow_pref_density", next.density);
         if (updated.defaultQuantity !== undefined) window.localStorage.setItem("shadow_pref_default_qty", String(next.defaultQuantity));
         if (updated.personalityMode !== undefined) window.localStorage.setItem("shadow_pref_personality", next.personalityMode);
+        if (updated.extremeCursorTrack !== undefined) window.localStorage.setItem("shadow_pref_extreme_cursor", String(next.extremeCursorTrack));
+        if (updated.extremeAmbientAnim !== undefined) window.localStorage.setItem("shadow_pref_extreme_ambient", String(next.extremeAmbientAnim));
+        if (updated.extremeCelebrations !== undefined) window.localStorage.setItem("shadow_pref_extreme_celebration", String(next.extremeCelebrations));
+        if (updated.reduceMotion !== undefined) window.localStorage.setItem("shadow_pref_reduce_motion", String(next.reduceMotion));
       } catch {}
       return next;
     });
@@ -238,6 +274,10 @@ function App() {
       expression: any;
       orderId?: number;
       symbol?: string;
+      side?: "BUY" | "SELL";
+      quantity?: number;
+      price?: number;
+      executedQuantity?: number;
     }) => {
       const notif = createNotification(params);
       setNotifications((prev) => {
@@ -251,7 +291,22 @@ function App() {
 
   const handleToggleWatchSymbol = (symbol: string) => {
     const updated = toggleWatchlistSymbol(symbol, demoUserId);
+    const isNowFavorited = updated.includes(symbol.toUpperCase());
     setWatchedSymbols(updated);
+    triggerCatReaction(isNowFavorited ? "FAVORITE_ADDED" : "FAVORITE_REMOVED");
+    setToast(isNowFavorited ? `Marked ${symbol} as favorite.` : `Removed ${symbol} from favorites.`);
+  };
+
+  const handleAddPersonalizedSymbol = (symbol: string) => {
+    const updated = addStockToPersonalizedMarket(symbol, demoUserId);
+    setPersonalizedSymbols(updated);
+    setToast(`Added ${symbol} to your market view.`);
+  };
+
+  const handleRemovePersonalizedSymbol = (symbol: string) => {
+    const updated = removeStockFromPersonalizedMarket(symbol, demoUserId);
+    setPersonalizedSymbols(updated);
+    setToast(`Removed ${symbol} from your market view.`);
   };
 
   const handleMarkAllNotificationsAsRead = () => {
@@ -349,6 +404,68 @@ function App() {
   const orders = useMemo(() => {
     return mapApiOrders(rawOrders, stocks, 100);
   }, [rawOrders, stocks]);
+
+  // Reconcile order status transitions (completed trades, partial fills, cancellations)
+  // Ensures notifications are created accurately with real execution data, without duplicates
+  useEffect(() => {
+    if (!demoUserId || rawOrders.length === 0) return;
+
+    rawOrders.forEach((order) => {
+      const stock = stocks.find((s) => s.id === order.stockId);
+      const symbol = stock?.symbol || `ID:${order.stockId}`;
+      const priceNum = Number(order.price) || 0;
+
+      if (order.status === "FILLED") {
+        if (!hasOrderNotificationBeenSent(demoUserId, order.id, "FILLED")) {
+          recordOrderNotificationSent(demoUserId, order.id, "FILLED");
+          const msg = formatOrderFilledMessage(order.type, symbol, order.quantity, priceNum);
+          pushNotification({
+            type: "ORDER_FILLED",
+            title: "Shadow Cat — Order filled",
+            message: msg,
+            expression: "blessed",
+            orderId: order.id,
+            symbol,
+            side: order.type,
+            quantity: order.quantity,
+            price: priceNum,
+            executedQuantity: order.quantity,
+          });
+          triggerCatReaction("ORDER_FILLED");
+          unlockAchievement("first_fill", demoUserId);
+
+          // Trigger celebration modal in Extreme mode
+          if (preferences.personalityMode === "extreme" && preferences.extremeCelebrations !== false) {
+            setCelebrationOrder({
+              orderId: order.id,
+              symbol,
+              side: order.type,
+              quantity: order.quantity,
+              price: priceNum,
+            });
+          }
+        }
+      } else if (order.status === "PARTIALLY_FILLED") {
+        if (!hasOrderNotificationBeenSent(demoUserId, order.id, "PARTIALLY_FILLED")) {
+          recordOrderNotificationSent(demoUserId, order.id, "PARTIALLY_FILLED");
+          const msg = formatOrderPartiallyFilledMessage(order.type, symbol, order.quantity, priceNum);
+          pushNotification({
+            type: "ORDER_PARTIALLY_FILLED",
+            title: `Order #${order.id} Partially Filled`,
+            message: msg,
+            expression: "profit",
+            orderId: order.id,
+            symbol,
+            side: order.type,
+            quantity: order.quantity,
+            price: priceNum,
+            executedQuantity: order.quantity,
+          });
+          triggerCatReaction("ORDER_PARTIALLY_FILLED");
+        }
+      }
+    });
+  }, [rawOrders, demoUserId, stocks, preferences.personalityMode, preferences.extremeCelebrations, pushNotification, triggerCatReaction]);
 
   const refreshUserOrdersAndPortfolio = useCallback(async () => {
     const currentId = demoUserId;
@@ -717,6 +834,13 @@ function App() {
     }
   };
 
+  const handleSelectFromPicker = (stock: Stock) => {
+    chooseStock(stock);
+    if (activeSection === "Your Market") {
+      handleAddPersonalizedSymbol(stock.symbol);
+    }
+  };
+
   const placeDemoOrder = async () => {
     if (!canSubmitOrder) return;
     const parsedQuantity = Number(quantity);
@@ -751,17 +875,34 @@ function App() {
       setToast(`Order #${response.id} accepted by the exchange · ${finalStatus}`);
 
       if (finalStatus === "FILLED") {
+        recordOrderNotificationSent(demoUserId, response.id, "FILLED");
         triggerCatReaction("ORDER_FILLED");
+        const msg = formatOrderFilledMessage(side, selectedStock.symbol, parsedQuantity, parsedPrice);
         pushNotification({
           type: "ORDER_FILLED",
-          title: `Order #${response.id} Filled`,
-          message: `${side} ${parsedQuantity} ${selectedStock.symbol} executed at $${parsedPrice.toFixed(2)}.`,
+          title: "Shadow Cat — Order filled",
+          message: msg,
           expression: "blessed",
           orderId: response.id,
           symbol: selectedStock.symbol,
+          side,
+          quantity: parsedQuantity,
+          price: parsedPrice,
+          executedQuantity: parsedQuantity,
         });
         unlockAchievement("first_fill", demoUserId);
+
+        if (preferences.personalityMode === "extreme" && preferences.extremeCelebrations !== false) {
+          setCelebrationOrder({
+            orderId: response.id,
+            symbol: selectedStock.symbol,
+            side,
+            quantity: parsedQuantity,
+            price: parsedPrice,
+          });
+        }
       } else {
+        recordOrderNotificationSent(demoUserId, response.id, "SUBMITTED");
         const isLowball = side === "BUY" && selectedStock.price > 0 && parsedPrice < selectedStock.price * 0.75;
         if (isLowball) {
           triggerCatReaction("LOWBALL_OFFER");
@@ -775,6 +916,9 @@ function App() {
           expression: isLowball ? "suspicious" : "neutral",
           orderId: response.id,
           symbol: selectedStock.symbol,
+          side,
+          quantity: parsedQuantity,
+          price: parsedPrice,
         });
         unlockAchievement("first_order", demoUserId);
       }
@@ -817,6 +961,7 @@ function App() {
         setAccount(refreshedUser);
         setPortfolio(refreshedPortfolio);
       }
+      recordOrderNotificationSent(demoUserId, order.id, "CANCELLED");
       setToast(`Order #${order.id} cancelled. Reserved funds or shares have been released.`);
       triggerCatReaction("ORDER_CANCELLED");
       pushNotification({
@@ -826,6 +971,9 @@ function App() {
         expression: "neutral",
         orderId: order.id,
         symbol: order.symbol,
+        side: order.side,
+        quantity: order.quantity,
+        price: Number(order.price) || 0,
       });
       unlockAchievement("first_cancellation", demoUserId);
     } catch (error) {
@@ -879,7 +1027,20 @@ function App() {
             onClick={(e) => { e.preventDefault(); navigateToSection("Overview"); }}
             aria-label="Shadow Exchange home"
           >
-            <span className="brand-mark"><ShadowCat expression="neutral" size={24} /></span>
+            <span className="brand-mark">
+              <ShadowCat
+                expression="neutral"
+                size={24}
+                interactive={true}
+                trackCursor={preferences.personalityMode === "extreme" && preferences.extremeCursorTrack !== false}
+                reducedMotion={preferences.reduceMotion}
+                onCatClick={() => {
+                  if (preferences.personalityMode === "extreme") {
+                    triggerCatReaction("ONBOARDING_COMPLETED", "Meow. Terminal presence acknowledged.");
+                  }
+                }}
+              />
+            </span>
             <span className="brand-word">SHADOW<span>EXCHANGE</span></span>
           </a>
           <button
@@ -904,7 +1065,7 @@ function App() {
               <span>{label}</span>
               {label === "Activity" && <span className="nav-count">{orders.length}</span>}
               {label === "Markets" && <span className="nav-count">{stocks.length}</span>}
-              {label === "Your Market" && <span className="nav-count">{watchedSymbols.length}</span>}
+              {label === "Your Market" && <span className="nav-count">{personalizedSymbols.length}</span>}
             </button>
           ))}
         </nav>
@@ -922,9 +1083,9 @@ function App() {
           </button>
         </div>
         <div className="mini-watchlist">
-          {(stocks.filter((s) => watchedSymbols.includes(s.symbol)).slice(0, 4).length > 0
+          {(stocks.filter((s) => watchedSymbols.includes(s.symbol)).length > 0
             ? stocks.filter((s) => watchedSymbols.includes(s.symbol)).slice(0, 4)
-            : stocks.slice(0, 4)
+            : stocks.filter((s) => personalizedSymbols.includes(s.symbol)).slice(0, 4)
           ).map((stock) => (
             <button
               key={stock.id}
@@ -1099,9 +1260,11 @@ function App() {
           ) : activeSection === "Your Market" ? (
             <YourMarketView
               allStocks={stocks}
-              watchedSymbols={watchedSymbols}
+              watchedSymbols={personalizedSymbols}
+              favoriteSymbols={watchedSymbols}
               onSelectStock={chooseStock}
-              onToggleWatchSymbol={handleToggleWatchSymbol}
+              onToggleWatchSymbol={handleRemovePersonalizedSymbol}
+              onToggleFavoriteSymbol={handleToggleWatchSymbol}
               onNavigateToOverview={() => navigateToSection("Overview")}
               onOpenInstrumentPicker={() => {
                 setPickerMode("BUY");
@@ -1117,6 +1280,8 @@ function App() {
               onSelectStock={chooseStock}
               onNavigateToOverview={() => navigateToSection("Overview")}
               onRetry={loadStocks}
+              watchedSymbols={watchedSymbols}
+              onToggleWatchSymbol={handleToggleWatchSymbol}
             />
           ) : activeSection === "Activity" ? (
             <ActivityView
@@ -1184,15 +1349,38 @@ function App() {
                     <div className="watchlist-table">
                       <div className="table-head"><span>INSTRUMENT</span><span>LAST PRICE</span><span>24H CHANGE</span><span className="spark-head">TREND</span><span /></div>
                       <div className="watchlist-rows-scroll">
-                        {filteredStocks.map((stock) => (
-                          <button key={stock.id} className={`watchlist-row ${selectedSymbol === stock.symbol ? "chosen" : ""}`} onClick={() => chooseStock(stock)}>
-                            <span className="table-asset"><span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span><span><strong>{stock.symbol}</strong><small>{stock.name}</small></span></span>
-                            <span className="table-price">{stock.price > 0 ? money(stock.price) : "Quote pending"}</span>
-                            <span className="table-change">—</span>
-                            <span className="table-spark"><Sparkline points={stock.points} /></span>
-                            <span className="row-arrow"><ArrowUpRight size={14} /></span>
-                          </button>
-                        ))}
+                        {filteredStocks.map((stock) => {
+                          const isFavorited = watchedSymbols.includes(stock.symbol);
+                          return (
+                            <button
+                              key={stock.id}
+                              className={`watchlist-row ${selectedSymbol === stock.symbol ? "chosen" : ""}`}
+                              onClick={() => chooseStock(stock)}
+                            >
+                              <span className="table-asset">
+                                <span
+                                  className={`star-watch-btn inline-star-btn ${isFavorited ? "is-watched" : ""}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleWatchSymbol(stock.symbol);
+                                  }}
+                                  role="button"
+                                  tabIndex={0}
+                                  title={isFavorited ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
+                                  aria-label={isFavorited ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
+                                >
+                                  <Star size={11} fill={isFavorited ? "currentColor" : "none"} />
+                                </span>
+                                <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
+                                <span><strong>{stock.symbol}</strong><small>{stock.name}</small></span>
+                              </span>
+                              <span className="table-price">{stock.price > 0 ? money(stock.price) : "Quote pending"}</span>
+                              <span className="table-change">—</span>
+                              <span className="table-spark"><Sparkline points={stock.points} /></span>
+                              <span className="row-arrow"><ArrowUpRight size={14} /></span>
+                            </button>
+                          );
+                        })}
                         {stocksLoading && (
                           <div className="empty-state">Connecting to exchange &amp; loading instruments…</div>
                         )}
@@ -1479,8 +1667,20 @@ function App() {
               </section>
 
               <footer className="page-footer">
-                <div><span className="footer-brand-mark">S.</span><span>SHADOW EXCHANGE</span><span className="footer-separator">/</span><span>BUILT FOR PRECISION.</span></div>
-                <div><span>DEMO ENVIRONMENT</span><span className="footer-separator">·</span><span>NOT FINANCIAL ADVICE</span><span className="footer-version">v0.2.0</span></div>
+                <div>
+                  <span className="footer-brand-mark">
+                    <ShadowCat expression="neutral" size={16} />
+                  </span>
+                  <span>SHADOW EXCHANGE</span>
+                  <span className="footer-separator">/</span>
+                  <span>BUILT FOR PRECISION.</span>
+                </div>
+                <div>
+                  <span>DEMO ENVIRONMENT</span>
+                  <span className="footer-separator">·</span>
+                  <span>NOT FINANCIAL ADVICE</span>
+                  <span className="footer-version">v0.2.0</span>
+                </div>
               </footer>
             </>
           )}
@@ -1492,7 +1692,7 @@ function App() {
         onClose={() => setPickerOpen(false)}
         stocks={stocks}
         selectedSymbol={selectedSymbol}
-        onSelect={chooseStock}
+        onSelect={handleSelectFromPicker}
         mode={pickerMode}
         holdings={portfolio}
       />
@@ -1509,6 +1709,13 @@ function App() {
         onClose={() => setPreferencesOpen(false)}
         preferences={preferences}
         onUpdatePreferences={handleUpdatePreferences}
+      />
+
+      <OrderCelebrationModal
+        isOpen={Boolean(celebrationOrder)}
+        onClose={() => setCelebrationOrder(null)}
+        order={celebrationOrder}
+        reduceMotion={preferences.reduceMotion}
       />
 
       <PersonalityReactionBanner
@@ -1540,7 +1747,17 @@ function App() {
         onClose={() => setOnboardingOpen(false)}
       />
 
-      {toast && <div className="toast" role="status"><span className="toast-mark">S.</span><span>{toast}</span><button aria-label="Dismiss message" onClick={() => setToast("")}><X size={14} /></button></div>}
+      {toast && (
+        <div className="toast" role="status">
+          <span className="toast-mark">
+            <ShadowCat expression="neutral" size={16} />
+          </span>
+          <span>{toast}</span>
+          <button aria-label="Dismiss message" onClick={() => setToast("")}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
       <button className="mobile-menu" type="button" aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}>{mobileNavOpen ? <X size={20} /> : <Menu size={20} />}</button>
     </div>
   );

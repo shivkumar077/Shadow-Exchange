@@ -1,12 +1,17 @@
 import { useEffect } from "react";
-import { Volume2, TableProperties, Hash, X } from "lucide-react";
+import { Volume2, TableProperties, Hash, Sparkles, Eye, Zap, ShieldAlert, X } from "lucide-react";
 import { ShadowCat } from "./ShadowCat";
+import type { PersonalityMode } from "../personality/personalitySystem";
 
 export interface TerminalPreferences {
   soundEnabled: boolean;
   density: "comfortable" | "compact";
   defaultQuantity: number;
-  personalityMode: "full" | "minimal" | "muted";
+  personalityMode: PersonalityMode;
+  extremeCursorTrack?: boolean;
+  extremeAmbientAnim?: boolean;
+  extremeCelebrations?: boolean;
+  reduceMotion?: boolean;
 }
 
 interface PreferencesModalProps {
@@ -143,33 +148,134 @@ export function PreferencesModal({
               </div>
               <div>
                 <strong>Shadow Cat Personality</strong>
-                <p>Deadpan mascot reactions and commentary on trades.</p>
+                <p>Mascot commentary mode on trades and market events.</p>
               </div>
             </div>
             <div className="segmented-switch" role="radiogroup" aria-label="Personality mode">
               <button
                 type="button"
-                className={preferences.personalityMode === "full" ? "is-active" : ""}
-                onClick={() => onUpdatePreferences({ personalityMode: "full" })}
-              >
-                Full
-              </button>
-              <button
-                type="button"
                 className={preferences.personalityMode === "minimal" ? "is-active" : ""}
                 onClick={() => onUpdatePreferences({ personalityMode: "minimal" })}
+                title="Critical alerts only"
               >
                 Minimal
               </button>
               <button
                 type="button"
-                className={preferences.personalityMode === "muted" ? "is-active" : ""}
-                onClick={() => onUpdatePreferences({ personalityMode: "muted" })}
+                className={preferences.personalityMode === "full" ? "is-active" : ""}
+                onClick={() => onUpdatePreferences({ personalityMode: "full" })}
+                title="Balanced commentary on orders and market milestones"
               >
-                Muted
+                Full
+              </button>
+              <button
+                type="button"
+                className={preferences.personalityMode === "deadpan" ? "is-active" : ""}
+                onClick={() => onUpdatePreferences({ personalityMode: "deadpan" })}
+                title="Wry, deadpan remarks with low expressiveness"
+              >
+                Deadpan
+              </button>
+              <button
+                type="button"
+                className={preferences.personalityMode === "extreme" ? "is-active extreme-pill" : "extreme-pill"}
+                onClick={() => onUpdatePreferences({ personalityMode: "extreme" })}
+                title="Opt-in high energy mode with interactive cat, celebrations, and commentary"
+              >
+                Extreme
               </button>
             </div>
           </div>
+
+          {/* Extreme Mode Sub-Controls (Opt-In Features) */}
+          {preferences.personalityMode === "extreme" && (
+            <div className="extreme-subcontrols-panel">
+              <div className="subcontrols-header">
+                <Sparkles size={13} className="subcontrols-sparkle" />
+                <span>EXTREME MODE BEHAVIORS &amp; ACCESSIBILITY</span>
+              </div>
+
+              <div className="subcontrol-row">
+                <div className="subcontrol-label">
+                  <Eye size={13} />
+                  <div>
+                    <strong>Cursor Tracking Eyes</strong>
+                    <small>Cat's eyes follow pointer movement on desktop.</small>
+                  </div>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={preferences.extremeCursorTrack !== false}
+                    onChange={(e) =>
+                      onUpdatePreferences({ extremeCursorTrack: e.target.checked })
+                    }
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+
+              <div className="subcontrol-row">
+                <div className="subcontrol-label">
+                  <Zap size={13} />
+                  <div>
+                    <strong>Ambient Animations</strong>
+                    <small>Occasional idle blinking and micro-movements.</small>
+                  </div>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={preferences.extremeAmbientAnim !== false}
+                    onChange={(e) =>
+                      onUpdatePreferences({ extremeAmbientAnim: e.target.checked })
+                    }
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+
+              <div className="subcontrol-row">
+                <div className="subcontrol-label">
+                  <Sparkles size={13} />
+                  <div>
+                    <strong>Celebration Overlay</strong>
+                    <small>Festive announcement overlay on fully executed orders.</small>
+                  </div>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={preferences.extremeCelebrations !== false}
+                    onChange={(e) =>
+                      onUpdatePreferences({ extremeCelebrations: e.target.checked })
+                    }
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+
+              <div className="subcontrol-row">
+                <div className="subcontrol-label">
+                  <ShieldAlert size={13} />
+                  <div>
+                    <strong>Reduce Motion</strong>
+                    <small>Disable decorative motion and celebration confetti.</small>
+                  </div>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(preferences.reduceMotion)}
+                    onChange={(e) =>
+                      onUpdatePreferences({ reduceMotion: e.target.checked })
+                    }
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="modal-footer">

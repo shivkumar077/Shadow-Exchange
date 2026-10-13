@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 
 export type ShadowCatExpression =
   | "neutral"
@@ -18,6 +18,10 @@ export interface ShadowCatProps {
   className?: string;
   style?: CSSProperties;
   title?: string;
+  interactive?: boolean;
+  trackCursor?: boolean;
+  reducedMotion?: boolean;
+  onCatClick?: () => void;
 }
 
 export function ShadowCat({
@@ -26,20 +30,73 @@ export function ShadowCat({
   className = "",
   style,
   title,
+  interactive = false,
+  trackCursor = false,
+  reducedMotion = false,
+  onCatClick,
 }: ShadowCatProps): ReactElement {
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isWinking, setIsWinking] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!trackCursor || reducedMotion) return;
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      const dist = Math.hypot(dx, dy) || 1;
+      const maxOffset = 1.35;
+      const factor = Math.min(dist / 280, 1) * maxOffset;
+      setOffset({
+        x: (dx / dist) * factor,
+        y: (dy / dist) * factor,
+      });
+    };
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    return () => window.removeEventListener("pointermove", handlePointerMove);
+  }, [trackCursor, reducedMotion]);
+
+  const activeExpression = isWinking ? "blessed" : expression;
+
+  const handleClick = () => {
+    if (interactive) {
+      setIsWinking(true);
+      setTimeout(() => setIsWinking(false), 500);
+      onCatClick?.();
+    }
+  };
+
   return (
     <svg
-      className={`shadow-cat-mascot shadow-cat-${expression} ${className}`}
+      ref={svgRef}
+      className={`shadow-cat-mascot shadow-cat-${activeExpression} ${interactive ? "is-interactive" : ""} ${className}`}
       width={size}
       height={size}
       viewBox="0 0 32 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label={title || `Shadow Cat Mascot (${expression})`}
-      style={{ display: "inline-block", verticalAlign: "middle", ...style }}
+      aria-label={title || `Shadow Cat Mascot (${activeExpression})`}
+      onClick={interactive ? handleClick : undefined}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        cursor: interactive ? "pointer" : undefined,
+        ...style,
+      }}
     >
       {title && <title>{title}</title>}
+      <g
+        transform={
+          trackCursor && !reducedMotion && (offset.x !== 0 || offset.y !== 0)
+            ? `translate(${offset.x.toFixed(2)}, ${offset.y.toFixed(2)})`
+            : undefined
+        }
+      >
       {/* Base Silhouette: Head & Ears */}
       <polygon
         points="8,12 5,4 12,8"
@@ -356,6 +413,7 @@ export function ShadowCat({
           />
         </g>
       )}
+      </g>
     </svg>
   );
 }

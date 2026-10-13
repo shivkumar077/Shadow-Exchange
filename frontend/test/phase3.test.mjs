@@ -199,7 +199,7 @@ test("Notification store operates correctly with account scoping and read/unread
   }
 });
 
-test("Your Market watchlist supports add/remove and per-account isolation", () => {
+test("Your Market watchlist supports empty initial favorites, add/remove, and per-account isolation", () => {
   const mockStorage = new Map();
   const originalWindow = globalThis.window;
   globalThis.window = {
@@ -214,23 +214,36 @@ test("Your Market watchlist supports add/remove and per-account isolation", () =
     const userA = 42;
     const userB = 99;
 
-    // Initially loads default watchlist
+    // Initially loads empty favorites for new demo accounts (no hardcoded defaults)
     const initialA = loadUserWatchlist(userA);
-    assert.ok(initialA.includes("NVDA"));
-
-    // Toggle out NVDA for user A
-    const updatedA = toggleWatchlistSymbol("NVDA", userA);
-    assert.ok(!updatedA.includes("NVDA"));
+    assert.deepEqual(initialA, []);
     assert.equal(isSymbolWatched("NVDA", userA), false);
 
-    // User B still has initial watchlist with NVDA
+    // Add NVDA for user A
+    const updatedA = toggleWatchlistSymbol("NVDA", userA);
+    assert.ok(updatedA.includes("NVDA"));
+    assert.equal(isSymbolWatched("NVDA", userA), true);
+
+    // User B is isolated and still has empty favorites
     const initialB = loadUserWatchlist(userB);
-    assert.ok(initialB.includes("NVDA"));
+    assert.deepEqual(initialB, []);
+    assert.equal(isSymbolWatched("NVDA", userB), false);
 
     // Add GOOGL to user A
     const withGoogl = toggleWatchlistSymbol("GOOGL", userA);
     assert.ok(withGoogl.includes("GOOGL"));
+    assert.ok(withGoogl.includes("NVDA"));
     assert.equal(isSymbolWatched("GOOGL", userA), true);
+
+    // Remove NVDA from user A
+    const withoutNvda = toggleWatchlistSymbol("NVDA", userA);
+    assert.ok(!withoutNvda.includes("NVDA"));
+    assert.ok(withoutNvda.includes("GOOGL"));
+    assert.equal(isSymbolWatched("NVDA", userA), false);
+
+    // Persistence check on re-load
+    const reloadedA = loadUserWatchlist(userA);
+    assert.deepEqual(reloadedA, ["GOOGL"]);
   } finally {
     globalThis.window = originalWindow;
   }
