@@ -20,7 +20,7 @@ const money = (value: number) =>
     maximumFractionDigits: 2,
   }).format(value);
 
-function Sparkline({ points }: { points: number[] }) {
+function Sparkline({ points, negative = false }: { points: number[]; negative?: boolean }) {
   if (!points || points.length < 2) return null;
   const min = Math.min(...points);
   const max = Math.max(...points);
@@ -33,9 +33,8 @@ function Sparkline({ points }: { points: number[] }) {
     })
     .join(" ");
 
-  const negative = points[points.length - 1] < points[0];
   return (
-    <svg className={`sparkline ${negative ? "is-negative" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none">
+    <svg className={`sparkline ${negative ? "is-negative" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <path d={path} vectorEffect="non-scaling-stroke" />
     </svg>
   );
@@ -66,12 +65,12 @@ export function YourMarketView({
     return a.symbol.localeCompare(b.symbol);
   });
 
-  const validPrices = watchedStocks.filter((s) => s.price > 0);
+  const validPrices = watchedStocks.filter((s) => Number.isFinite(s.price) && s.price > 0);
   const maxPrice = validPrices.length > 0 ? Math.max(...validPrices.map((s) => s.price)) : 0;
   const avgPrice = validPrices.length > 0 ? validPrices.reduce((a, s) => a + s.price, 0) / validPrices.length : 0;
 
   return (
-    <section className="your-market-view" aria-label="Your Market Watchlist">
+    <section className="markets-view your-market-view" aria-label="Your Market Watchlist">
       <div className="markets-summary-grid">
         <article className="portfolio-metric">
           <span>WATCHED ASSETS</span>
@@ -99,27 +98,27 @@ export function YourMarketView({
         </article>
       </div>
 
-      <section className="panel markets-table-panel">
-        <div className="panel-topline">
+      <section className="panel markets-table-panel your-market-table-panel">
+        <div className="panel-topline your-market-topline">
           <div className="panel-label">
-            <span className="panel-index">02</span> YOUR MARKET WATCHLIST ({sorted.length})
+            <span className="panel-index">02</span> YOUR WATCHLIST ({sorted.length})
           </div>
-          <div className="markets-controls">
-            <label className="search-field">
+          <div className="markets-controls your-market-controls">
+            <label className="search-field your-market-search-field">
               <Search size={14} />
               <input
                 id="your-market-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search watched stocks…"
-                aria-label="Search watched stocks"
+                placeholder="Filter watched stocks…"
+                aria-label="Filter watched stocks"
               />
               {search && (
                 <button
                   type="button"
                   className="clear-filter-btn"
                   onClick={() => setSearch("")}
-                  aria-label="Clear filter"
+                  aria-label="Clear search filter"
                 >
                   <X size={11} />
                 </button>
@@ -148,6 +147,20 @@ export function YourMarketView({
                 Price ↑
               </button>
             </div>
+            {(search !== "" || sortBy !== "symbol") && (
+              <button
+                type="button"
+                className="subtle-button reset-filters-pill"
+                onClick={() => {
+                  setSearch("");
+                  setSortBy("symbol");
+                }}
+                title="Reset search and sort filters"
+              >
+                <X size={11} />
+                <span>Reset</span>
+              </button>
+            )}
             <button
               type="button"
               className="subtle-button add-watch-btn"
@@ -160,8 +173,8 @@ export function YourMarketView({
           </div>
         </div>
 
-        <div className="markets-table-wrap">
-          <div className="markets-table-head">
+        <div className="markets-full-table your-market-full-table">
+          <div className="markets-table-head your-market-table-head">
             <span>INSTRUMENT</span>
             <span>SIMULATED PRICE</span>
             <span>24H TREND</span>
@@ -169,10 +182,18 @@ export function YourMarketView({
             <span>ACTIONS</span>
           </div>
 
-          <div className="markets-table-rows">
-            {sorted.map((stock) => (
-              <div key={stock.id} className="market-table-row">
-                <div className="market-row-asset">
+          {sorted.map((stock) => {
+            const hasValidPrice = Number.isFinite(stock.price) && stock.price > 0;
+            return (
+              <div
+                key={stock.id}
+                className="markets-row your-market-row"
+                onClick={() => {
+                  onSelectStock(stock);
+                  onNavigateToOverview();
+                }}
+              >
+                <div className="table-asset your-market-asset">
                   <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
                   <div>
                     <strong>{stock.symbol}</strong>
@@ -180,26 +201,27 @@ export function YourMarketView({
                   </div>
                 </div>
 
-                <div className="market-row-price">
-                  <strong>{stock.price > 0 ? money(stock.price) : "Quote pending"}</strong>
-                  <small>USD</small>
+                <div className="table-price-cell your-market-price-cell">
+                  <strong>{hasValidPrice ? money(stock.price) : "Quote pending"}</strong>
+                  <small>{hasValidPrice ? "USD" : "BENCHMARK PENDING"}</small>
                 </div>
 
-                <div className="market-row-trend">
+                <div className="table-spark-cell your-market-spark-cell">
                   <Sparkline points={stock.points} />
                 </div>
 
-                <div className="market-row-status">
+                <div className="table-status-cell your-market-status-cell">
                   <span className="status-chip is-active">
                     <Star size={10} fill="currentColor" /> WATCHED
                   </span>
                 </div>
 
-                <div className="market-row-actions">
+                <div className="table-action-cell your-market-action-cell">
                   <button
                     type="button"
-                    className="market-trade-btn"
-                    onClick={() => {
+                    className="trade-cta-button your-market-trade-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onSelectStock(stock);
                       onNavigateToOverview();
                     }}
@@ -209,43 +231,55 @@ export function YourMarketView({
                   </button>
                   <button
                     type="button"
-                    className="icon-button unwatch-btn"
-                    onClick={() => onToggleWatchSymbol(stock.symbol)}
+                    className="icon-button unwatch-icon-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleWatchSymbol(stock.symbol);
+                    }}
                     title={`Remove ${stock.symbol} from watchlist`}
+                    aria-label={`Remove ${stock.symbol} from watchlist`}
                   >
                     <Trash2 size={13} />
                   </button>
                 </div>
               </div>
-            ))}
+            );
+          })}
 
-            {sorted.length === 0 && watchedStocks.length > 0 && (
-              <div className="empty-state">
-                No watched instruments match “{search}”.
-              </div>
-            )}
+          {sorted.length === 0 && watchedStocks.length > 0 && (
+            <div className="empty-state your-market-search-empty">
+              <p>No watched instruments match “{search}”.</p>
+              <button
+                type="button"
+                className="subtle-button"
+                onClick={() => setSearch("")}
+                style={{ marginTop: "8px" }}
+              >
+                <X size={12} /> Clear search filter
+              </button>
+            </div>
+          )}
 
-            {watchedStocks.length === 0 && (
-              <div className="empty-state your-market-empty">
-                <ShadowCat expression="thinking" size={48} />
-                <p>Your watchlist is currently empty.</p>
-                <small>Select instruments from the exchange universe to build your custom market view.</small>
-                <button
-                  type="button"
-                  className="not-found-primary-btn"
-                  onClick={onOpenInstrumentPicker}
-                  style={{ marginTop: "14px" }}
-                >
-                  <Plus size={14} />
-                  <span>Add First Instrument</span>
-                </button>
-              </div>
-            )}
-          </div>
+          {watchedStocks.length === 0 && (
+            <div className="empty-state your-market-empty-state">
+              <ShadowCat expression="thinking" size={56} />
+              <p>Your watchlist is currently empty.</p>
+              <small>Select instruments from the exchange universe to build your custom market view.</small>
+              <button
+                type="button"
+                className="not-found-primary-btn"
+                onClick={onOpenInstrumentPicker}
+                style={{ marginTop: "14px" }}
+              >
+                <Plus size={14} />
+                <span>Add First Instrument</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="markets-footnote">
-          <span>OPERATOR WATCHLIST PERSISTED LOCALLY · SIMULATED MARKET BENCHMARKS</span>
+        <div className="markets-footer-note your-market-footer-note">
+          <span>OPERATOR WATCHLIST PERSISTED LOCALLY · SIMULATED MARKET BENCHMARKS · CLICK ROW TO TRADE</span>
         </div>
       </section>
     </section>
