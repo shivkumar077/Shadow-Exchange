@@ -1,5 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cancelOrder, createDemoUser, getOrderBook, getOrders, getPortfolio, getStocks, getUser, mapApiOrders, submitOrder, type ApiHolding, type ApiOrder, type ApiOrderBook, type ApiStock, type ApiUser, type LocalOrder } from "./api";
+import {
+  cancelOrder,
+  createDemoUser,
+  getOrderBook,
+  getOrders,
+  getPortfolio,
+  getStocks,
+  getUser,
+  mapApiOrders,
+  submitOrder,
+  type ApiHolding,
+  type ApiOrder,
+  type ApiOrderBook,
+  type ApiStock,
+  type ApiUser,
+  type LocalOrder,
+  type PublicTradeResponse,
+} from "./api";
 import { useTradeRefresh, useTradeStream } from "./useTradeStream";
 import type { CSSProperties } from "react";
 import {
@@ -20,14 +37,19 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { WorldClocks } from "./components/WorldClocks";
+import { InstrumentPickerModal, type StockItem } from "./components/InstrumentPickerModal";
+import { PreferencesModal, type TerminalPreferences } from "./components/PreferencesModal";
+import { ProfileMenu } from "./components/ProfileMenu";
+import { MarketsView } from "./components/MarketsView";
+import { ActivityView } from "./components/ActivityView";
+import { IdentityPickerModal } from "./components/IdentityPickerModal";
+import { IdentityIcon } from "./components/IdentityIcon";
+import { NotFoundPage } from "./components/NotFoundPage";
+import { getStoredIdentity, saveStoredIdentity, type SignatureIdentity } from "./identities";
+import { getRouteInfo, navigateTo } from "./router";
 
-type Stock = {
-  id: number;
-  symbol: string;
-  name: string;
-  price: number;
-  points: number[];
-};
+type Stock = StockItem;
 
 const chartShapes: Record<string, number[]> = {
   NVDA: [30, 28, 33, 27, 37, 35, 41, 39, 45, 42, 49, 47, 55, 53, 62, 58, 66, 63, 71, 68, 78, 75, 84, 81, 92],
@@ -40,6 +62,25 @@ const defaultChartPoints = [34, 38, 35, 43, 40, 47, 44, 51, 48, 56, 53, 61, 58, 
 
 const money = (value: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+
+function playTradeSound() {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.04, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.12);
+  } catch {}
+}
 
 function Sparkline({ points, negative = false }: { points: number[]; negative?: boolean }) {
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${(index / (points.length - 1)) * 100} ${100 - point}`).join(" ");
@@ -87,6 +128,9 @@ function MarketChart({ stock }: { stock: Stock }) {
 }
 
 function App() {
+  const [currentPath, setCurrentPath] = useState(() =>
+    typeof window !== "undefined" ? window.location.pathname : "/"
+  );
   const [activeSection, setActiveSection] = useState("Overview");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedSymbol, setSelectedSymbol] = useState("");
@@ -101,13 +145,54 @@ function App() {
   const [limitPrice, setLimitPrice] = useState("142.87");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
-  const [orders, setOrders] = useState<LocalOrder[]>([]);
+  const [rawOrders, setRawOrders] = useState<ApiOrder[]>([]);
   const [portfolio, setPortfolio] = useState<ApiHolding[]>([]);
   const [account, setAccount] = useState<ApiUser | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [orderBook, setOrderBook] = useState<ApiOrderBook | null>(null);
   const [orderBookLoading, setOrderBookLoading] = useState(false);
   const [orderBookError, setOrderBookError] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [identityPickerOpen, setIdentityPickerOpen] = useState(false);
+
+  // Identity state isolated per demo user
+  const [identity, setIdentity] = useState<SignatureIdentity>(() => getStoredIdentity(demoUserId));
+
+  useEffect(() => {
+    setIdentity(getStoredIdentity(demoUserId));
+  }, [demoUserId]);
+
+  const handleSelectIdentity = (selected: SignatureIdentity) => {
+    setIdentity(selected);
+    saveStoredIdentity(selected.id, demoUserId);
+    setToast(`Operator identity updated to ${selected.name}.`);
+  };
+
+  const [preferences, setPreferences] = useState<TerminalPreferences>(() => {
+    try {
+      const sound = window.localStorage.getItem("shadow_pref_sound") === "true";
+      const density = (window.localStorage.getItem("shadow_pref_density") as "comfortable" | "compact") || "comfortable";
+      const defaultQty = Number(window.localStorage.getItem("shadow_pref_default_qty")) || 10;
+      return { soundEnabled: sound, density, defaultQuantity: defaultQty };
+    } catch {
+      return { soundEnabled: false, density: "comfortable", defaultQuantity: 10 };
+    }
+  });
+
+  const handleUpdatePreferences = (updated: Partial<TerminalPreferences>) => {
+    setPreferences((prev) => {
+      const next = { ...prev, ...updated };
+      try {
+        if (updated.soundEnabled !== undefined) window.localStorage.setItem("shadow_pref_sound", String(next.soundEnabled));
+        if (updated.density !== undefined) window.localStorage.setItem("shadow_pref_density", next.density);
+        if (updated.defaultQuantity !== undefined) window.localStorage.setItem("shadow_pref_default_qty", String(next.defaultQuantity));
+      } catch {}
+      return next;
+    });
+  };
+
   const isMountedRef = useRef(true);
   const activeUserIdRef = useRef(demoUserId);
   activeUserIdRef.current = demoUserId;
@@ -118,6 +203,51 @@ function App() {
       isMountedRef.current = false;
     };
   }, []);
+
+  // Listen to browser forward/back buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const routeInfo = useMemo(() => getRouteInfo(currentPath), [currentPath]);
+
+  // Sync section if arrived via URL route
+  useEffect(() => {
+    if (!routeInfo.isNotFound && routeInfo.section) {
+      setActiveSection(routeInfo.section);
+    }
+  }, [routeInfo]);
+
+  const navigateToSection = (section: string) => {
+    setActiveSection(section);
+    setMobileNavOpen(false);
+    const targetPath = section === "Overview" ? "/" : `/${section.toLowerCase()}`;
+    navigateTo(targetPath);
+    setCurrentPath(targetPath);
+  };
+
+  const handleNavigateHome = () => {
+    navigateTo("/");
+    setCurrentPath("/");
+    setActiveSection("Overview");
+  };
+
+  const handleGoBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+    } else {
+      handleNavigateHome();
+    }
+  };
+
+  // Reactive symbol resolution: orders re-map automatically whenever stocks or rawOrders change
+  const orders = useMemo(() => {
+    return mapApiOrders(rawOrders, stocks, 100);
+  }, [rawOrders, stocks]);
 
   const refreshUserOrdersAndPortfolio = useCallback(async () => {
     const currentId = demoUserId;
@@ -131,7 +261,7 @@ function App() {
       if (!isMountedRef.current || activeUserIdRef.current !== currentId) {
         return;
       }
-      setOrders(mapApiOrders(savedOrders, stocks));
+      setRawOrders(savedOrders);
       setAccount(refreshedUser);
       setPortfolio(refreshedPortfolio);
     } catch (err) {
@@ -139,7 +269,7 @@ function App() {
         console.warn("Failed to refresh user orders/portfolio after trade:", err);
       }
     }
-  }, [demoUserId, stocks]);
+  }, [demoUserId]);
 
   const { scheduleRefresh, cancelRefresh } = useTradeRefresh(refreshUserOrdersAndPortfolio, 100);
 
@@ -147,8 +277,18 @@ function App() {
     cancelRefresh();
   }, [demoUserId, cancelRefresh]);
 
+  const handleTradePrint = useCallback(
+    (_trade: PublicTradeResponse) => {
+      scheduleRefresh();
+      if (preferences.soundEnabled) {
+        playTradeSound();
+      }
+    },
+    [scheduleRefresh, preferences.soundEnabled]
+  );
+
   const { trades: recentTrades, status: tradeStreamStatus } = useTradeStream({
-    onTrade: scheduleRefresh,
+    onTrade: handleTradePrint,
   });
 
   useEffect(() => {
@@ -199,7 +339,7 @@ function App() {
         let user;
         if (storedId && /^\d+$/.test(storedId)) {
           try { user = await getUser(Number(storedId)); }
-          catch { /* H2 may have restarted and cleared the user table. */ }
+          catch { /* H2/Neon restart fallback. */ }
         }
         if (!user) {
           user = await createDemoUser();
@@ -209,7 +349,7 @@ function App() {
           setDemoUserId(user.id);
           const savedOrders = await getOrders(user.id);
           if (!cancelled) {
-            setOrders(mapApiOrders(savedOrders, stocks));
+            setRawOrders(savedOrders);
           }
         }
       } catch (error) {
@@ -221,6 +361,24 @@ function App() {
     void loadDemoAccount();
     return () => { cancelled = true; };
   }, []);
+
+  const handleSwitchNewDemoUser = async () => {
+    setAccountLoading(true);
+    try {
+      const newUser = await createDemoUser();
+      window.localStorage.setItem("shadow-exchange-demo-user-id-v2", String(newUser.id));
+      setDemoUserId(newUser.id);
+      setAccount(newUser);
+      setPortfolio([]);
+      const savedOrders = await getOrders(newUser.id);
+      setRawOrders(savedOrders);
+      setToast(`Switched to new demo account #${newUser.id}.`);
+    } catch (err) {
+      setToast(err instanceof Error ? `Failed to create demo account: ${err.message}` : "Failed to create demo account.");
+    } finally {
+      setAccountLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!demoUserId) return;
@@ -255,7 +413,7 @@ function App() {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [demoUserId, orders]);
+  }, [demoUserId, rawOrders]);
 
   const selectedStockId = stocks.find((stock) => stock.symbol === selectedSymbol)?.id ?? 0;
 
@@ -284,7 +442,6 @@ function App() {
       }
     };
 
-    // Load immediately, then poll for changes while this instrument is selected.
     void refreshOrderBook(true);
     const intervalId = window.setInterval(() => {
       void refreshOrderBook();
@@ -294,7 +451,7 @@ function App() {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [selectedStockId, orders]);
+  }, [selectedStockId, rawOrders]);
 
   const selectedStock = stocks.find((stock) => stock.symbol === selectedSymbol) ?? stocks[0] ?? {
     id: 0,
@@ -422,6 +579,9 @@ function App() {
   const chooseStock = (stock: Stock) => {
     setSelectedSymbol(stock.symbol);
     setLimitPrice(stock.price.toFixed(2));
+    if (preferences.defaultQuantity) {
+      setQuantity(String(preferences.defaultQuantity));
+    }
   };
 
   const placeDemoOrder = async () => {
@@ -450,11 +610,10 @@ function App() {
         getUser(demoUserId),
         getPortfolio(demoUserId),
       ]);
-      const refreshedOrders = mapApiOrders(savedOrders, stocks);
-      setOrders(refreshedOrders);
+      setRawOrders(savedOrders);
       setAccount(refreshedUser);
       setPortfolio(refreshedPortfolio);
-      const latestOrder = refreshedOrders.find((order) => order.id === response.id);
+      const latestOrder = savedOrders.find((order) => order.id === response.id);
       setToast(`Order #${response.id} accepted by the exchange · ${latestOrder?.status ?? response.status}`);
     } catch (error) {
       setToast(error instanceof Error ? `Order rejected: ${error.message}` : "The exchange could not place this order.");
@@ -477,7 +636,7 @@ function App() {
           getUser(demoUserId),
           getPortfolio(demoUserId),
         ]);
-        setOrders(mapApiOrders(savedOrders, stocks));
+        setRawOrders(savedOrders);
         setAccount(refreshedUser);
         setPortfolio(refreshedPortfolio);
       }
@@ -487,6 +646,27 @@ function App() {
     }
   };
 
+  const handleTopbarSearch = () => {
+    if (activeSection !== "Overview" && activeSection !== "Markets") {
+      navigateToSection("Overview");
+    }
+    setTimeout(() => {
+      const input = document.getElementById(activeSection === "Markets" ? "markets-view-search" : "market-search");
+      input?.focus();
+    }, 60);
+  };
+
+  // If path is unknown, render the cat-themed 404 page
+  if (routeInfo.isNotFound) {
+    return (
+      <NotFoundPage
+        onNavigateHome={handleNavigateHome}
+        onGoBack={handleGoBack}
+        attemptedPath={currentPath}
+      />
+    );
+  }
+
   const navigation = [
     { label: "Overview", icon: LayoutDashboard },
     { label: "Markets", icon: Activity },
@@ -495,7 +675,7 @@ function App() {
   ];
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${preferences.density === "compact" ? "density-compact" : ""}`}>
       {mobileNavOpen && (
         <div
           className="mobile-nav-backdrop"
@@ -508,7 +688,7 @@ function App() {
           <a
             className="brand"
             href="#"
-            onClick={() => { setActiveSection("Overview"); setMobileNavOpen(false); }}
+            onClick={(e) => { e.preventDefault(); navigateToSection("Overview"); }}
             aria-label="Shadow Exchange home"
           >
             <span className="brand-mark"><span /><span /><span /></span>
@@ -527,19 +707,38 @@ function App() {
         <div className="workspace-label">WORKSPACE <span>01</span></div>
         <nav className="primary-nav" aria-label="Primary navigation">
           {navigation.map(({ label, icon: Icon }) => (
-            <button key={label} className={`nav-item ${activeSection === label ? "active" : ""}`} onClick={() => { setActiveSection(label); setMobileNavOpen(false); }}>
+            <button
+              key={label}
+              className={`nav-item ${activeSection === label ? "active" : ""}`}
+              onClick={() => navigateToSection(label)}
+            >
               <Icon size={16} strokeWidth={1.7} />
               <span>{label}</span>
               {label === "Activity" && <span className="nav-count">{orders.length}</span>}
+              {label === "Markets" && <span className="nav-count">{stocks.length}</span>}
             </button>
           ))}
         </nav>
 
         <div className="sidebar-rule" />
-        <div className="workspace-label">YOUR MARKETS <button className="tiny-icon-button" aria-label="Market settings"><SlidersHorizontal size={13} /></button></div>
+        <div className="workspace-label">
+          YOUR MARKETS{" "}
+          <button
+            className="tiny-icon-button"
+            aria-label="All markets view"
+            onClick={() => navigateToSection("Markets")}
+            title="Browse all markets"
+          >
+            <SlidersHorizontal size={13} />
+          </button>
+        </div>
         <div className="mini-watchlist">
           {stocks.slice(0, 4).map((stock) => (
-            <button key={stock.id} className={`mini-stock ${selectedSymbol === stock.symbol ? "selected" : ""}`} onClick={() => { chooseStock(stock); setMobileNavOpen(false); }}>
+            <button
+              key={stock.id}
+              className={`mini-stock ${selectedSymbol === stock.symbol ? "selected" : ""}`}
+              onClick={() => { chooseStock(stock); setMobileNavOpen(false); }}
+            >
               <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
               <span className="mini-stock-copy"><strong>{stock.symbol}</strong><small>{stock.name.split(" ")[0]}</small></span>
               <span className="mini-change">SIM</span>
@@ -550,18 +749,59 @@ function App() {
         <div className="sidebar-bottom">
           <div className="status-card">
             <span className={`status-light ${stocksError ? "is-error" : ""}`} />
-            <div><strong>Exchange API</strong><small>{stocksLoading ? "Connecting…" : stocksError ? "Needs attention" : accountLoading ? "Preparing demo account…" : demoUserId ? "Demo account ready" : "Account unavailable"}</small></div>
+            <div>
+              <strong>Exchange API</strong>
+              <small>{stocksLoading ? "Connecting…" : stocksError ? "Needs attention" : accountLoading ? "Preparing demo account…" : demoUserId ? "Demo account ready" : "Account unavailable"}</small>
+            </div>
             <span className="status-pulse" />
           </div>
-          <button className="nav-item utility-item" onClick={() => setToast("Settings will be available in a later build.")}><Settings2 size={16} /><span>Preferences</span></button>
-          <button className="nav-item utility-item" onClick={() => setToast("Help centre is coming soon.")}><CircleHelp size={16} /><span>Help & documentation</span></button>
-          <div className="profile-row">
-            <div className="profile-avatar">SK</div>
-            <div className="profile-copy">
-              <strong>Demo operator</strong>
-              <small>{accountLoading ? "Connecting…" : `${money(availableCash)} cash`}</small>
-            </div>
-            <ChevronDown size={15} className="profile-chevron" />
+          <button
+            className="nav-item utility-item"
+            type="button"
+            onClick={() => setPreferencesOpen(true)}
+          >
+            <Settings2 size={16} />
+            <span>Preferences</span>
+          </button>
+          <button
+            className="nav-item utility-item"
+            type="button"
+            onClick={() => setToast("Help centre & documentation is in development.")}
+          >
+            <CircleHelp size={16} />
+            <span>Help &amp; documentation</span>
+          </button>
+          <div className="profile-container">
+            <button
+              type="button"
+              className="profile-row interactive-profile-row"
+              onClick={() => setProfileMenuOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              aria-label="Open demo operator profile menu"
+            >
+              <div className="profile-avatar identity-sidebar-avatar" style={{ borderColor: identity.accentColor }}>
+                <IdentityIcon identity={identity} size={18} />
+              </div>
+              <div className="profile-copy">
+                <strong>{identity.name}</strong>
+                <small>{accountLoading ? "Connecting…" : `${money(availableCash)} cash`}</small>
+              </div>
+              <ChevronDown size={15} className={`profile-chevron ${profileMenuOpen ? "is-open" : ""}`} />
+            </button>
+            <ProfileMenu
+              isOpen={profileMenuOpen}
+              onClose={() => setProfileMenuOpen(false)}
+              account={account}
+              demoUserId={demoUserId}
+              identity={identity}
+              availableCash={availableCash}
+              reservedCash={reservedCash}
+              totalEquity={totalEquity}
+              onOpenIdentityPicker={() => setIdentityPickerOpen(true)}
+              onSwitchNewDemoUser={handleSwitchNewDemoUser}
+              onToast={setToast}
+            />
           </div>
         </div>
       </aside>
@@ -571,10 +811,10 @@ function App() {
           <div className="breadcrumbs"><span>Workspace</span><span className="crumb-slash">/</span><strong>{activeSection}</strong></div>
           <div className="topbar-actions">
             <div className="session-pill"><span className="status-light" /> SIMULATED SESSION</div>
-            <button className="icon-button" aria-label="Search" onClick={() => document.getElementById("market-search")?.focus()}><Search size={17} /></button>
-            <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setToast("You're all caught up.")}><Bell size={17} /><i /></button>
+            <button className="icon-button" aria-label="Search markets" onClick={handleTopbarSearch}><Search size={17} /></button>
+            <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setToast("You're all caught up on trade alerts.")}><Bell size={17} /><i /></button>
             <span className="topbar-divider" />
-            <button className="shortcut-button" onClick={() => setToast("Keyboard shortcuts are coming soon.")}><Command size={13} /> <span>K</span></button>
+            <button className="shortcut-button" onClick={() => setToast("Press Cmd+K or Ctrl+K for commands (coming soon).")}><Command size={13} /> <span>K</span></button>
           </div>
         </header>
 
@@ -585,19 +825,17 @@ function App() {
               <h1>{activeSection === "Overview" ? <>The market,<br /><em>without the noise.</em></> : <>{activeSection}<br /><em>at a glance.</em></>}</h1>
               <p className="heading-description">A considered view of the market. Every signal, nothing superfluous.</p>
             </div>
-            <div className="heading-meta">
-              <div className="date-label">NEW YORK · NYSE</div>
-              <div className="market-time">10:42:18 <span>EDT</span></div>
-              <div className="market-open"><span className="status-light" /> MARKET OPEN <span className="meta-separator">·</span> REGULAR SESSION</div>
-            </div>
           </section>
+
+          {/* Live Multi-Timezone Financial Center Clocks */}
+          <WorldClocks />
 
           <section className="market-ribbon" aria-label="Market summary">
             <div className="ribbon-heading"><span className="ribbon-dot" /> MARKET PULSE</div>
             <div className="ribbon-stat"><span>S&amp;P 500</span><strong>5,842.47</strong><small className="positive">+0.68%</small><Sparkline points={[32, 35, 30, 42, 38, 45, 43, 55, 51, 62, 58, 70, 76]} /></div>
             <div className="ribbon-stat"><span>NASDAQ</span><strong>18,274.91</strong><small className="positive">+1.14%</small><Sparkline points={[25, 28, 27, 40, 36, 46, 44, 52, 49, 64, 61, 74, 82]} /></div>
             <div className="ribbon-stat"><span>DOW JONES</span><strong>42,118.09</strong><small className="negative">−0.12%</small><Sparkline points={[70, 68, 72, 65, 68, 61, 64, 56, 59, 52, 55, 48, 45]} negative /></div>
-            <div className="ribbon-footnote">DELAYED DATA <span>·</span> ILLUSTRATIVE</div>
+            <div className="ribbon-footnote">DELAYED BENCHMARKS <span>·</span> ILLUSTRATIVE ONLY</div>
           </section>
 
           {activeSection === "Portfolio" ? (
@@ -628,7 +866,7 @@ function App() {
                   {portfolio.map((holding) => <button className="portfolio-row" key={holding.id} onClick={() => {
                     const stock = stocks.find((item) => item.id === holding.stockId);
                     if (stock) chooseStock(stock);
-                    setActiveSection("Overview");
+                    navigateToSection("Overview");
                   }}>
                     <span className="portfolio-instrument"><span className="ticker-avatar">{holding.symbol.slice(0, 1)}</span><span><strong>{holding.symbol}</strong><small>{holding.companyName}</small></span></span>
                     <strong>{holding.quantity}</strong><span>{holding.availableQuantity}</span><span>{holding.reservedQuantity}</span><span>{money(Number(holding.currentPrice))}</span><strong>{money(Number(holding.marketValue))}</strong>
@@ -639,299 +877,352 @@ function App() {
                 <div className="portfolio-note"><ShieldCheck size={14} /> Values use the exchange's listed prices and are illustrative, not live market data.</div>
               </section>
             </section>
+          ) : activeSection === "Markets" ? (
+            <MarketsView
+              stocks={stocks}
+              stocksLoading={stocksLoading}
+              stocksError={stocksError}
+              selectedSymbol={selectedSymbol}
+              onSelectStock={chooseStock}
+              onNavigateToOverview={() => navigateToSection("Overview")}
+            />
+          ) : activeSection === "Activity" ? (
+            <ActivityView
+              orders={orders}
+              onCancelOrder={cancelPendingOrder}
+              onRefresh={() => {
+                if (demoUserId) {
+                  getOrders(demoUserId).then(setRawOrders).catch(() => {});
+                }
+              }}
+              isLoading={accountLoading}
+            />
           ) : (
             <>
               <div className="content-grid">
-            <div className="left-column">
-              <section className="panel featured-panel">
-                <div className="panel-topline">
-                  <div className="panel-label"><span className="panel-index">01</span> IN FOCUS</div>
-                  <button className="subtle-button" onClick={() => setActiveSection("Markets")}>All markets <ArrowUpRight size={13} /></button>
-                </div>
-                <div className="featured-asset">
-                  <div className="asset-identity">
-                    <div className="asset-monogram">{selectedStock.symbol.slice(0, 1)}</div>
-                    <div><div className="asset-symbol">{selectedStock.symbol}<span className="asset-exchange">NASDAQ</span></div><div className="asset-name">{selectedStock.name}</div></div>
-                  </div>
-                  <div className="asset-price-block">
-                    <div className="asset-price">{money(selectedStock.price)}</div>
-                    <div className="asset-change"><span>SIMULATED PRICE · CHANGE DATA NOT CONNECTED</span></div>
-                  </div>
-                </div>
-                <div className="chart-toolbar">
-                  <div className="chart-legend"><span className="legend-dot" /> PRICE <span className="legend-value">{money(selectedStock.price)}</span></div>
-                  <div className="timeframes">{["1D", "1W", "1M", "3M", "1Y", "ALL"].map((frame) => <button key={frame} className={frame === "1D" ? "selected" : ""} onClick={() => setToast(`${frame} chart range is a visual prototype.`)}>{frame}</button>)}</div>
-                </div>
-                <MarketChart stock={selectedStock} />
-                <div className="chart-footer"><span>OPEN <strong>—</strong></span><span>HIGH <strong>—</strong></span><span>LOW <strong>—</strong></span><span>SOURCE <strong>EXCHANGE DB</strong></span></div>
-              </section>
-
-              <section className="panel watchlist-panel">
-                <div className="panel-topline">
-                  <div className="panel-label"><span className="panel-index">02</span> WATCHLIST <span className="panel-count">{stocks.length.toString().padStart(2, "0")} ASSETS</span></div>
-                  <label className="search-field"><Search size={14} /><input id="market-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find an asset" /></label>
-                </div>
-                <div className="watchlist-table">
-                  <div className="table-head"><span>INSTRUMENT</span><span>LAST PRICE</span><span>24H CHANGE</span><span className="spark-head">TREND</span><span /></div>
-                  {filteredStocks.map((stock) => (
-                    <button key={stock.id} className={`watchlist-row ${selectedSymbol === stock.symbol ? "chosen" : ""}`} onClick={() => chooseStock(stock)}>
-                      <span className="table-asset"><span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span><span><strong>{stock.symbol}</strong><small>{stock.name}</small></span></span>
-                      <span className="table-price">{money(stock.price)}</span>
-                      <span className="table-change">—</span>
-                      <span className="table-spark"><Sparkline points={stock.points} /></span>
-                      <span className="row-arrow"><ArrowUpRight size={14} /></span>
-                    </button>
-                  ))}
-                  {filteredStocks.length === 0 && (
-                    <div className="empty-state">
-                      {stocksLoading ? "Connecting to exchange…" : stocksError || (search ? `No instruments match “${search}”.` : "No instruments available.")}
+                <div className="left-column">
+                  <section className="panel featured-panel">
+                    <div className="panel-topline">
+                      <div className="panel-label"><span className="panel-index">01</span> IN FOCUS</div>
+                      <button className="subtle-button" onClick={() => navigateToSection("Markets")}>All markets <ArrowUpRight size={13} /></button>
                     </div>
-                  )}
-                </div>
-                <div className="watchlist-footer"><span>SHOWING {filteredStocks.length.toString().padStart(2, "0")} OF {stocks.length.toString().padStart(2, "0")} INSTRUMENTS</span><button onClick={() => setSearch("")}>RESET FILTER <X size={11} /></button></div>
-              </section>
-            </div>
+                    <div className="featured-asset">
+                      <div className="asset-identity">
+                        <div className="asset-monogram">{selectedStock.symbol.slice(0, 1)}</div>
+                        <div><div className="asset-symbol">{selectedStock.symbol}<span className="asset-exchange">NASDAQ</span></div><div className="asset-name">{selectedStock.name}</div></div>
+                      </div>
+                      <div className="asset-price-block">
+                        <div className="asset-price">{money(selectedStock.price)}</div>
+                        <div className="asset-change"><span>SIMULATED BENCHMARK PRICE</span></div>
+                      </div>
+                    </div>
+                    <div className="chart-toolbar">
+                      <div className="chart-legend"><span className="legend-dot" /> PRICE <span className="legend-value">{money(selectedStock.price)}</span></div>
+                      <div className="timeframes">{["1D", "1W", "1M", "3M", "1Y", "ALL"].map((frame) => <button key={frame} className={frame === "1D" ? "selected" : ""} onClick={() => setToast(`${frame} chart range is a visual prototype.`)}>{frame}</button>)}</div>
+                    </div>
+                    <MarketChart stock={selectedStock} />
+                    <div className="chart-footer"><span>OPEN <strong>—</strong></span><span>HIGH <strong>—</strong></span><span>LOW <strong>—</strong></span><span>SOURCE <strong>EXCHANGE DB</strong></span></div>
+                  </section>
 
-            <div className="right-column">
-              <section className="panel order-panel">
-                <div className="panel-topline">
-                  <div className="panel-label"><span className="panel-index">03</span> ORDER TICKET</div>
-                  <button className="tiny-icon-button" aria-label="Order ticket settings" onClick={() => setToast("Advanced order settings are planned for a later build.")}><Settings2 size={14} /></button>
+                  <section className="panel watchlist-panel">
+                    <div className="panel-topline">
+                      <div className="panel-label"><span className="panel-index">02</span> WATCHLIST <span className="panel-count">{stocks.length.toString().padStart(2, "0")} ASSETS</span></div>
+                      <label className="search-field"><Search size={14} /><input id="market-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find an asset" /></label>
+                    </div>
+                    <div className="watchlist-table">
+                      <div className="table-head"><span>INSTRUMENT</span><span>LAST PRICE</span><span>24H CHANGE</span><span className="spark-head">TREND</span><span /></div>
+                      {filteredStocks.map((stock) => (
+                        <button key={stock.id} className={`watchlist-row ${selectedSymbol === stock.symbol ? "chosen" : ""}`} onClick={() => chooseStock(stock)}>
+                          <span className="table-asset"><span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span><span><strong>{stock.symbol}</strong><small>{stock.name}</small></span></span>
+                          <span className="table-price">{money(stock.price)}</span>
+                          <span className="table-change">—</span>
+                          <span className="table-spark"><Sparkline points={stock.points} /></span>
+                          <span className="row-arrow"><ArrowUpRight size={14} /></span>
+                        </button>
+                      ))}
+                      {filteredStocks.length === 0 && (
+                        <div className="empty-state">
+                          {stocksLoading ? "Connecting to exchange…" : stocksError || (search ? `No instruments match “${search}”.` : "No instruments available.")}
+                        </div>
+                      )}
+                    </div>
+                    <div className="watchlist-footer"><span>SHOWING {filteredStocks.length.toString().padStart(2, "0")} OF {stocks.length.toString().padStart(2, "0")} INSTRUMENTS</span><button onClick={() => setSearch("")}>RESET FILTER <X size={11} /></button></div>
+                  </section>
                 </div>
-                <div className="order-instrument">
-                  <div><span className="field-caption">INSTRUMENT</span><strong>{selectedStock.symbol}<small> / USD</small></strong></div>
-                  <button className="change-instrument" onClick={() => setActiveSection("Markets")}>CHANGE <ChevronDown size={12} /></button>
-                </div>
-                <div className="side-switch" role="group" aria-label="Order side">
-                  <button className={side === "BUY" ? "buy-active" : ""} onClick={() => setSide("BUY")}><ArrowUpRight size={15} /> BUY</button>
-                  <button className={side === "SELL" ? "sell-active" : ""} onClick={() => setSide("SELL")}><ArrowDownRight size={15} /> SELL</button>
-                </div>
-                <div className={`order-balance-pill ${orderValidationWarning ? "is-warning" : ""}`}>
-                  <span>{side === "BUY" ? "AVAILABLE CASH" : `AVAILABLE ${selectedStock.symbol}`}</span>
-                  <strong>
-                    {side === "BUY" ? (
-                      <>
-                        {money(availableCash)}
-                        {reservedCash > 0 && <small>({money(reservedCash)} res)</small>}
-                      </>
+
+                <div className="right-column">
+                  <section className="panel order-panel">
+                    <div className="panel-topline">
+                      <div className="panel-label"><span className="panel-index">03</span> ORDER TICKET</div>
+                      <button className="tiny-icon-button" aria-label="Order ticket settings" onClick={() => setPreferencesOpen(true)} title="Preferences"><Settings2 size={14} /></button>
+                    </div>
+                    <div className="order-instrument">
+                      <div><span className="field-caption">INSTRUMENT</span><strong>{selectedStock.symbol}<small> / USD</small></strong></div>
+                      <button
+                        className="change-instrument"
+                        type="button"
+                        onClick={() => setPickerOpen(true)}
+                        aria-haspopup="dialog"
+                        aria-label="Change instrument"
+                      >
+                        CHANGE <ChevronDown size={12} />
+                      </button>
+                    </div>
+                    <div className="side-switch" role="group" aria-label="Order side">
+                      <button className={side === "BUY" ? "buy-active" : ""} onClick={() => setSide("BUY")}><ArrowUpRight size={15} /> BUY</button>
+                      <button className={side === "SELL" ? "sell-active" : ""} onClick={() => setSide("SELL")}><ArrowDownRight size={15} /> SELL</button>
+                    </div>
+                    <div className={`order-balance-pill ${orderValidationWarning ? "is-warning" : ""}`}>
+                      <span>{side === "BUY" ? "AVAILABLE CASH" : `AVAILABLE ${selectedStock.symbol}`}</span>
+                      <strong>
+                        {side === "BUY" ? (
+                          <>
+                            {money(availableCash)}
+                            {reservedCash > 0 && <small>({money(reservedCash)} res)</small>}
+                          </>
+                        ) : (
+                          <>
+                            {availableShares} SHARES
+                            {reservedShares > 0 && <small>({reservedShares} res)</small>}
+                          </>
+                        )}
+                      </strong>
+                    </div>
+                    <div className="order-field">
+                      <label htmlFor="order-type">ORDER TYPE</label>
+                      <button id="order-type" className="select-like" onClick={() => setToast("Limit orders are currently the supported exchange order type.")}>Limit order <ChevronDown size={14} /></button>
+                    </div>
+                    <div className="order-field">
+                      <label htmlFor="limit-price">LIMIT PRICE <span>USD</span></label>
+                      <div className="number-input"><span>$</span><input id="limit-price" inputMode="decimal" value={limitPrice} onChange={(event) => setLimitPrice(event.target.value)} /><button onClick={() => setLimitPrice(selectedStock.price.toFixed(2))}>MID</button></div>
+                    </div>
+                    <div className="order-field">
+                      <label htmlFor="quantity">QUANTITY <span>SHARES</span></label>
+                      <div className="number-input"><input id="quantity" inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} /><div className="stepper"><button aria-label="Decrease quantity" onClick={() => setQuantity(String(Math.max(1, (Number(quantity) || 1) - 1)))}>−</button><button aria-label="Increase quantity" onClick={() => setQuantity(String(Math.max(1, Number(quantity) || 1) + 1))}>+</button></div></div>
+                      <div className="quantity-presets">
+                        {[1, 5, 10, 25].map((amount) => (
+                          <button
+                            key={amount}
+                            type="button"
+                            className={Number(quantity) === amount ? "selected" : ""}
+                            onClick={() => setQuantity(String(amount))}
+                          >
+                            {amount}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          className="max-preset-btn"
+                          onClick={applyMaxQuantity}
+                          title={side === "BUY" ? "Max shares with available cash" : "Max available shares"}
+                        >
+                          MAX
+                        </button>
+                      </div>
+                    </div>
+                    <div className="order-estimate"><span>ESTIMATED ORDER VALUE</span><strong>{money(estimatedValue)}</strong></div>
+                    {orderValidationWarning && <div className="order-warning-note">{orderValidationWarning}</div>}
+                    <div className="order-note"><ShieldCheck size={14} /><span>Simulation only. No real funds or securities.</span></div>
+                    <button
+                      className={`submit-order ${side === "SELL" ? "sell-submit" : ""}`}
+                      onClick={placeDemoOrder}
+                      disabled={!canSubmitOrder}
+                      aria-disabled={!canSubmitOrder}
+                      title={!canSubmitOrder && orderValidationWarning ? orderValidationWarning : undefined}
+                    >
+                      {submittingOrder ? "Submitting order…" : side === "BUY" ? "Place buy order" : "Place sell order"}{" "}
+                      <ArrowUpRight size={16} />
+                    </button>
+                    <div className="ticket-footnote">By continuing, you acknowledge this is a simulated market.</div>
+                  </section>
+
+                  <section className="panel depth-panel">
+                    <div className="panel-topline">
+                      <div className="panel-label"><span className="panel-index">04</span> MARKET DEPTH</div>
+                      <span className="depth-live"><span className="status-light" /> API SYNC</span>
+                    </div>
+                    <div className="depth-head"><span>SIZE</span><span>BUY PRICE</span><span>SELL PRICE</span><span>SIZE</span></div>
+                    {orderBookLoading && !orderBook ? (
+                      <div className="empty-state">Loading persisted orders…</div>
+                    ) : orderBookError ? (
+                      <div className="empty-state">{orderBookError}</div>
+                    ) : stocks.length === 0 ? (
+                      <div className="empty-state">{stocksLoading ? "Connecting to exchange…" : "Market depth will appear when an instrument is available."}</div>
                     ) : (
                       <>
-                        {availableShares} SHARES
-                        {reservedShares > 0 && <small>({reservedShares} res)</small>}
+                        {(() => {
+                          const aggregate = (bookOrders: ApiOrder[]) => {
+                            const levels = new Map<number, number>();
+                            bookOrders.forEach((order) => {
+                              const price = Number(order.price);
+                              levels.set(price, (levels.get(price) ?? 0) + order.quantity);
+                            });
+                            return [...levels.entries()]
+                              .map(([price, size]) => ({ price, size }))
+                              .sort((a, b) => a.price - b.price);
+                          };
+                          const bids = aggregate(orderBook?.bids ?? []).sort((a, b) => b.price - a.price).slice(0, 4);
+                          const asks = aggregate(orderBook?.asks ?? []).slice(0, 4);
+                          const rowCount = Math.max(bids.length, asks.length);
+                          const bestBid = bids[0]?.price;
+                          const bestAsk = asks[0]?.price;
+                          const spread = bestBid !== undefined && bestAsk !== undefined ? bestAsk - bestBid : null;
+                          const spreadPercent = spread !== null && bestAsk ? (spread / bestAsk) * 100 : null;
+                          if (rowCount === 0) {
+                            return <div className="empty-state">No open orders for {selectedStock.symbol}. Place a limit order to add liquidity.</div>;
+                          }
+                          return (
+                            <>
+                              {Array.from({ length: rowCount }, (_, index) => {
+                                const bid = bids[index];
+                                const ask = asks[index];
+                                const maxSize = Math.max(1, ...bids.map((level) => level.size), ...asks.map((level) => level.size));
+                                return (
+                                  <div className="depth-row" key={index}>
+                                    <span className="depth-size buy-depth" style={{ "--depth": `${((bid?.size ?? 0) / maxSize) * 100}%` } as CSSProperties & { "--depth": string }}>{bid?.size ?? "—"}</span>
+                                    <strong className="positive">{bid ? money(bid.price) : "—"}</strong>
+                                    <strong className="negative">{ask ? money(ask.price) : "—"}</strong>
+                                    <span className="depth-size sell-depth" style={{ "--depth": `${((ask?.size ?? 0) / maxSize) * 100}%` } as CSSProperties & { "--depth": string }}>{ask?.size ?? "—"}</span>
+                                  </div>
+                                );
+                              })}
+                              <div className="depth-mid">
+                                <span>{spread === null ? "SPREAD UNAVAILABLE" : "BEST BID / ASK SPREAD"}</span>
+                                <strong>{spread === null ? "—" : money(spread)}{spreadPercent === null ? null : <small> {spreadPercent.toFixed(2)}%</small>}</strong>
+                              </div>
+                              <div className="depth-footnote">DATABASE ORDERS · {orderBook?.bids.length ?? 0} BIDS / {orderBook?.asks.length ?? 0} ASKS</div>
+                            </>
+                          );
+                        })()}
                       </>
                     )}
-                  </strong>
-                </div>
-                <div className="order-field">
-                  <label htmlFor="order-type">ORDER TYPE</label>
-                  <button id="order-type" className="select-like" onClick={() => setToast("Limit orders are the supported order type in this prototype.")}>Limit order <ChevronDown size={14} /></button>
-                </div>
-                <div className="order-field">
-                  <label htmlFor="limit-price">LIMIT PRICE <span>USD</span></label>
-                  <div className="number-input"><span>$</span><input id="limit-price" inputMode="decimal" value={limitPrice} onChange={(event) => setLimitPrice(event.target.value)} /><button onClick={() => setLimitPrice(selectedStock.price.toFixed(2))}>MID</button></div>
-                </div>
-                <div className="order-field">
-                  <label htmlFor="quantity">QUANTITY <span>SHARES</span></label>
-                  <div className="number-input"><input id="quantity" inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} /><div className="stepper"><button aria-label="Decrease quantity" onClick={() => setQuantity(String(Math.max(1, (Number(quantity) || 1) - 1)))}>−</button><button aria-label="Increase quantity" onClick={() => setQuantity(String(Math.max(1, Number(quantity) || 1) + 1))}>+</button></div></div>
-                  <div className="quantity-presets">
-                    {[1, 5, 10, 25].map((amount) => (
-                      <button
-                        key={amount}
-                        type="button"
-                        className={Number(quantity) === amount ? "selected" : ""}
-                        onClick={() => setQuantity(String(amount))}
-                      >
-                        {amount}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className="max-preset-btn"
-                      onClick={applyMaxQuantity}
-                      title={side === "BUY" ? "Max shares with available cash" : "Max available shares"}
-                    >
-                      MAX
-                    </button>
-                  </div>
-                </div>
-                <div className="order-estimate"><span>ESTIMATED ORDER VALUE</span><strong>{money(estimatedValue)}</strong></div>
-                {orderValidationWarning && <div className="order-warning-note">{orderValidationWarning}</div>}
-                <div className="order-note"><ShieldCheck size={14} /><span>Simulation only. No real funds or securities.</span></div>
-                <button
-                  className={`submit-order ${side === "SELL" ? "sell-submit" : ""}`}
-                  onClick={placeDemoOrder}
-                  disabled={!canSubmitOrder}
-                  aria-disabled={!canSubmitOrder}
-                  title={!canSubmitOrder && orderValidationWarning ? orderValidationWarning : undefined}
-                >
-                  {submittingOrder ? "Submitting order…" : side === "BUY" ? "Place buy order" : "Place sell order"}{" "}
-                  <ArrowUpRight size={16} />
-                </button>
-                <div className="ticket-footnote">By continuing, you acknowledge this is a simulated market.</div>
-              </section>
+                  </section>
 
-              <section className="panel depth-panel">
-                <div className="panel-topline">
-                  <div className="panel-label"><span className="panel-index">04</span> MARKET DEPTH</div>
-                  <span className="depth-live"><span className="status-light" /> API SYNC</span>
-                </div>
-                <div className="depth-head"><span>SIZE</span><span>BUY PRICE</span><span>SELL PRICE</span><span>SIZE</span></div>
-                {orderBookLoading && !orderBook ? (
-                  <div className="empty-state">Loading persisted orders…</div>
-                ) : orderBookError ? (
-                  <div className="empty-state">{orderBookError}</div>
-                ) : stocks.length === 0 ? (
-                  <div className="empty-state">{stocksLoading ? "Connecting to exchange…" : "Market depth will appear when an instrument is available."}</div>
-                ) : (
-                  <>
-                    {(() => {
-                      const aggregate = (orders: ApiOrder[]) => {
-                        const levels = new Map<number, number>();
-                        orders.forEach((order) => {
-                          const price = Number(order.price);
-                          levels.set(price, (levels.get(price) ?? 0) + order.quantity);
-                        });
-                        return [...levels.entries()]
-                          .map(([price, size]) => ({ price, size }))
-                          .sort((a, b) => a.price - b.price);
-                      };
-                      const bids = aggregate(orderBook?.bids ?? []).sort((a, b) => b.price - a.price).slice(0, 4);
-                      const asks = aggregate(orderBook?.asks ?? []).slice(0, 4);
-                      const rowCount = Math.max(bids.length, asks.length);
-                      const bestBid = bids[0]?.price;
-                      const bestAsk = asks[0]?.price;
-                      const spread = bestBid !== undefined && bestAsk !== undefined ? bestAsk - bestBid : null;
-                      const spreadPercent = spread !== null && bestAsk ? (spread / bestAsk) * 100 : null;
-                      if (rowCount === 0) {
-                        return <div className="empty-state">No open orders for {selectedStock.symbol}. Place a limit order to add liquidity.</div>;
-                      }
-                      return (
-                        <>
-                          {Array.from({ length: rowCount }, (_, index) => {
-                            const bid = bids[index];
-                            const ask = asks[index];
-                            const maxSize = Math.max(1, ...bids.map((level) => level.size), ...asks.map((level) => level.size));
+                  <section className="panel recent-trades-panel">
+                    <div className="panel-topline">
+                      <div className="panel-label">
+                        <span className="panel-index">05</span> RECENT TRADES
+                      </div>
+                      <span className={`trade-stream-status ${tradeStreamStatus.toLowerCase()}`}>
+                        <span className={`status-light ${tradeStreamStatus === "CONNECTED" ? "" : tradeStreamStatus === "DISCONNECTED" ? "is-error" : "is-warning"}`} />
+                        {tradeStreamStatus === "CONNECTED"
+                          ? "LIVE STREAM"
+                          : tradeStreamStatus === "RECONNECTING"
+                          ? "RECONNECTING"
+                          : tradeStreamStatus === "CONNECTING"
+                          ? "CONNECTING"
+                          : "OFFLINE"}
+                      </span>
+                    </div>
+                    <div className="recent-trades-table">
+                      <div className="trades-table-head">
+                        <span>TIME</span>
+                        <span>TICKER</span>
+                        <span>PRICE</span>
+                        <span>QTY</span>
+                      </div>
+                      {recentTrades.length === 0 ? (
+                        <div className="empty-state">
+                          {tradeStreamStatus === "CONNECTED"
+                            ? "Listening for market prints on /topic/trades…"
+                            : tradeStreamStatus === "RECONNECTING"
+                            ? "Connection interrupted. Reconnecting…"
+                            : tradeStreamStatus === "CONNECTING"
+                            ? "Connecting to live trades feed…"
+                            : "Live trade feed is offline."}
+                        </div>
+                      ) : (
+                        <div className="trades-table-body">
+                          {recentTrades.slice(0, 8).map((trade) => {
+                            const timeStr = trade.executedAt
+                              ? trade.executedAt.includes("T")
+                                ? trade.executedAt.split("T")[1].slice(0, 8)
+                                : trade.executedAt.slice(-8)
+                              : "—";
                             return (
-                              <div className="depth-row" key={index}>
-                                <span className="depth-size buy-depth" style={{ "--depth": `${((bid?.size ?? 0) / maxSize) * 100}%` } as CSSProperties & { "--depth": string }}>{bid?.size ?? "—"}</span>
-                                <strong className="positive">{bid ? money(bid.price) : "—"}</strong>
-                                <strong className="negative">{ask ? money(ask.price) : "—"}</strong>
-                                <span className="depth-size sell-depth" style={{ "--depth": `${((ask?.size ?? 0) / maxSize) * 100}%` } as CSSProperties & { "--depth": string }}>{ask?.size ?? "—"}</span>
+                              <div className="trade-row" key={trade.tradeId}>
+                                <span className="trade-time">{timeStr}</span>
+                                <span className="trade-symbol">
+                                  <strong>{trade.symbol}</strong>
+                                </span>
+                                <span className="trade-price">{money(trade.price)}</span>
+                                <span className="trade-quantity">{trade.quantity}</span>
                               </div>
                             );
                           })}
-                          <div className="depth-mid">
-                            <span>{spread === null ? "SPREAD UNAVAILABLE" : "BEST BID / ASK SPREAD"}</span>
-                            <strong>{spread === null ? "—" : money(spread)}{spreadPercent === null ? null : <small> {spreadPercent.toFixed(2)}%</small>}</strong>
-                          </div>
-                          <div className="depth-footnote">DATABASE ORDERS · {orderBook?.bids.length ?? 0} BIDS / {orderBook?.asks.length ?? 0} ASKS</div>
-                        </>
-                      );
-                    })()}
-                  </>
-                )}
-              </section>
+                        </div>
+                      )}
+                    </div>
+                    <div className="trades-footnote">
+                      <span>TOPIC <strong>/topic/trades</strong></span>
+                      <span>FEED <strong>STOMP / WS</strong></span>
+                    </div>
+                  </section>
+                </div>
+              </div>
 
-              <section className="panel recent-trades-panel">
+              <section className="panel activity-panel">
                 <div className="panel-topline">
-                  <div className="panel-label">
-                    <span className="panel-index">05</span> RECENT TRADES
-                  </div>
-                  <span className={`trade-stream-status ${tradeStreamStatus.toLowerCase()}`}>
-                    <span className={`status-light ${tradeStreamStatus === "CONNECTED" ? "" : tradeStreamStatus === "DISCONNECTED" ? "is-error" : "is-warning"}`} />
-                    {tradeStreamStatus === "CONNECTED"
-                      ? "LIVE STREAM"
-                      : tradeStreamStatus === "RECONNECTING"
-                      ? "RECONNECTING"
-                      : tradeStreamStatus === "CONNECTING"
-                      ? "CONNECTING"
-                      : "OFFLINE"}
-                  </span>
+                  <div className="panel-label"><span className="panel-index">06</span> ORDER ACTIVITY <span className="panel-count">BACKEND CONFIRMED</span></div>
+                  <button className="subtle-button" onClick={() => navigateToSection("Activity")}>View activity <ArrowUpRight size={13} /></button>
                 </div>
-                <div className="recent-trades-table">
-                  <div className="trades-table-head">
-                    <span>TIME</span>
-                    <span>TICKER</span>
-                    <span>PRICE</span>
-                    <span>QTY</span>
-                  </div>
-                  {recentTrades.length === 0 ? (
-                    <div className="empty-state">
-                      {tradeStreamStatus === "CONNECTED"
-                        ? "Listening for market prints on /topic/trades…"
-                        : tradeStreamStatus === "RECONNECTING"
-                        ? "Connection interrupted. Reconnecting…"
-                        : tradeStreamStatus === "CONNECTING"
-                        ? "Connecting to live trades feed…"
-                        : "Live trade feed is offline."}
+                <div className="activity-table">
+                  <div className="table-head"><span>ORDER</span><span>SIDE</span><span>INSTRUMENT</span><span>QUANTITY</span><span>LIMIT PRICE</span><span>STATUS</span><span>TIME</span><span>ACTION</span></div>
+                  {orders.slice(0, 3).map((order) => (
+                    <div className="activity-row" key={order.id}>
+                      <span className="order-id">#{order.id}</span>
+                      <span className={`activity-side ${order.side.toLowerCase()}`}>{order.side}</span>
+                      <strong>{order.symbol}</strong>
+                      <span>{order.quantity}</span>
+                      <span>{money(order.price)}</span>
+                      <span><i className={`status-indicator ${order.status.toLowerCase()}`} />{order.status}</span>
+                      <span className="activity-time">{order.time}</span>
+                      {(order.status === "PENDING" || order.status === "PARTIALLY_FILLED") && (
+                        <button
+                          className="cancel-order-button"
+                          onClick={() => void cancelPendingOrder(order)}
+                          aria-label={`Cancel order ${order.id}`}
+                          title="Cancel pending order"
+                        >CANCEL</button>
+                      )}
                     </div>
-                  ) : (
-                    <div className="trades-table-body">
-                      {recentTrades.slice(0, 8).map((trade) => {
-                        const timeStr = trade.executedAt
-                          ? trade.executedAt.includes("T")
-                            ? trade.executedAt.split("T")[1].slice(0, 8)
-                            : trade.executedAt.slice(-8)
-                          : "—";
-                        return (
-                          <div className="trade-row" key={trade.tradeId}>
-                            <span className="trade-time">{timeStr}</span>
-                            <span className="trade-symbol">
-                              <strong>{trade.symbol}</strong>
-                            </span>
-                            <span className="trade-price">{money(trade.price)}</span>
-                            <span className="trade-quantity">{trade.quantity}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  ))}
+                  {orders.length === 0 && (
+                    <div className="empty-state">No orders placed yet. Place an order in the ticket above.</div>
                   )}
-                </div>
-                <div className="trades-footnote">
-                  <span>TOPIC <strong>/topic/trades</strong></span>
-                  <span>FEED <strong>STOMP / WS</strong></span>
                 </div>
               </section>
-            </div>
-          </div>
 
-          <section className="panel activity-panel">
-            <div className="panel-topline">
-              <div className="panel-label"><span className="panel-index">06</span> ORDER ACTIVITY <span className="panel-count">BACKEND CONFIRMED</span></div>
-              <button className="subtle-button" onClick={() => setActiveSection("Activity")}>View activity <ArrowUpRight size={13} /></button>
-            </div>
-            <div className="activity-table">
-              <div className="table-head"><span>ORDER</span><span>SIDE</span><span>INSTRUMENT</span><span>QUANTITY</span><span>LIMIT PRICE</span><span>STATUS</span><span>TIME</span><span>ACTION</span></div>
-              {orders.slice(0, 3).map((order) => (
-                <div className="activity-row" key={order.id}>
-                  <span className="order-id">#{order.id}</span>
-                  <span className={`activity-side ${order.side.toLowerCase()}`}>{order.side}</span>
-                  <strong>{order.symbol}</strong>
-                  <span>{order.quantity}</span>
-                  <span>{money(order.price)}</span>
-                  <span><i className={`status-indicator ${order.status.toLowerCase()}`} />{order.status}</span>
-                  <span className="activity-time">{order.time}</span>
-                  {(order.status === "PENDING" || order.status === "PARTIALLY_FILLED") && (
-                    <button
-                      className="cancel-order-button"
-                      onClick={() => void cancelPendingOrder(order)}
-                      aria-label={`Cancel order ${order.id}`}
-                      title="Cancel pending order"
-                    >CANCEL</button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <footer className="page-footer">
-            <div><span className="footer-brand-mark">S.</span><span>SHADOW EXCHANGE</span><span className="footer-separator">/</span><span>BUILT FOR PRECISION.</span></div>
-            <div><span>DEMO ENVIRONMENT</span><span className="footer-separator">·</span><span>NOT FINANCIAL ADVICE</span><span className="footer-version">v0.1.1</span></div>
-          </footer>
+              <footer className="page-footer">
+                <div><span className="footer-brand-mark">S.</span><span>SHADOW EXCHANGE</span><span className="footer-separator">/</span><span>BUILT FOR PRECISION.</span></div>
+                <div><span>DEMO ENVIRONMENT</span><span className="footer-separator">·</span><span>NOT FINANCIAL ADVICE</span><span className="footer-version">v0.2.0</span></div>
+              </footer>
             </>
           )}
         </div>
       </main>
+
+      <InstrumentPickerModal
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        stocks={stocks}
+        selectedSymbol={selectedSymbol}
+        onSelect={chooseStock}
+      />
+
+      <IdentityPickerModal
+        isOpen={identityPickerOpen}
+        onClose={() => setIdentityPickerOpen(false)}
+        selectedIdentity={identity}
+        onSelectIdentity={handleSelectIdentity}
+      />
+
+      <PreferencesModal
+        isOpen={preferencesOpen}
+        onClose={() => setPreferencesOpen(false)}
+        preferences={preferences}
+        onUpdatePreferences={handleUpdatePreferences}
+      />
 
       {toast && <div className="toast" role="status"><span className="toast-mark">S.</span><span>{toast}</span><button aria-label="Dismiss message" onClick={() => setToast("")}><X size={14} /></button></div>}
       <button className="mobile-menu" type="button" aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}>{mobileNavOpen ? <X size={20} /> : <Menu size={20} />}</button>

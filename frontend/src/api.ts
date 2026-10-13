@@ -200,6 +200,7 @@ export function validatePublicTrade(data: unknown): PublicTradeResponse | null {
 
 export type LocalOrder = {
   id: number;
+  stockId: number;
   side: "BUY" | "SELL";
   symbol: string;
   quantity: number;
@@ -211,17 +212,21 @@ export type LocalOrder = {
 export function mapApiOrders(
   savedOrders: ApiOrder[],
   stocks?: { id: number; symbol: string }[],
-  limit: number = 5
+  limit: number = 100
 ): LocalOrder[] {
-  return savedOrders.slice(0, limit).map((savedOrder) => ({
-    id: savedOrder.id,
-    side: savedOrder.type,
-    symbol: stocks?.find((stock) => stock.id === savedOrder.stockId)?.symbol ?? `#${savedOrder.stockId}`,
-    quantity: savedOrder.quantity,
-    price: Number(savedOrder.price),
-    status: savedOrder.status,
-    time: savedOrder.createdAt
-      ? new Date(savedOrder.createdAt).toLocaleTimeString("en-GB", { hour12: false })
-      : "—",
-  }));
+  return savedOrders.slice(0, limit).map((savedOrder) => {
+    const matchedStock = stocks?.find((stock) => stock.id === savedOrder.stockId);
+    return {
+      id: savedOrder.id,
+      stockId: savedOrder.stockId,
+      side: savedOrder.type,
+      symbol: matchedStock ? matchedStock.symbol : `#${savedOrder.stockId}`,
+      quantity: savedOrder.quantity,
+      price: Number(savedOrder.price),
+      status: savedOrder.status,
+      time: savedOrder.createdAt
+        ? new Date(savedOrder.createdAt).toLocaleTimeString("en-GB", { hour12: false })
+        : "—",
+    };
+  });
 }
