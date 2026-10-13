@@ -230,3 +230,23 @@ export function mapApiOrders(
     };
   });
 }
+
+export function computeSellableShares(
+  holding?: Pick<ApiHolding, "quantity" | "reservedQuantity" | "availableQuantity"> | null
+): number {
+  if (!holding) return 0;
+  if (typeof holding.availableQuantity === "number") {
+    return Math.max(0, holding.availableQuantity);
+  }
+  const qty = Number(holding.quantity) || 0;
+  const reserved = Number(holding.reservedQuantity) || 0;
+  return Math.max(0, qty - reserved);
+}
+
+export function isSellableStock(
+  stock: { id: number; symbol: string },
+  holdings: ApiHolding[] = []
+): boolean {
+  const holding = holdings.find((h) => h.stockId === stock.id || h.symbol === stock.symbol);
+  return computeSellableShares(holding) > 0;
+}

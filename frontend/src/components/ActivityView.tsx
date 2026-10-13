@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import type { LocalOrder } from "../api";
+import { ShadowCat } from "./ShadowCat";
 
 interface ActivityViewProps {
   orders: LocalOrder[];
@@ -131,11 +132,17 @@ export function ActivityView({
           ))}
 
           {filteredOrders.length === 0 && (
-            <div className="empty-state">
-              {orders.length === 0
-                ? "No orders have been submitted on this demo account yet."
-                : `No orders match filter “${filterStatus}”.`}
-            </div>
+            orders.length === 0 ? (
+              <div className="terminal-empty-card">
+                <ShadowCat expression="thinking" size={54} />
+                <p>No orders recorded on this demo account yet.</p>
+                <small>Submit a limit buy or sell order from the terminal to see backend execution records here.</small>
+              </div>
+            ) : (
+              <div className="empty-state">
+                No orders match filter “{filterStatus}”.
+              </div>
+            )
           )}
         </div>
 

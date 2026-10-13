@@ -34,6 +34,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Star,
+  Terminal,
   Wallet,
   X,
 } from "lucide-react";
@@ -166,6 +167,7 @@ function App() {
   const [orderBookLoading, setOrderBookLoading] = useState(false);
   const [orderBookError, setOrderBookError] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerMode, setPickerMode] = useState<"BUY" | "SELL">("BUY");
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [identityPickerOpen, setIdentityPickerOpen] = useState(false);
@@ -450,9 +452,13 @@ function App() {
         }
         if (!cancelled) {
           setDemoUserId(user.id);
-          const savedOrders = await getOrders(user.id);
+          const [savedOrders, userHoldings] = await Promise.all([
+            getOrders(user.id).catch(() => []),
+            getPortfolio(user.id).catch(() => []),
+          ]);
           if (!cancelled) {
             setRawOrders(savedOrders);
+            setPortfolio(userHoldings);
           }
         }
       } catch (error) {
@@ -473,9 +479,12 @@ function App() {
       assignRandomIdentityForUser(newUser.id);
       setDemoUserId(newUser.id);
       setAccount(newUser);
-      setPortfolio([]);
-      const savedOrders = await getOrders(newUser.id);
+      const [savedOrders, userHoldings] = await Promise.all([
+        getOrders(newUser.id).catch(() => []),
+        getPortfolio(newUser.id).catch(() => []),
+      ]);
       setRawOrders(savedOrders);
+      setPortfolio(userHoldings);
       setToast(`Switched to new demo account #${newUser.id}.`);
       if (!window.localStorage.getItem(`shadow_onboarded_user_${newUser.id}`)) {
         setOnboardingOpen(true);
@@ -631,7 +640,13 @@ function App() {
 
   const orderValidationWarning = useMemo(() => {
     if (side === "SELL" && availableShares === 0) {
-      return `You hold 0 available shares of ${selectedStock.symbol}.`;
+      const hasOtherHoldingsWithShares = portfolio.some((h) => {
+        const avail = h.availableQuantity ?? (h.quantity - (h.reservedQuantity ?? 0));
+        return avail > 0;
+      });
+      return hasOtherHoldingsWithShares
+        ? `You hold 0 available shares of ${selectedStock.symbol}. Click Change to select from your sellable holdings.`
+        : `You hold 0 available shares of ${selectedStock.symbol}. Buy shares first before placing sell orders.`;
     }
     if (!isPriceValid) {
       return "Enter a valid limit price greater than $0.00.";
@@ -660,6 +675,7 @@ function App() {
     side,
     availableShares,
     selectedStock.symbol,
+    portfolio,
     isPriceValid,
     isQuantityValid,
     limitPrice,
@@ -1060,7 +1076,22 @@ function App() {
                     <strong>{holding.quantity}</strong><span>{holding.availableQuantity}</span><span>{holding.reservedQuantity}</span><span>{money(Number(holding.currentPrice))}</span><strong>{money(Number(holding.marketValue))}</strong>
                   </button>)}
                   {portfolioLoading && <div className="empty-state">Loading account positions…</div>}
-                  {!portfolioLoading && portfolio.length === 0 && <div className="empty-state">No holdings in this account yet.</div>}
+                  {!portfolioLoading && portfolio.length === 0 && (
+                    <div className="terminal-empty-card">
+                      <ShadowCat expression="thinking" size={54} />
+                      <p>No holdings in this account yet.</p>
+                      <small>Submit a limit buy order in the trading terminal to build your portfolio positions.</small>
+                      <button
+                        type="button"
+                        className="not-found-primary-btn"
+                        onClick={() => navigateToSection("Overview")}
+                        style={{ marginTop: "14px" }}
+                      >
+                        <Terminal size={14} />
+                        <span>Trade in Terminal</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="portfolio-note"><ShieldCheck size={14} /> Values use the exchange's listed prices and are illustrative, not live market data.</div>
               </section>
@@ -1072,7 +1103,10 @@ function App() {
               onSelectStock={chooseStock}
               onToggleWatchSymbol={handleToggleWatchSymbol}
               onNavigateToOverview={() => navigateToSection("Overview")}
-              onOpenInstrumentPicker={() => setPickerOpen(true)}
+              onOpenInstrumentPicker={() => {
+                setPickerMode("BUY");
+                setPickerOpen(true);
+              }}
             />
           ) : activeSection === "Markets" ? (
             <MarketsView
@@ -1197,9 +1231,12 @@ function App() {
                       <button
                         className="change-instrument"
                         type="button"
-                        onClick={() => setPickerOpen(true)}
+                        onClick={() => {
+                          setPickerMode(side);
+                          setPickerOpen(true);
+                        }}
                         aria-haspopup="dialog"
-                        aria-label="Change instrument"
+                        aria-label={`Change instrument (${side.toLowerCase()} mode)`}
                       >
                         CHANGE <ChevronDown size={12} />
                       </button>
@@ -1432,7 +1469,11 @@ function App() {
                     </div>
                   ))}
                   {orders.length === 0 && (
-                    <div className="empty-state">No orders placed yet. Place an order in the ticket above.</div>
+                    <div className="terminal-empty-card">
+                      <ShadowCat expression="thinking" size={48} />
+                      <p>No orders placed yet.</p>
+                      <small>Submit a limit buy or sell order in the ticket above to see execution activity.</small>
+                    </div>
                   )}
                 </div>
               </section>
@@ -1452,6 +1493,8 @@ function App() {
         stocks={stocks}
         selectedSymbol={selectedSymbol}
         onSelect={chooseStock}
+        mode={pickerMode}
+        holdings={portfolio}
       />
 
       <IdentityPickerModal

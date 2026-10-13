@@ -82,6 +82,104 @@ class OrderServiceTest {
     }
 
     @Test
+    void shouldRejectSellOrderWhenUserHasZeroHoldingsForStock() {
+        User seller = new User();
+        seller.setBalance(new BigDecimal("5000.00"));
+        seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+
+        OrderRequestDTO request = new OrderRequestDTO();
+        request.setUserId(1L);
+        request.setStockId(1L);
+        request.setPrice(new BigDecimal("100.00"));
+        request.setQuantity(10);
+        request.setType(OrderType.SELL);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(seller));
+        when(stockRepository.findById(1L)).thenReturn(Optional.of(stock));
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> orderService.createOrder(request));
+        assertEquals("Holding not found", exception.getMessage());
+
+        verify(holdingRepository, never()).save(any());
+        verify(orderRepository, never()).save(any());
+        verify(orderBook, never()).addOrder(any());
+        verify(matchingEngine, never()).match();
+    }
+
+    @Test
+    void shouldRejectSellOrderWhenHoldingIsFullyReserved() {
+        User seller = new User();
+        seller.setBalance(new BigDecimal("5000.00"));
+        seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+        // 50 total shares, all 50 reserved -> 0 available
+        Holding holding = new Holding(seller, stock, 50, 50);
+
+        OrderRequestDTO request = new OrderRequestDTO();
+        request.setUserId(1L);
+        request.setStockId(1L);
+        request.setPrice(new BigDecimal("100.00"));
+        request.setQuantity(1);
+        request.setType(OrderType.SELL);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(seller));
+        when(stockRepository.findById(1L)).thenReturn(Optional.of(stock));
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(Optional.of(holding));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> orderService.createOrder(request));
+        assertEquals("Insufficient shares to place the sell order", exception.getMessage());
+
+        assertEquals(50, holding.getQuantity());
+        assertEquals(50, holding.getReservedQuantity());
+
+        verify(holdingRepository, never()).save(any());
+        verify(orderRepository, never()).save(any());
+        verify(orderBook, never()).addOrder(any());
+        verify(matchingEngine, never()).match();
+    }
+
+    @Test
+    void shouldAllowValidSellOrderWhenAvailableSharesAreSufficient() {
+        User seller = new User();
+        seller.setBalance(new BigDecimal("5000.00"));
+        seller.setReservedBalance(BigDecimal.ZERO);
+
+        Stock stock = new Stock();
+        // 100 shares, 20 reserved -> 80 available
+        Holding holding = new Holding(seller, stock, 100, 20);
+
+        OrderRequestDTO request = new OrderRequestDTO();
+        request.setUserId(1L);
+        request.setStockId(1L);
+        request.setPrice(new BigDecimal("150.00"));
+        request.setQuantity(30);
+        request.setType(OrderType.SELL);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(seller));
+        when(stockRepository.findById(1L)).thenReturn(Optional.of(stock));
+        when(holdingRepository.findByUserAndStock(seller, stock))
+                .thenReturn(Optional.of(holding));
+        when(orderRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.createOrder(request);
+
+        // Reserved quantity should increase by 30 to 50
+        assertEquals(50, holding.getReservedQuantity());
+        assertEquals(100, holding.getQuantity());
+
+        verify(holdingRepository).save(holding);
+        verify(orderRepository).save(any());
+        verify(orderBook).addOrder(any());
+        verify(matchingEngine).match();
+    }
+
+    @Test
     void shouldTrackReservedSharesAcrossMultipleSellOrders() {
         User seller = new User();
         seller.setBalance(new BigDecimal("5000.00"));

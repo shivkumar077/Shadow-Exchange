@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Lock, Search, X } from "lucide-react";
+import { computeSellableShares, isSellableStock, type ApiHolding } from "../api";
 
 export type StockItem = {
   id: number;
@@ -15,6 +16,8 @@ interface InstrumentPickerModalProps {
   stocks: StockItem[];
   selectedSymbol: string;
   onSelect: (stock: StockItem) => void;
+  mode?: "BUY" | "SELL";
+  holdings?: ApiHolding[];
 }
 
 const money = (value: number) =>
@@ -29,6 +32,8 @@ export function InstrumentPickerModal({
   stocks,
   selectedSymbol,
   onSelect,
+  mode = "BUY",
+  holdings = [],
 }: InstrumentPickerModalProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,8 +83,12 @@ export function InstrumentPickerModal({
       >
         <div className="modal-header">
           <div>
-            <span className="modal-eyebrow">SELECT INSTRUMENT</span>
-            <h2 id="instrument-picker-title">Exchange Instruments</h2>
+            <span className="modal-eyebrow">
+              {mode === "SELL" ? "SELECT SELL INSTRUMENT" : "SELECT INSTRUMENT"}
+            </span>
+            <h2 id="instrument-picker-title">
+              {mode === "SELL" ? "Sellable Holdings & Instruments" : "Exchange Instruments"}
+            </h2>
           </div>
           <button
             className="icon-button modal-close-btn"
@@ -116,14 +125,23 @@ export function InstrumentPickerModal({
         <div className="picker-instrument-list" role="listbox">
           {filtered.map((stock) => {
             const isSelected = stock.symbol === selectedSymbol;
+            const holding = holdings.find(
+              (h) => h.stockId === stock.id || h.symbol === stock.symbol
+            );
+            const availableShares = computeSellableShares(holding);
+            const isSellDisabled = mode === "SELL" && availableShares <= 0;
+
             return (
               <button
                 key={stock.id}
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                className={`picker-row ${isSelected ? "is-selected" : ""}`}
+                aria-disabled={isSellDisabled}
+                disabled={isSellDisabled}
+                className={`picker-row ${isSelected ? "is-selected" : ""} ${isSellDisabled ? "is-disabled is-locked" : ""} ${mode === "SELL" && availableShares > 0 ? "has-shares" : ""}`}
                 onClick={() => {
+                  if (isSellDisabled) return;
                   onSelect(stock);
                   onClose();
                 }}
@@ -131,7 +149,26 @@ export function InstrumentPickerModal({
                 <div className="picker-row-main">
                   <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
                   <div className="picker-copy">
-                    <strong>{stock.symbol}</strong>
+                    <div className="picker-copy-header">
+                      <strong>{stock.symbol}</strong>
+                      {mode === "SELL" ? (
+                        isSellDisabled ? (
+                          <span className="shares-badge zero-shares">
+                            <Lock size={9} /> 0 shares available
+                          </span>
+                        ) : (
+                          <span className="shares-badge available-shares">
+                            {availableShares} {availableShares === 1 ? "share" : "shares"} available
+                          </span>
+                        )
+                      ) : (
+                        availableShares > 0 && (
+                          <span className="shares-badge holding-shares">
+                            {availableShares} owned
+                          </span>
+                        )
+                      )}
+                    </div>
                     <small>{stock.name}</small>
                   </div>
                 </div>
@@ -150,7 +187,11 @@ export function InstrumentPickerModal({
         </div>
 
         <div className="modal-footer">
-          <span>{stocks.length} INSTRUMENTS AVAILABLE · SIMULATED MARKET</span>
+          <span>
+            {mode === "SELL"
+              ? `${stocks.length} INSTRUMENTS · ${stocks.filter((s) => isSellableStock(s, holdings)).length} WITH AVAILABLE SHARES`
+              : `${stocks.length} INSTRUMENTS AVAILABLE · SIMULATED MARKET`}
+          </span>
         </div>
       </div>
     </div>
