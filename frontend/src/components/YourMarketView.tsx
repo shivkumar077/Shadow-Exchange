@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowUpRight, Compass, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { ShadowCat } from "./ShadowCat";
 import type { StockItem } from "./InstrumentPickerModal";
+import { StockIdentity } from "./StockIdentity";
 
 export interface YourMarketViewProps {
   allStocks: StockItem[];
@@ -231,13 +232,11 @@ export function YourMarketView({
                   onNavigateToOverview();
                 }}
               >
-                <div className="table-asset your-market-asset">
-                  <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
-                  <div>
-                    <strong>{stock.symbol}</strong>
-                    <small>{stock.name}</small>
-                  </div>
-                </div>
+                <StockIdentity
+                  symbol={stock.symbol}
+                  name={stock.name}
+                  className="table-asset your-market-asset"
+                />
 
                 <div className="table-price-cell your-market-price-cell">
                   <strong>{hasValidPrice ? money(stock.price) : "Quote pending"}</strong>
@@ -251,9 +250,10 @@ export function YourMarketView({
                 <div className="table-status-cell your-market-status-cell">
                   <button
                     type="button"
-                    className={`star-watch-btn ${isFavorited ? "is-watched" : ""}`}
+                    className={`star-watch-btn watch-status-btn ${isFavorited ? "is-watched watched" : ""}`}
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       toggleFavorite(stock.symbol);
                     }}
                     title={isFavorited ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
@@ -282,6 +282,7 @@ export function YourMarketView({
                     className="icon-button unwatch-icon-btn"
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       if (activeTab === "watchlist") {
                         toggleFavorite(stock.symbol);
                       } else if (onRemovePersonalizedSymbol) {

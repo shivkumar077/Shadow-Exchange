@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowUpRight, RefreshCw, Search, Star, X } from "lucide-react";
 import type { StockItem } from "./InstrumentPickerModal";
+import { StockIdentity } from "./StockIdentity";
 
 interface MarketsViewProps {
   stocks: StockItem[];
@@ -169,13 +170,11 @@ export function MarketsView({
                   onNavigateToOverview();
                 }}
               >
-                <div className="table-asset">
-                  <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
-                  <div>
-                    <strong>{stock.symbol}</strong>
-                    <small>{stock.name}</small>
-                  </div>
-                </div>
+                <StockIdentity
+                  symbol={stock.symbol}
+                  name={stock.name}
+                  className="table-asset"
+                />
 
                 <div className="table-price-cell">
                   <strong>{hasValidPrice ? money(stock.price) : "Quote pending"}</strong>
@@ -207,15 +206,16 @@ export function MarketsView({
                   {onToggleWatchSymbol && (
                     <button
                       type="button"
-                      className={`icon-button star-watch-btn ${watchedSymbols.includes(stock.symbol) ? "is-watched" : ""}`}
+                      className={`star-watch-btn icon-only ${watchedSymbols.includes(stock.symbol) ? "is-watched watched" : ""}`}
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         onToggleWatchSymbol(stock.symbol);
                       }}
                       title={watchedSymbols.includes(stock.symbol) ? `Remove ${stock.symbol} from favorites` : `Add ${stock.symbol} to favorites`}
                       aria-label={watchedSymbols.includes(stock.symbol) ? `Remove ${stock.symbol} from favorites` : `Add ${stock.symbol} to favorites`}
                     >
-                      <Star size={13} fill={watchedSymbols.includes(stock.symbol) ? "currentColor" : "none"} />
+                      <Star size={12} fill={watchedSymbols.includes(stock.symbol) ? "currentColor" : "none"} />
                     </button>
                   )}
                 </div>

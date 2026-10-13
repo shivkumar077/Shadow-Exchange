@@ -80,6 +80,7 @@ import { OnboardingModal } from "./components/OnboardingModal";
 import { unlockAchievement } from "./achievements";
 import { OrderCelebrationModal, type CelebrationOrderDetails } from "./components/OrderCelebrationModal";
 import { ExtremeOrderPlacementModal, type PlacementOrderDetails } from "./components/ExtremeOrderPlacementModal";
+import { StockIdentity } from "./components/StockIdentity";
 
 type Stock = StockItem;
 
@@ -169,7 +170,17 @@ function App() {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [stocksLoading, setStocksLoading] = useState(true);
   const [stocksError, setStocksError] = useState("");
-  const [demoUserId, setDemoUserId] = useState<number | null>(null);
+  const [demoUserId, setDemoUserId] = useState<number | null>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const stored = window.localStorage.getItem("shadow-exchange-demo-user-id-v2");
+        if (stored && /^\d+$/.test(stored)) {
+          return Number(stored);
+        }
+      }
+    } catch {}
+    return null;
+  });
   const [accountLoading, setAccountLoading] = useState(true);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
@@ -1042,7 +1053,7 @@ function App() {
   ];
 
   return (
-    <div className={`app-shell ${preferences.density === "compact" ? "density-compact" : ""}`}>
+    <div className={`app-shell ${preferences.density === "compact" ? "density-compact" : ""} ${preferences.personalityMode === "extreme" ? "extreme-mode" : ""}`}>
       {mobileNavOpen && (
         <div
           className="mobile-nav-backdrop"
@@ -1237,7 +1248,7 @@ function App() {
                     if (stock) chooseStock(stock);
                     navigateToSection("Overview");
                   }}>
-                    <span className="portfolio-instrument"><span className="ticker-avatar">{holding.symbol.slice(0, 1)}</span><span><strong>{holding.symbol}</strong><small>{holding.companyName}</small></span></span>
+                    <StockIdentity symbol={holding.symbol} name={holding.companyName} className="portfolio-instrument" />
                     <strong>{holding.quantity}</strong><span>{holding.availableQuantity}</span><span>{holding.reservedQuantity}</span><span>{money(Number(holding.currentPrice))}</span><strong>{money(Number(holding.marketValue))}</strong>
                   </button>)}
                   {portfolioLoading && <div className="empty-state">Loading account positions…</div>}
@@ -1373,9 +1384,10 @@ function App() {
                               <span className="table-asset">
                                 <button
                                   type="button"
-                                  className={`star-watch-btn inline-star-btn ${isFavorited ? "is-watched" : ""}`}
+                                  className={`star-watch-btn inline-star-btn ${isFavorited ? "is-watched watched" : ""}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    e.preventDefault();
                                     handleToggleWatchSymbol(stock.symbol);
                                   }}
                                   title={isFavorited ? `Remove ${stock.symbol} from favorites` : `Mark ${stock.symbol} as favorite`}
@@ -1383,8 +1395,11 @@ function App() {
                                 >
                                   <Star size={11} fill={isFavorited ? "currentColor" : "none"} />
                                 </button>
-                                <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
-                                <span><strong>{stock.symbol}</strong><small>{stock.name}</small></span>
+                                <StockIdentity
+                                  symbol={stock.symbol}
+                                  name={stock.name}
+                                  className="overview-stock-identity"
+                                />
                               </span>
                               <span className="table-price">{stock.price > 0 ? money(stock.price) : "Quote pending"}</span>
                               <span className="table-change">—</span>
