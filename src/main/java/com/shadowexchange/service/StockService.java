@@ -3,6 +3,7 @@ package com.shadowexchange.service;
 import com.shadowexchange.dto.CreateStockRequest;
 import com.shadowexchange.dto.StockResponse;
 import com.shadowexchange.entity.Stock;
+import com.shadowexchange.exception.ResourceNotFoundException;
 import com.shadowexchange.repository.StockRepository;
 import org.springframework.stereotype.Service;
 
@@ -18,14 +19,15 @@ public class StockService {
     }
 
     public List<StockResponse> getAllStocks() {
-        return stockRepository.findAll().stream()
-                .map(stock -> new StockResponse(
-                        stock.getId(),
-                        stock.getSymbol(),
-                        stock.getCompanyName(),
-                        stock.getCurrentPrice()
-                ))
+        return stockRepository.findAllByOrderByIdAsc().stream()
+                .map(this::toResponse)
                 .toList();
+    }
+
+    public StockResponse getStockById(Long id) {
+        Stock stock = stockRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stock not found with ID: " + id));
+        return toResponse(stock);
     }
 
     public StockResponse createStock(CreateStockRequest request) {
@@ -37,11 +39,15 @@ public class StockService {
 
         Stock savedStock = stockRepository.save(stock);
 
+        return toResponse(savedStock);
+    }
+
+    private StockResponse toResponse(Stock stock) {
         return new StockResponse(
-                savedStock.getId(),
-                savedStock.getSymbol(),
-                savedStock.getCompanyName(),
-                savedStock.getCurrentPrice()
+                stock.getId(),
+                stock.getSymbol(),
+                stock.getCompanyName(),
+                stock.getCurrentPrice()
         );
     }
 }

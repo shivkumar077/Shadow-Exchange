@@ -20,6 +20,9 @@ interface InstrumentPickerModalProps {
 const money = (value: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 
+const formatPrice = (value: number) =>
+  value > 0 ? money(value) : "Quote pending";
+
 export function InstrumentPickerModal({
   isOpen,
   onClose,
@@ -133,7 +136,7 @@ export function InstrumentPickerModal({
                   </div>
                 </div>
                 <div className="picker-price-block">
-                  <span className="picker-price">{money(stock.price)}</span>
+                  <span className="picker-price">{formatPrice(stock.price)}</span>
                   {isSelected && <span className="selected-badge">ACTIVE</span>}
                 </div>
               </button>

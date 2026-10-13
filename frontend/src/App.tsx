@@ -12,7 +12,6 @@ import {
   type ApiHolding,
   type ApiOrder,
   type ApiOrderBook,
-  type ApiStock,
   type ApiUser,
   type LocalOrder,
   type PublicTradeResponse,
@@ -30,6 +29,7 @@ import {
   Command,
   LayoutDashboard,
   Menu,
+  RefreshCw,
   Search,
   Settings2,
   ShieldCheck,
@@ -48,17 +48,9 @@ import { IdentityIcon } from "./components/IdentityIcon";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { getStoredIdentity, saveStoredIdentity, type SignatureIdentity } from "./identities";
 import { getRouteInfo, navigateTo } from "./router";
+import { DEFAULT_CHART_POINTS, getChartPoints } from "./stockCharts";
 
 type Stock = StockItem;
-
-const chartShapes: Record<string, number[]> = {
-  NVDA: [30, 28, 33, 27, 37, 35, 41, 39, 45, 42, 49, 47, 55, 53, 62, 58, 66, 63, 71, 68, 78, 75, 84, 81, 92],
-  AAPL: [42, 39, 43, 40, 46, 44, 48, 43, 51, 48, 56, 52, 57, 55, 61, 58, 65, 62, 67, 65, 73, 69, 76, 74, 82],
-  MSFT: [70, 73, 68, 72, 65, 69, 63, 66, 60, 65, 58, 62, 55, 59, 54, 57, 51, 55, 49, 52, 46, 50, 43, 46, 41],
-  TSLA: [18, 24, 21, 32, 28, 38, 34, 46, 40, 51, 48, 60, 55, 66, 61, 73, 68, 78, 73, 84, 78, 89, 83, 94, 90],
-  AMZN: [76, 72, 78, 70, 74, 67, 71, 65, 69, 62, 66, 58, 63, 57, 61, 54, 58, 50, 55, 48, 52, 45, 49, 43, 46],
-};
-const defaultChartPoints = [34, 38, 35, 43, 40, 47, 44, 51, 48, 56, 53, 61, 58, 66, 64, 70, 67, 75, 72, 79, 76, 83, 80, 87, 85];
 
 const money = (value: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
@@ -291,45 +283,44 @@ function App() {
     onTrade: handleTradePrint,
   });
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadStocks = useCallback(async () => {
+    setStocksLoading(true);
+    setStocksError("");
+    try {
+      const apiStocks = await getStocks();
+      if (!isMountedRef.current) return;
 
-    getStocks()
-      .then((apiStocks: ApiStock[]) => {
-        if (cancelled) return;
+      const mappedStocks: Stock[] = apiStocks.map((stock) => ({
+        id: stock.id,
+        symbol: stock.symbol,
+        name: stock.companyName,
+        price: Number(stock.currentPrice),
+        points: getChartPoints(stock.symbol),
+      }));
 
-        const mappedStocks: Stock[] = apiStocks.map((stock) => ({
-          id: stock.id,
-          symbol: stock.symbol,
-          name: stock.companyName,
-          price: Number(stock.currentPrice),
-          points: chartShapes[stock.symbol] ?? defaultChartPoints,
-        }));
-
-        setStocks(mappedStocks);
-        setStocksError("");
-        setSelectedSymbol((current) =>
-          mappedStocks.some((stock) => stock.symbol === current)
-            ? current
-            : (mappedStocks[0]?.symbol ?? ""),
-        );
-        if (mappedStocks.length === 0) {
-          setStocksError("The API responded, but there are no instruments in the exchange yet.");
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setStocksError(error instanceof Error ? error.message : "Unable to connect to the exchange API.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setStocksLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+      setStocks(mappedStocks);
+      setSelectedSymbol((current) =>
+        mappedStocks.some((stock) => stock.symbol === current)
+          ? current
+          : (mappedStocks[0]?.symbol ?? ""),
+      );
+      if (mappedStocks.length === 0) {
+        setStocksError("The API responded, but there are no instruments in the exchange yet.");
+      }
+    } catch (error: unknown) {
+      if (isMountedRef.current) {
+        setStocksError(error instanceof Error ? error.message : "Unable to connect to the exchange API.");
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setStocksLoading(false);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    void loadStocks();
+  }, [loadStocks]);
 
   useEffect(() => {
     let cancelled = false;
@@ -458,7 +449,7 @@ function App() {
     symbol: "—",
     name: "No instrument selected",
     price: 0,
-    points: defaultChartPoints,
+    points: DEFAULT_CHART_POINTS,
   };
   const filteredStocks = stocks.filter((stock) =>
     `${stock.symbol} ${stock.name}`.toLowerCase().includes(search.toLowerCase()),
@@ -578,7 +569,9 @@ function App() {
 
   const chooseStock = (stock: Stock) => {
     setSelectedSymbol(stock.symbol);
-    setLimitPrice(stock.price.toFixed(2));
+    if (stock.price > 0) {
+      setLimitPrice(stock.price.toFixed(2));
+    }
     if (preferences.defaultQuantity) {
       setQuantity(String(preferences.defaultQuantity));
     }
@@ -885,6 +878,7 @@ function App() {
               selectedSymbol={selectedSymbol}
               onSelectStock={chooseStock}
               onNavigateToOverview={() => navigateToSection("Overview")}
+              onRetry={loadStocks}
             />
           ) : activeSection === "Activity" ? (
             <ActivityView
@@ -912,12 +906,12 @@ function App() {
                         <div><div className="asset-symbol">{selectedStock.symbol}<span className="asset-exchange">NASDAQ</span></div><div className="asset-name">{selectedStock.name}</div></div>
                       </div>
                       <div className="asset-price-block">
-                        <div className="asset-price">{money(selectedStock.price)}</div>
+                        <div className="asset-price">{selectedStock.price > 0 ? money(selectedStock.price) : "Quote pending"}</div>
                         <div className="asset-change"><span>SIMULATED BENCHMARK PRICE</span></div>
                       </div>
                     </div>
                     <div className="chart-toolbar">
-                      <div className="chart-legend"><span className="legend-dot" /> PRICE <span className="legend-value">{money(selectedStock.price)}</span></div>
+                      <div className="chart-legend"><span className="legend-dot" /> PRICE <span className="legend-value">{selectedStock.price > 0 ? money(selectedStock.price) : "Quote pending"}</span></div>
                       <div className="timeframes">{["1D", "1W", "1M", "3M", "1Y", "ALL"].map((frame) => <button key={frame} className={frame === "1D" ? "selected" : ""} onClick={() => setToast(`${frame} chart range is a visual prototype.`)}>{frame}</button>)}</div>
                     </div>
                     <MarketChart stock={selectedStock} />
@@ -931,20 +925,33 @@ function App() {
                     </div>
                     <div className="watchlist-table">
                       <div className="table-head"><span>INSTRUMENT</span><span>LAST PRICE</span><span>24H CHANGE</span><span className="spark-head">TREND</span><span /></div>
-                      {filteredStocks.map((stock) => (
-                        <button key={stock.id} className={`watchlist-row ${selectedSymbol === stock.symbol ? "chosen" : ""}`} onClick={() => chooseStock(stock)}>
-                          <span className="table-asset"><span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span><span><strong>{stock.symbol}</strong><small>{stock.name}</small></span></span>
-                          <span className="table-price">{money(stock.price)}</span>
-                          <span className="table-change">—</span>
-                          <span className="table-spark"><Sparkline points={stock.points} /></span>
-                          <span className="row-arrow"><ArrowUpRight size={14} /></span>
-                        </button>
-                      ))}
-                      {filteredStocks.length === 0 && (
-                        <div className="empty-state">
-                          {stocksLoading ? "Connecting to exchange…" : stocksError || (search ? `No instruments match “${search}”.` : "No instruments available.")}
-                        </div>
-                      )}
+                      <div className="watchlist-rows-scroll">
+                        {filteredStocks.map((stock) => (
+                          <button key={stock.id} className={`watchlist-row ${selectedSymbol === stock.symbol ? "chosen" : ""}`} onClick={() => chooseStock(stock)}>
+                            <span className="table-asset"><span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span><span><strong>{stock.symbol}</strong><small>{stock.name}</small></span></span>
+                            <span className="table-price">{stock.price > 0 ? money(stock.price) : "Quote pending"}</span>
+                            <span className="table-change">—</span>
+                            <span className="table-spark"><Sparkline points={stock.points} /></span>
+                            <span className="row-arrow"><ArrowUpRight size={14} /></span>
+                          </button>
+                        ))}
+                        {stocksLoading && (
+                          <div className="empty-state">Connecting to exchange &amp; loading instruments…</div>
+                        )}
+                        {stocksError && (
+                          <div className="empty-state is-error">
+                            <span>{stocksError}</span>
+                            <button type="button" className="subtle-button retry-btn" onClick={loadStocks}>
+                              <RefreshCw size={13} /> Retry Connection
+                            </button>
+                          </div>
+                        )}
+                        {!stocksLoading && !stocksError && filteredStocks.length === 0 && (
+                          <div className="empty-state">
+                            {search ? `No instruments match “${search}”.` : "No instruments available."}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="watchlist-footer"><span>SHOWING {filteredStocks.length.toString().padStart(2, "0")} OF {stocks.length.toString().padStart(2, "0")} INSTRUMENTS</span><button onClick={() => setSearch("")}>RESET FILTER <X size={11} /></button></div>
                   </section>
@@ -994,7 +1001,7 @@ function App() {
                     </div>
                     <div className="order-field">
                       <label htmlFor="limit-price">LIMIT PRICE <span>USD</span></label>
-                      <div className="number-input"><span>$</span><input id="limit-price" inputMode="decimal" value={limitPrice} onChange={(event) => setLimitPrice(event.target.value)} /><button onClick={() => setLimitPrice(selectedStock.price.toFixed(2))}>MID</button></div>
+                      <div className="number-input"><span>$</span><input id="limit-price" inputMode="decimal" value={limitPrice} onChange={(event) => setLimitPrice(event.target.value)} /><button onClick={() => selectedStock.price > 0 && setLimitPrice(selectedStock.price.toFixed(2))}>MID</button></div>
                     </div>
                     <div className="order-field">
                       <label htmlFor="quantity">QUANTITY <span>SHARES</span></label>

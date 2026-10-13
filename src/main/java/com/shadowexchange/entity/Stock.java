@@ -6,7 +6,9 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "stocks")
+@Table(name = "stocks", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_stocks_symbol", columnNames = "symbol")
+})
 public class Stock {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpRight, Search, X } from "lucide-react";
+import { ArrowUpRight, RefreshCw, Search, X } from "lucide-react";
 import type { StockItem } from "./InstrumentPickerModal";
 
 interface MarketsViewProps {
@@ -9,6 +9,7 @@ interface MarketsViewProps {
   selectedSymbol: string;
   onSelectStock: (stock: StockItem) => void;
   onNavigateToOverview: () => void;
+  onRetry?: () => void;
 }
 
 const money = (value: number) =>
@@ -30,6 +31,7 @@ export function MarketsView({
   selectedSymbol,
   onSelectStock,
   onNavigateToOverview,
+  onRetry,
 }: MarketsViewProps) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"symbol" | "price_desc" | "price_asc">("symbol");
@@ -46,9 +48,10 @@ export function MarketsView({
     return a.symbol.localeCompare(b.symbol);
   });
 
-  const maxPrice = stocks.length > 0 ? Math.max(...stocks.map((s) => s.price)) : 0;
-  const minPrice = stocks.length > 0 ? Math.min(...stocks.map((s) => s.price)) : 0;
-  const avgPrice = stocks.length > 0 ? stocks.reduce((acc, s) => acc + s.price, 0) / stocks.length : 0;
+  const validPricedStocks = stocks.filter((s) => Number.isFinite(s.price) && s.price > 0);
+  const maxPrice = validPricedStocks.length > 0 ? Math.max(...validPricedStocks.map((s) => s.price)) : 0;
+  const minPrice = validPricedStocks.length > 0 ? Math.min(...validPricedStocks.map((s) => s.price)) : 0;
+  const avgPrice = validPricedStocks.length > 0 ? validPricedStocks.reduce((acc, s) => acc + s.price, 0) / validPricedStocks.length : 0;
 
   return (
     <section className="markets-view">
@@ -59,18 +62,18 @@ export function MarketsView({
           <small>Persisted exchange stocks</small>
         </article>
         <article className="portfolio-metric">
-          <span>HIGHEST LISTED</span>
-          <strong>{money(maxPrice)}</strong>
+          <span>HIGHEST REFERENCE</span>
+          <strong>{maxPrice > 0 ? money(maxPrice) : "—"}</strong>
           <small>Peak benchmark asset</small>
         </article>
         <article className="portfolio-metric">
-          <span>LOWEST LISTED</span>
-          <strong>{money(minPrice)}</strong>
+          <span>LOWEST REFERENCE</span>
+          <strong>{minPrice > 0 ? money(minPrice) : "—"}</strong>
           <small>Entry liquidity instrument</small>
         </article>
         <article className="portfolio-metric">
           <span>AVERAGE BENCHMARK</span>
-          <strong>{money(avgPrice)}</strong>
+          <strong>{avgPrice > 0 ? money(avgPrice) : "—"}</strong>
           <small>Listed universe arithmetic mean</small>
         </article>
       </div>
@@ -130,7 +133,7 @@ export function MarketsView({
         <div className="markets-full-table">
           <div className="markets-table-head">
             <span>INSTRUMENT</span>
-            <span>CURRENT PRICE</span>
+            <span>REFERENCE PRICE</span>
             <span>SIMULATED SPREAD</span>
             <span>PRICE TREND</span>
             <span>ACTION</span>
@@ -138,6 +141,7 @@ export function MarketsView({
 
           {sorted.map((stock) => {
             const isSelected = stock.symbol === selectedSymbol;
+            const hasValidPrice = Number.isFinite(stock.price) && stock.price > 0;
             return (
               <div
                 key={stock.id}
@@ -156,8 +160,8 @@ export function MarketsView({
                 </div>
 
                 <div className="table-price-cell">
-                  <strong>{money(stock.price)}</strong>
-                  <small>USD</small>
+                  <strong>{hasValidPrice ? money(stock.price) : "Quote pending"}</strong>
+                  <small>{hasValidPrice ? "USD" : "BENCHMARK PENDING"}</small>
                 </div>
 
                 <div className="table-spread-cell">
@@ -187,15 +191,24 @@ export function MarketsView({
             );
           })}
 
-          {stocksLoading && <div className="empty-state">Loading exchange instruments…</div>}
-          {stocksError && <div className="empty-state is-error">{stocksError}</div>}
+          {stocksLoading && <div className="empty-state">Connecting to exchange &amp; loading instruments…</div>}
+          {stocksError && (
+            <div className="empty-state is-error">
+              <span>{stocksError}</span>
+              {onRetry && (
+                <button type="button" className="subtle-button retry-btn" onClick={onRetry}>
+                  <RefreshCw size={13} /> Retry Connection
+                </button>
+              )}
+            </div>
+          )}
           {!stocksLoading && !stocksError && sorted.length === 0 && (
             <div className="empty-state">No instruments match “{search}”.</div>
           )}
         </div>
 
         <div className="markets-footer-note">
-          <span>CLICK ANY ROW TO LOAD DIRECTLY INTO TERMINAL ORDER TICKET · DELAYED ILLUSTRATIVE SPREADS</span>
+          <span>PERSISTED EXCHANGE REFERENCE PRICES · SIMULATED MARKET · CLICK ROW TO TRADE</span>
         </div>
       </section>
     </section>

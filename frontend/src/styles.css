@@ -2060,3 +2060,48 @@ body { font-size: 14px; }
     padding: 16px 20px;
   }
 }
+/* 9. Expanded Universe Layouts & State */
+.watchlist-rows-scroll {
+  max-height: 480px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #2b3028 transparent;
+}
+
+.watchlist-rows-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.watchlist-rows-scroll::-webkit-scrollbar-thumb {
+  background: #2b3028;
+  border-radius: 2px;
+}
+
+.empty-state.is-error {
+  color: var(--red);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.retry-btn {
+  color: var(--signal);
+  border: 1px solid #38422d;
+  background: #1e2417;
+  padding: 6px 12px;
+  border-radius: 2px;
+  font: 500 11px/1 var(--mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.retry-btn:hover {
+  background: #27311c;
+  border-color: var(--signal);
+  color: #fff;
+}
