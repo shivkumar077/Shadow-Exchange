@@ -8,6 +8,8 @@ export const VALID_APPLICATION_ROUTES: Record<string, string> = {
   "/index.html": "Overview",
   "/overview": "Overview",
   "/markets": "Markets",
+  "/your-market": "Your Market",
+  "/watchlist": "Your Market",
   "/portfolio": "Portfolio",
   "/activity": "Activity",
 };

@@ -21,7 +21,6 @@ import type { CSSProperties } from "react";
 import {
   Activity,
   ArrowDownRight,
-  ArrowLeftRight,
   ArrowUpRight,
   Bell,
   ChevronDown,
@@ -34,6 +33,7 @@ import {
   Settings2,
   ShieldCheck,
   SlidersHorizontal,
+  Star,
   Wallet,
   X,
 } from "lucide-react";
@@ -46,9 +46,21 @@ import { ActivityView } from "./components/ActivityView";
 import { IdentityPickerModal } from "./components/IdentityPickerModal";
 import { IdentityIcon } from "./components/IdentityIcon";
 import { NotFoundPage } from "./components/NotFoundPage";
-import { getStoredIdentity, saveStoredIdentity, type SignatureIdentity } from "./identities";
+import { assignRandomIdentityForUser, getStoredIdentity, saveStoredIdentity, type SignatureIdentity } from "./identities";
 import { getRouteInfo, navigateTo } from "./router";
 import { DEFAULT_CHART_POINTS, getChartPoints } from "./stockCharts";
+import { ShadowCat } from "./components/ShadowCat";
+import { getChartHistory, type ChartTimeframe, type ChartTimeframeData } from "./chartHistory";
+import { getMarketPulseIndicators } from "./marketPulse";
+import { PersonalityReactionBanner } from "./components/PersonalityReactionBanner";
+import { createReaction, shouldShowReaction, type PersonalityEvent, type PersonalityReaction } from "./personality/personalitySystem";
+import { NotificationsFlyout } from "./components/NotificationsFlyout";
+import { loadUserNotifications, saveUserNotifications, createNotification, type UserNotification } from "./notifications/notificationStore";
+import { loadUserWatchlist, toggleWatchlistSymbol } from "./watchlistStore";
+import { YourMarketView } from "./components/YourMarketView";
+import { CommandPaletteModal } from "./components/CommandPaletteModal";
+import { OnboardingModal } from "./components/OnboardingModal";
+import { unlockAchievement } from "./achievements";
 
 type Stock = StockItem;
 
@@ -83,21 +95,27 @@ function Sparkline({ points, negative = false }: { points: number[]; negative?: 
   );
 }
 
-function MarketChart({ stock }: { stock: Stock }) {
+function MarketChart({
+  chartHistory,
+  symbol,
+}: {
+  chartHistory: ChartTimeframeData;
+  symbol: string;
+}) {
   const chartPoints = useMemo(() => {
-    const base = stock.points;
+    const base = chartHistory.points;
     return base.map((point, index) => ({
       x: 8 + (index / (base.length - 1)) * 884,
-      y: 222 - point * 1.88,
+      y: 242 - point * 2.2,
     }));
-  }, [stock]);
+  }, [chartHistory]);
 
   const linePath = chartPoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
   const areaPath = `${linePath} L 892 246 L 8 246 Z`;
   const last = chartPoints[chartPoints.length - 1];
 
   return (
-    <svg className="market-chart" viewBox="0 0 900 270" role="img" aria-label={`${stock.symbol} illustrative price chart`}>
+    <svg className="market-chart" viewBox="0 0 900 270" role="img" aria-label={`${symbol} ${chartHistory.timeframe} illustrative price chart`}>
       <g className="chart-grid">
         {[42, 92, 142, 192, 242].map((y) => <line key={y} x1="8" x2="892" y1={y} y2={y} />)}
         {[8, 185, 362, 539, 716, 892].map((x) => <line key={x} x1={x} x2={x} y1="18" y2="246" />)}
@@ -108,12 +126,15 @@ function MarketChart({ stock }: { stock: Stock }) {
       <circle className="chart-point-halo" cx={last.x} cy={last.y} r="7" />
       <circle className="chart-point" cx={last.x} cy={last.y} r="3.2" />
       <g className="chart-axis-labels">
-        <text x="8" y="264">09:30</text>
-        <text x="185" y="264" textAnchor="middle">10:30</text>
-        <text x="362" y="264" textAnchor="middle">11:30</text>
-        <text x="539" y="264" textAnchor="middle">12:30</text>
-        <text x="716" y="264" textAnchor="middle">13:30</text>
-        <text x="892" y="264" textAnchor="end">NOW</text>
+        {chartHistory.xLabels.map((lbl, idx) => {
+          const x = 8 + (idx / (chartHistory.xLabels.length - 1)) * 884;
+          const anchor = idx === 0 ? "start" : idx === chartHistory.xLabels.length - 1 ? "end" : "middle";
+          return (
+            <text key={lbl} x={x} y="264" textAnchor={anchor}>
+              {lbl}
+            </text>
+          );
+        })}
       </g>
     </svg>
   );
@@ -148,12 +169,21 @@ function App() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [identityPickerOpen, setIdentityPickerOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [selectedTimeframe, setSelectedTimeframe] = useState<ChartTimeframe>("1D");
+  const [personalityReaction, setPersonalityReaction] = useState<PersonalityReaction | null>(null);
+  const [watchedSymbols, setWatchedSymbols] = useState<string[]>(() => loadUserWatchlist(demoUserId));
+  const [notifications, setNotifications] = useState<UserNotification[]>(() => loadUserNotifications(demoUserId));
 
   // Identity state isolated per demo user
   const [identity, setIdentity] = useState<SignatureIdentity>(() => getStoredIdentity(demoUserId));
 
   useEffect(() => {
     setIdentity(getStoredIdentity(demoUserId));
+    setNotifications(loadUserNotifications(demoUserId));
+    setWatchedSymbols(loadUserWatchlist(demoUserId));
   }, [demoUserId]);
 
   const handleSelectIdentity = (selected: SignatureIdentity) => {
@@ -167,9 +197,10 @@ function App() {
       const sound = window.localStorage.getItem("shadow_pref_sound") === "true";
       const density = (window.localStorage.getItem("shadow_pref_density") as "comfortable" | "compact") || "comfortable";
       const defaultQty = Number(window.localStorage.getItem("shadow_pref_default_qty")) || 10;
-      return { soundEnabled: sound, density, defaultQuantity: defaultQty };
+      const personalityMode = (window.localStorage.getItem("shadow_pref_personality") as "full" | "minimal" | "muted") || "full";
+      return { soundEnabled: sound, density, defaultQuantity: defaultQty, personalityMode };
     } catch {
-      return { soundEnabled: false, density: "comfortable", defaultQuantity: 10 };
+      return { soundEnabled: false, density: "comfortable", defaultQuantity: 10, personalityMode: "full" };
     }
   });
 
@@ -180,7 +211,64 @@ function App() {
         if (updated.soundEnabled !== undefined) window.localStorage.setItem("shadow_pref_sound", String(next.soundEnabled));
         if (updated.density !== undefined) window.localStorage.setItem("shadow_pref_density", next.density);
         if (updated.defaultQuantity !== undefined) window.localStorage.setItem("shadow_pref_default_qty", String(next.defaultQuantity));
+        if (updated.personalityMode !== undefined) window.localStorage.setItem("shadow_pref_personality", next.personalityMode);
       } catch {}
+      return next;
+    });
+  };
+
+  const triggerCatReaction = useCallback(
+    (event: PersonalityEvent, overrideMessage?: string, priorityOverride?: "high" | "medium" | "low") => {
+      const reaction = createReaction(event, overrideMessage);
+      if (priorityOverride) reaction.priority = priorityOverride;
+      if (shouldShowReaction(reaction.priority, preferences.personalityMode)) {
+        setPersonalityReaction(reaction);
+      }
+    },
+    [preferences.personalityMode]
+  );
+
+  const pushNotification = useCallback(
+    (params: {
+      type: UserNotification["type"];
+      title: string;
+      message: string;
+      expression: any;
+      orderId?: number;
+      symbol?: string;
+    }) => {
+      const notif = createNotification(params);
+      setNotifications((prev) => {
+        const next = [notif, ...prev];
+        saveUserNotifications(next, demoUserId);
+        return next;
+      });
+    },
+    [demoUserId]
+  );
+
+  const handleToggleWatchSymbol = (symbol: string) => {
+    const updated = toggleWatchlistSymbol(symbol, demoUserId);
+    setWatchedSymbols(updated);
+  };
+
+  const handleMarkAllNotificationsAsRead = () => {
+    setNotifications((prev) => {
+      const next = prev.map((n) => ({ ...n, read: true }));
+      saveUserNotifications(next, demoUserId);
+      return next;
+    });
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+    saveUserNotifications([], demoUserId);
+  };
+
+  const handleDismissNotification = (id: string) => {
+    setNotifications((prev) => {
+      const next = prev.filter((n) => n.id !== id);
+      saveUserNotifications(next, demoUserId);
       return next;
     });
   };
@@ -205,19 +293,38 @@ function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  // Keyboard shortcut listener for Command Palette (Cmd+K or Ctrl+K)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
+
   const routeInfo = useMemo(() => getRouteInfo(currentPath), [currentPath]);
 
   // Sync section if arrived via URL route
   useEffect(() => {
     if (!routeInfo.isNotFound && routeInfo.section) {
       setActiveSection(routeInfo.section);
+    } else if (routeInfo.isNotFound) {
+      triggerCatReaction("LOST_ROUTE");
     }
-  }, [routeInfo]);
+  }, [routeInfo, triggerCatReaction]);
 
   const navigateToSection = (section: string) => {
     setActiveSection(section);
     setMobileNavOpen(false);
-    const targetPath = section === "Overview" ? "/" : `/${section.toLowerCase()}`;
+    const targetPath =
+      section === "Overview"
+        ? "/"
+        : section === "Your Market"
+        ? "/your-market"
+        : `/${section.toLowerCase()}`;
     navigateTo(targetPath);
     setCurrentPath(targetPath);
   };
@@ -335,6 +442,11 @@ function App() {
         if (!user) {
           user = await createDemoUser();
           window.localStorage.setItem("shadow-exchange-demo-user-id-v2", String(user.id));
+          assignRandomIdentityForUser(user.id);
+          if (!window.localStorage.getItem(`shadow_onboarded_user_${user.id}`)) {
+            setOnboardingOpen(true);
+            window.localStorage.setItem(`shadow_onboarded_user_${user.id}`, "true");
+          }
         }
         if (!cancelled) {
           setDemoUserId(user.id);
@@ -358,12 +470,17 @@ function App() {
     try {
       const newUser = await createDemoUser();
       window.localStorage.setItem("shadow-exchange-demo-user-id-v2", String(newUser.id));
+      assignRandomIdentityForUser(newUser.id);
       setDemoUserId(newUser.id);
       setAccount(newUser);
       setPortfolio([]);
       const savedOrders = await getOrders(newUser.id);
       setRawOrders(savedOrders);
       setToast(`Switched to new demo account #${newUser.id}.`);
+      if (!window.localStorage.getItem(`shadow_onboarded_user_${newUser.id}`)) {
+        setOnboardingOpen(true);
+        window.localStorage.setItem(`shadow_onboarded_user_${newUser.id}`, "true");
+      }
     } catch (err) {
       setToast(err instanceof Error ? `Failed to create demo account: ${err.message}` : "Failed to create demo account.");
     } finally {
@@ -451,6 +568,13 @@ function App() {
     price: 0,
     points: DEFAULT_CHART_POINTS,
   };
+
+  const chartHistory = useMemo(() => {
+    return getChartHistory(selectedStock.symbol, selectedTimeframe, selectedStock.price || 150.0);
+  }, [selectedStock.symbol, selectedTimeframe, selectedStock.price]);
+
+  const marketPulse = useMemo(() => getMarketPulseIndicators(), []);
+
   const filteredStocks = stocks.filter((stock) =>
     `${stock.symbol} ${stock.name}`.toLowerCase().includes(search.toLowerCase()),
   );
@@ -607,9 +731,53 @@ function App() {
       setAccount(refreshedUser);
       setPortfolio(refreshedPortfolio);
       const latestOrder = savedOrders.find((order) => order.id === response.id);
-      setToast(`Order #${response.id} accepted by the exchange · ${latestOrder?.status ?? response.status}`);
+      const finalStatus = latestOrder?.status ?? response.status;
+      setToast(`Order #${response.id} accepted by the exchange · ${finalStatus}`);
+
+      if (finalStatus === "FILLED") {
+        triggerCatReaction("ORDER_FILLED");
+        pushNotification({
+          type: "ORDER_FILLED",
+          title: `Order #${response.id} Filled`,
+          message: `${side} ${parsedQuantity} ${selectedStock.symbol} executed at $${parsedPrice.toFixed(2)}.`,
+          expression: "blessed",
+          orderId: response.id,
+          symbol: selectedStock.symbol,
+        });
+        unlockAchievement("first_fill", demoUserId);
+      } else {
+        const isLowball = side === "BUY" && selectedStock.price > 0 && parsedPrice < selectedStock.price * 0.75;
+        if (isLowball) {
+          triggerCatReaction("LOWBALL_OFFER");
+        } else {
+          triggerCatReaction("ORDER_SUBMITTED");
+        }
+        pushNotification({
+          type: "ORDER_SUBMITTED",
+          title: `Order #${response.id} Submitted`,
+          message: `${side} ${parsedQuantity} ${selectedStock.symbol} limit order placed at $${parsedPrice.toFixed(2)}.`,
+          expression: isLowball ? "suspicious" : "neutral",
+          orderId: response.id,
+          symbol: selectedStock.symbol,
+        });
+        unlockAchievement("first_order", demoUserId);
+      }
     } catch (error) {
-      setToast(error instanceof Error ? `Order rejected: ${error.message}` : "The exchange could not place this order.");
+      const errMsg = error instanceof Error ? error.message : "The exchange could not place this order.";
+      setToast(`Order rejected: ${errMsg}`);
+      const isFunds = errMsg.toLowerCase().includes("balance") || errMsg.toLowerCase().includes("funds");
+      if (isFunds) {
+        triggerCatReaction("INSUFFICIENT_FUNDS");
+      } else {
+        triggerCatReaction("ORDER_REJECTED");
+      }
+      pushNotification({
+        type: "ORDER_REJECTED",
+        title: "Order Placement Rejected",
+        message: errMsg,
+        expression: isFunds ? "broke" : "suspicious",
+        symbol: selectedStock.symbol,
+      });
     } finally {
       setSubmittingOrder(false);
     }
@@ -634,6 +802,16 @@ function App() {
         setPortfolio(refreshedPortfolio);
       }
       setToast(`Order #${order.id} cancelled. Reserved funds or shares have been released.`);
+      triggerCatReaction("ORDER_CANCELLED");
+      pushNotification({
+        type: "ORDER_CANCELLED",
+        title: `Order #${order.id} Cancelled`,
+        message: `${order.side} ${order.quantity} ${order.symbol} cancelled. Reserved funds released.`,
+        expression: "neutral",
+        orderId: order.id,
+        symbol: order.symbol,
+      });
+      unlockAchievement("first_cancellation", demoUserId);
     } catch (error) {
       setToast(error instanceof Error ? `Cancellation failed: ${error.message}` : "The exchange could not cancel this order.");
     }
@@ -662,9 +840,10 @@ function App() {
 
   const navigation = [
     { label: "Overview", icon: LayoutDashboard },
-    { label: "Markets", icon: Activity },
+    { label: "Markets", icon: SlidersHorizontal },
+    { label: "Your Market", icon: Star },
     { label: "Portfolio", icon: Wallet },
-    { label: "Activity", icon: ArrowLeftRight },
+    { label: "Activity", icon: Activity },
   ];
 
   return (
@@ -684,7 +863,7 @@ function App() {
             onClick={(e) => { e.preventDefault(); navigateToSection("Overview"); }}
             aria-label="Shadow Exchange home"
           >
-            <span className="brand-mark"><span /><span /><span /></span>
+            <span className="brand-mark"><ShadowCat expression="neutral" size={24} /></span>
             <span className="brand-word">SHADOW<span>EXCHANGE</span></span>
           </a>
           <button
@@ -709,6 +888,7 @@ function App() {
               <span>{label}</span>
               {label === "Activity" && <span className="nav-count">{orders.length}</span>}
               {label === "Markets" && <span className="nav-count">{stocks.length}</span>}
+              {label === "Your Market" && <span className="nav-count">{watchedSymbols.length}</span>}
             </button>
           ))}
         </nav>
@@ -718,15 +898,18 @@ function App() {
           YOUR MARKETS{" "}
           <button
             className="tiny-icon-button"
-            aria-label="All markets view"
-            onClick={() => navigateToSection("Markets")}
-            title="Browse all markets"
+            aria-label="Your Market watchlist"
+            onClick={() => navigateToSection("Your Market")}
+            title="Open Your Market watchlist"
           >
-            <SlidersHorizontal size={13} />
+            <Star size={13} />
           </button>
         </div>
         <div className="mini-watchlist">
-          {stocks.slice(0, 4).map((stock) => (
+          {(stocks.filter((s) => watchedSymbols.includes(s.symbol)).slice(0, 4).length > 0
+            ? stocks.filter((s) => watchedSymbols.includes(s.symbol)).slice(0, 4)
+            : stocks.slice(0, 4)
+          ).map((stock) => (
             <button
               key={stock.id}
               className={`mini-stock ${selectedSymbol === stock.symbol ? "selected" : ""}`}
@@ -734,7 +917,7 @@ function App() {
             >
               <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
               <span className="mini-stock-copy"><strong>{stock.symbol}</strong><small>{stock.name.split(" ")[0]}</small></span>
-              <span className="mini-change">SIM</span>
+              <span className="mini-change">{watchedSymbols.includes(stock.symbol) ? "★" : "SIM"}</span>
             </button>
           ))}
         </div>
@@ -805,9 +988,14 @@ function App() {
           <div className="topbar-actions">
             <div className="session-pill"><span className="status-light" /> SIMULATED SESSION</div>
             <button className="icon-button" aria-label="Search markets" onClick={handleTopbarSearch}><Search size={17} /></button>
-            <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setToast("You're all caught up on trade alerts.")}><Bell size={17} /><i /></button>
+            <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setNotificationsOpen(true)}>
+              <Bell size={17} />
+              {notifications.some((n) => !n.read) && <i />}
+            </button>
             <span className="topbar-divider" />
-            <button className="shortcut-button" onClick={() => setToast("Press Cmd+K or Ctrl+K for commands (coming soon).")}><Command size={13} /> <span>K</span></button>
+            <button className="shortcut-button" aria-label="Command Palette" onClick={() => setCommandPaletteOpen(true)} title="Command Palette (Cmd+K)">
+              <Command size={13} /> <span>K</span>
+            </button>
           </div>
         </header>
 
@@ -825,10 +1013,17 @@ function App() {
 
           <section className="market-ribbon" aria-label="Market summary">
             <div className="ribbon-heading"><span className="ribbon-dot" /> MARKET PULSE</div>
-            <div className="ribbon-stat"><span>S&amp;P 500</span><strong>5,842.47</strong><small className="positive">+0.68%</small><Sparkline points={[32, 35, 30, 42, 38, 45, 43, 55, 51, 62, 58, 70, 76]} /></div>
-            <div className="ribbon-stat"><span>NASDAQ</span><strong>18,274.91</strong><small className="positive">+1.14%</small><Sparkline points={[25, 28, 27, 40, 36, 46, 44, 52, 49, 64, 61, 74, 82]} /></div>
-            <div className="ribbon-stat"><span>DOW JONES</span><strong>42,118.09</strong><small className="negative">−0.12%</small><Sparkline points={[70, 68, 72, 65, 68, 61, 64, 56, 59, 52, 55, 48, 45]} negative /></div>
-            <div className="ribbon-footnote">DELAYED BENCHMARKS <span>·</span> ILLUSTRATIVE ONLY</div>
+            {marketPulse.map((ind) => (
+              <div className="ribbon-stat" key={ind.id}>
+                <span>{ind.name}</span>
+                <strong>{ind.formattedValue}</strong>
+                <small className={ind.isPositive ? "positive" : "negative"}>
+                  {ind.isPositive ? "+" : "−"}{Math.abs(ind.changePercent).toFixed(2)}%
+                </small>
+                <Sparkline points={ind.sparkline} negative={!ind.isPositive} />
+              </div>
+            ))}
+            <div className="ribbon-footnote">SIMULATED BENCHMARKS <span>·</span> 30M CADENCE <span>·</span> DETERMINISTIC</div>
           </section>
 
           {activeSection === "Portfolio" ? (
@@ -870,6 +1065,15 @@ function App() {
                 <div className="portfolio-note"><ShieldCheck size={14} /> Values use the exchange's listed prices and are illustrative, not live market data.</div>
               </section>
             </section>
+          ) : activeSection === "Your Market" ? (
+            <YourMarketView
+              allStocks={stocks}
+              watchedSymbols={watchedSymbols}
+              onSelectStock={chooseStock}
+              onToggleWatchSymbol={handleToggleWatchSymbol}
+              onNavigateToOverview={() => navigateToSection("Overview")}
+              onOpenInstrumentPicker={() => setPickerOpen(true)}
+            />
           ) : activeSection === "Markets" ? (
             <MarketsView
               stocks={stocks}
@@ -911,11 +1115,31 @@ function App() {
                       </div>
                     </div>
                     <div className="chart-toolbar">
-                      <div className="chart-legend"><span className="legend-dot" /> PRICE <span className="legend-value">{selectedStock.price > 0 ? money(selectedStock.price) : "Quote pending"}</span></div>
-                      <div className="timeframes">{["1D", "1W", "1M", "3M", "1Y", "ALL"].map((frame) => <button key={frame} className={frame === "1D" ? "selected" : ""} onClick={() => setToast(`${frame} chart range is a visual prototype.`)}>{frame}</button>)}</div>
+                      <div className="chart-legend">
+                        <span className="legend-dot" /> PRICE{" "}
+                        <span className="legend-value">{selectedStock.price > 0 ? money(selectedStock.price) : "Quote pending"}</span>
+                        <span className="timeframe-badge">{selectedTimeframe}</span>
+                      </div>
+                      <div className="timeframes">
+                        {(["1D", "1W", "1M", "1Y"] as ChartTimeframe[]).map((frame) => (
+                          <button
+                            key={frame}
+                            className={selectedTimeframe === frame ? "selected" : ""}
+                            onClick={() => setSelectedTimeframe(frame)}
+                          >
+                            {frame}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <MarketChart stock={selectedStock} />
-                    <div className="chart-footer"><span>OPEN <strong>—</strong></span><span>HIGH <strong>—</strong></span><span>LOW <strong>—</strong></span><span>SOURCE <strong>EXCHANGE DB</strong></span></div>
+                    <MarketChart chartHistory={chartHistory} symbol={selectedStock.symbol} />
+                    <div className="chart-footer">
+                      <span>OPEN <strong>{money(chartHistory.periodOpen)}</strong></span>
+                      <span>HIGH <strong>{money(chartHistory.periodHigh)}</strong></span>
+                      <span>LOW <strong>{money(chartHistory.periodLow)}</strong></span>
+                      <span>CHANGE <strong className={chartHistory.change >= 0 ? "positive" : "negative"}>{chartHistory.change >= 0 ? "+" : ""}{chartHistory.changePercent.toFixed(2)}%</strong></span>
+                      <span>SOURCE <strong>SIMULATED HISTORY</strong></span>
+                    </div>
                   </section>
 
                   <section className="panel watchlist-panel">
@@ -953,7 +1177,12 @@ function App() {
                         )}
                       </div>
                     </div>
-                    <div className="watchlist-footer"><span>SHOWING {filteredStocks.length.toString().padStart(2, "0")} OF {stocks.length.toString().padStart(2, "0")} INSTRUMENTS</span><button onClick={() => setSearch("")}>RESET FILTER <X size={11} /></button></div>
+                    <div className="watchlist-footer">
+                      <span>SHOWING {filteredStocks.length.toString().padStart(2, "0")} OF {stocks.length.toString().padStart(2, "0")} INSTRUMENTS</span>
+                      {search.trim().length > 0 && (
+                        <button onClick={() => setSearch("")}>RESET FILTER <X size={11} /></button>
+                      )}
+                    </div>
                   </section>
                 </div>
 
@@ -997,7 +1226,15 @@ function App() {
                     </div>
                     <div className="order-field">
                       <label htmlFor="order-type">ORDER TYPE</label>
-                      <button id="order-type" className="select-like" onClick={() => setToast("Limit orders are currently the supported exchange order type.")}>Limit order <ChevronDown size={14} /></button>
+                      <div id="order-type" className="order-type-badge-container">
+                        <div className="order-type-chip">
+                          <span className="order-type-tag">LIMIT</span>
+                          <span className="order-type-explainer">Specified boundary price</span>
+                        </div>
+                        <span className="order-type-hint" title="Exchange matching engine executes limit orders strictly against opposing liquidity.">
+                          SUPPORTED TYPE
+                        </span>
+                      </div>
                     </div>
                     <div className="order-field">
                       <label htmlFor="limit-price">LIMIT PRICE <span>USD</span></label>
@@ -1229,6 +1466,35 @@ function App() {
         onClose={() => setPreferencesOpen(false)}
         preferences={preferences}
         onUpdatePreferences={handleUpdatePreferences}
+      />
+
+      <PersonalityReactionBanner
+        reaction={personalityReaction}
+        onDismiss={() => setPersonalityReaction(null)}
+      />
+
+      <NotificationsFlyout
+        isOpen={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        notifications={notifications}
+        onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+        onClearAll={handleClearAllNotifications}
+        onDismissNotification={handleDismissNotification}
+      />
+
+      <CommandPaletteModal
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onNavigateSection={navigateToSection}
+        onOpenInstrumentPicker={() => setPickerOpen(true)}
+        onOpenIdentityPicker={() => setIdentityPickerOpen(true)}
+        onOpenPreferences={() => setPreferencesOpen(true)}
+        onOpenNotifications={() => setNotificationsOpen(true)}
+      />
+
+      <OnboardingModal
+        isOpen={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
       />
 
       {toast && <div className="toast" role="status"><span className="toast-mark">S.</span><span>{toast}</span><button aria-label="Dismiss message" onClick={() => setToast("")}><X size={14} /></button></div>}

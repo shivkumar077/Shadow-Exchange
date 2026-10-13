@@ -1,10 +1,12 @@
 import { useEffect } from "react";
 import { Volume2, TableProperties, Hash, X } from "lucide-react";
+import { ShadowCat } from "./ShadowCat";
 
 export interface TerminalPreferences {
   soundEnabled: boolean;
   density: "comfortable" | "compact";
   defaultQuantity: number;
+  personalityMode: "full" | "minimal" | "muted";
 }
 
 interface PreferencesModalProps {
@@ -131,6 +133,41 @@ export function PreferencesModal({
                   {qty}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="pref-section">
+            <div className="pref-info">
+              <div className="pref-icon">
+                <ShadowCat expression="neutral" size={18} />
+              </div>
+              <div>
+                <strong>Shadow Cat Personality</strong>
+                <p>Deadpan mascot reactions and commentary on trades.</p>
+              </div>
+            </div>
+            <div className="segmented-switch" role="radiogroup" aria-label="Personality mode">
+              <button
+                type="button"
+                className={preferences.personalityMode === "full" ? "is-active" : ""}
+                onClick={() => onUpdatePreferences({ personalityMode: "full" })}
+              >
+                Full
+              </button>
+              <button
+                type="button"
+                className={preferences.personalityMode === "minimal" ? "is-active" : ""}
+                onClick={() => onUpdatePreferences({ personalityMode: "minimal" })}
+              >
+                Minimal
+              </button>
+              <button
+                type="button"
+                className={preferences.personalityMode === "muted" ? "is-active" : ""}
+                onClick={() => onUpdatePreferences({ personalityMode: "muted" })}
+              >
+                Muted
+              </button>
             </div>
           </div>
         </div>

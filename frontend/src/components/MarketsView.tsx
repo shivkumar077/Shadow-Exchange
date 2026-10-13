@@ -127,6 +127,20 @@ export function MarketsView({
                 Price ↑
               </button>
             </div>
+            {(search !== "" || sortBy !== "symbol") && (
+              <button
+                type="button"
+                className="subtle-button reset-filters-pill"
+                onClick={() => {
+                  setSearch("");
+                  setSortBy("symbol");
+                }}
+                title="Reset search and sort filters"
+              >
+                <X size={11} />
+                <span>Reset Filters</span>
+              </button>
+            )}
           </div>
         </div>
 

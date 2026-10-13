@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowUpRight, Terminal } from "lucide-react";
+import { ShadowCat } from "./ShadowCat";
 
 interface NotFoundPageProps {
   onNavigateHome: () => void;
@@ -15,7 +16,7 @@ export function NotFoundPage({
     <div className="not-found-page" role="main" aria-label="Page Not Found">
       <header className="not-found-header">
         <div className="brand">
-          <span className="brand-mark"><span /><span /><span /></span>
+          <span className="brand-mark"><ShadowCat expression="404" size={24} /></span>
           <span className="brand-word">SHADOW<span>EXCHANGE</span></span>
         </div>
         <div className="session-pill">

@@ -185,11 +185,30 @@ export function getStorageKey(userId?: number | null): string {
   return "shadow_identity_default";
 }
 
+export function assignRandomIdentityForUser(userId: number): SignatureIdentity {
+  const key = getStorageKey(userId);
+  try {
+    const existing = window.localStorage.getItem(key);
+    if (existing) {
+      return getIdentity(existing);
+    }
+    const randomIndex = Math.floor(Math.random() * SIGNATURE_IDENTITIES.length);
+    const chosen = SIGNATURE_IDENTITIES[randomIndex];
+    saveStoredIdentity(chosen.id, userId);
+    return chosen;
+  } catch {
+    return getDefaultIdentity();
+  }
+}
+
 export function getStoredIdentity(userId?: number | null): SignatureIdentity {
   try {
     const key = getStorageKey(userId);
     const stored = window.localStorage.getItem(key);
-    return getIdentity(stored);
+    if (stored) {
+      return getIdentity(stored);
+    }
+    return getDefaultIdentity();
   } catch {
     return getDefaultIdentity();
   }
