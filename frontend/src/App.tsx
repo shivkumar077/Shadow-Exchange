@@ -1168,8 +1168,10 @@ function App() {
                 <IdentityIcon identity={identity} size={18} />
               </div>
               <div className="profile-copy">
-                <strong>{identity.name}</strong>
-                <small>{accountLoading ? "Connecting…" : `${money(availableCash)} cash`}</small>
+                <strong title={identity.name}>{identity.name}</strong>
+                <small title={accountLoading ? "Connecting…" : `${money(availableCash)} cash`}>
+                  {accountLoading ? "Connecting…" : `${money(availableCash)} cash`}
+                </small>
               </div>
               <ChevronDown size={15} className={`profile-chevron ${profileMenuOpen ? "is-open" : ""}`} />
             </button>
