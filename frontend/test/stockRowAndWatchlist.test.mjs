@@ -210,7 +210,10 @@ test("Deliverable 3: Custom cursor defines precision trading reticle and interac
   // Verify SVG data-URI with reticle crosshair and lime green pupil (%23d3f17b)
   assert.ok(stylesSource.includes("%23d3f17b"), "Must use brand signal accent #d3f17b in cursor SVG");
   assert.ok(stylesSource.includes("12 12, crosshair"), "Must use 12 12 hotspot and crosshair fallback");
-  assert.ok(stylesSource.includes("3 3, pointer"), "Must use 3 3 hotspot and pointer fallback");
+  assert.ok(stylesSource.includes("4 4, pointer"), "Must use 4 4 hotspot and pointer fallback for precision paw");
+
+  // Verify interactive elements use var(--cursor-pointer)
+  assert.ok(stylesSource.includes("cursor: var(--cursor-pointer)"), "Interactive elements must use var(--cursor-pointer)");
 
   // Verify native text selection and input cursor preservation
   assert.ok(stylesSource.includes("cursor: text !important"), "Must preserve native text cursor on inputs and textareas");
@@ -219,4 +222,30 @@ test("Deliverable 3: Custom cursor defines precision trading reticle and interac
   // Verify graceful degradation on touch devices
   assert.ok(stylesSource.includes("@media (hover: none) and (pointer: coarse)"), "Must degrade gracefully on touch devices");
   assert.ok(stylesSource.includes("cursor: auto !important"), "Must reset to auto on touch devices");
+});
+
+test("Order ticket simplification: redundant Order Type section removed, limit price preserved", () => {
+  const appSource = fs.readFileSync(path.resolve(__dirname, "../src/App.tsx"), "utf8");
+
+  // Verify Order Type section, badges, and redundant text are removed from App.tsx
+  assert.equal(appSource.includes("SUPPORTED TYPE"), false, "Must not contain redundant 'SUPPORTED TYPE' label");
+  assert.equal(appSource.includes("Specified boundary price"), false, "Must not contain 'Specified boundary price' explainer");
+  assert.equal(appSource.includes('htmlFor="order-type"'), false, "Must not contain order-type label");
+  assert.equal(appSource.includes('id="order-type"'), false, "Must not contain order-type container");
+
+  // Verify LIMIT PRICE input and placeholder remain present and clear
+  assert.ok(appSource.includes('id="limit-price"'), "Must preserve limit-price input");
+  assert.ok(appSource.includes('placeholder="Limit price per share"'), "Must provide clear limit price placeholder");
+  assert.ok(appSource.includes('LIMIT PRICE'), "Must preserve LIMIT PRICE label");
+});
+
+test("Available cash readability: font size, weight, and hierarchy enhanced", () => {
+  const stylesSource = fs.readFileSync(path.resolve(__dirname, "../src/styles.css"), "utf8");
+
+  // Verify .order-balance-pill styling
+  assert.ok(stylesSource.includes(".order-balance-pill strong {"), "Must style .order-balance-pill strong");
+  assert.ok(stylesSource.includes("font-size: 13px;"), "Must increase available cash font size to 13px");
+  assert.ok(stylesSource.includes("font-weight: 600;"), "Must give available cash prominent font-weight 600");
+  assert.ok(stylesSource.includes(".order-balance-pill > span {"), "Must style balance pill label as secondary");
+  assert.ok(stylesSource.includes("letter-spacing: .08em;"), "Must preserve uppercase monospace styling for balance label");
 });

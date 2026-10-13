@@ -1477,20 +1477,8 @@ function App() {
                       </strong>
                     </div>
                     <div className="order-field">
-                      <label htmlFor="order-type">ORDER TYPE</label>
-                      <div id="order-type" className="order-type-badge-container">
-                        <div className="order-type-chip">
-                          <span className="order-type-tag">LIMIT</span>
-                          <span className="order-type-explainer">Specified boundary price</span>
-                        </div>
-                        <span className="order-type-hint" title="Exchange matching engine executes limit orders strictly against opposing liquidity.">
-                          SUPPORTED TYPE
-                        </span>
-                      </div>
-                    </div>
-                    <div className="order-field">
                       <label htmlFor="limit-price">LIMIT PRICE <span>USD</span></label>
-                      <div className="number-input"><span>$</span><input id="limit-price" inputMode="decimal" value={limitPrice} onChange={(event) => setLimitPrice(event.target.value)} /><button onClick={() => selectedStock.price > 0 && setLimitPrice(selectedStock.price.toFixed(2))}>MID</button></div>
+                      <div className="number-input"><span>$</span><input id="limit-price" inputMode="decimal" placeholder="Limit price per share" value={limitPrice} onChange={(event) => setLimitPrice(event.target.value)} /><button type="button" onClick={() => selectedStock.price > 0 && setLimitPrice(selectedStock.price.toFixed(2))}>MID</button></div>
                     </div>
                     <div className="order-field">
                       <label htmlFor="quantity">QUANTITY <span>SHARES</span></label>
