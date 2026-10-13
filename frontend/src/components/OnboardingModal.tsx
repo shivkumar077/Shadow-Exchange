@@ -33,28 +33,32 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
         aria-labelledby="onboarding-title"
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          className="icon-button modal-close-btn onboarding-close-btn"
+          onClick={onClose}
+          aria-label="Close welcome modal"
+          title="Close welcome modal"
+        >
+          <X size={16} />
+        </button>
+
         <div className="onboarding-mascot-hero">
           <ShadowCat expression="thinking" size={72} />
         </div>
 
-        <div className="modal-header onboarding-header">
-          <div>
-            <span className="modal-eyebrow">WELCOME TO SHADOW EXCHANGE</span>
-            <h2 id="onboarding-title">Congratulations.<br /><em>You're financially imaginary.</em></h2>
-          </div>
-          <button
-            type="button"
-            className="icon-button modal-close-btn"
-            onClick={onClose}
-            aria-label="Close welcome modal"
-          >
-            <X size={16} />
-          </button>
+        <div className="onboarding-header">
+          <h2 className="onboarding-title" id="onboarding-title">
+            Welcome to Shadow Exchange
+          </h2>
+          <p className="onboarding-subtitle">
+            You are financially imaginary
+          </p>
         </div>
 
         <div className="onboarding-body">
           <p className="onboarding-lead">
-            Your account has been provisioned with <strong>$10,000.00 in Shadow Credits</strong> and starter allocations across 28 real listed instruments.
+            Your account has been provisioned with simulated capital and starter allocations across 28 real listed instruments.
           </p>
           <p className="onboarding-disclaimer">
             None of it is real money. All of the consequences are educational.

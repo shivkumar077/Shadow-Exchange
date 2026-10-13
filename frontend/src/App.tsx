@@ -1101,35 +1101,6 @@ function App() {
           ))}
         </nav>
 
-        <div className="sidebar-rule" />
-        <div className="workspace-label">
-          YOUR MARKETS{" "}
-          <button
-            className="tiny-icon-button"
-            aria-label="Your Market watchlist"
-            onClick={() => navigateToSection("Your Market")}
-            title="Open Your Market watchlist"
-          >
-            <Star size={13} />
-          </button>
-        </div>
-        <div className="mini-watchlist">
-          {(stocks.filter((s) => watchedSymbols.includes(s.symbol)).length > 0
-            ? stocks.filter((s) => watchedSymbols.includes(s.symbol)).slice(0, 4)
-            : stocks.filter((s) => personalizedSymbols.includes(s.symbol)).slice(0, 4)
-          ).map((stock) => (
-            <button
-              key={stock.id}
-              className={`mini-stock ${selectedSymbol === stock.symbol ? "selected" : ""}`}
-              onClick={() => { chooseStock(stock); setMobileNavOpen(false); }}
-            >
-              <span className="ticker-avatar">{stock.symbol.slice(0, 1)}</span>
-              <span className="mini-stock-copy"><strong>{stock.symbol}</strong><small>{stock.name.split(" ")[0]}</small></span>
-              <span className="mini-change">{watchedSymbols.includes(stock.symbol) ? "★" : "SIM"}</span>
-            </button>
-          ))}
-        </div>
-
         <div className="sidebar-bottom">
           <div className="status-card">
             <span className={`status-light ${stocksError ? "is-error" : ""}`} />
