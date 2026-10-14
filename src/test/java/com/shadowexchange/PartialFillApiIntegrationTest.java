@@ -10,6 +10,8 @@ import com.shadowexchange.repository.OrderRepository;
 import com.shadowexchange.repository.StockRepository;
 import com.shadowexchange.repository.TradeRepository;
 import com.shadowexchange.repository.UserRepository;
+import com.shadowexchange.security.DemoAuthenticationToken;
+import com.shadowexchange.security.DemoUserPrincipal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,11 +20,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 class PartialFillApiIntegrationTest {
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -124,9 +130,17 @@ class PartialFillApiIntegrationTest {
                 .andExpect(jsonPath("$.asks[2].price").value(110.0));
     }
 
+    private static RequestPostProcessor asUser(Long userId) {
+        return authentication(new DemoAuthenticationToken(
+                new DemoUserPrincipal(userId, "test-user-" + userId, "test" + userId + "@example.test")
+        ));
+    }
+
     private void placeOrder(Long userId, String type, String price, int quantity)
             throws Exception {
         mockMvc.perform(post("/orders")
+                        .with(csrf())
+                        .with(asUser(userId))
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
@@ -145,33 +159,8 @@ class PartialFillApiIntegrationTest {
 
     @Test
     void shouldExposeOpenBuyAndSellOrdersThroughOrderBookApi() throws Exception {
-        mockMvc.perform(post("/orders")
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "userId": %d,
-                                  "stockId": %d,
-                                  "type": "BUY",
-                                  "price": 90.00,
-                                  "quantity": 2
-                                }
-                                """.formatted(buyer.getId(), stock.getId())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PENDING"));
-
-        mockMvc.perform(post("/orders")
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "userId": %d,
-                                  "stockId": %d,
-                                  "type": "SELL",
-                                  "price": 100.00,
-                                  "quantity": 3
-                                }
-                                """.formatted(seller.getId(), stock.getId())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+        placeOrder(buyer.getId(), "BUY", "90.00", 2);
+        placeOrder(seller.getId(), "SELL", "100.00", 3);
 
         mockMvc.perform(get("/orders/book/{stockId}", stock.getId()))
                 .andExpect(status().isOk())
@@ -192,6 +181,8 @@ class PartialFillApiIntegrationTest {
     void shouldReturnAndPersistPartiallyFilledOrderThroughHttpApi() throws Exception {
         // First, place a SELL order for only four shares.
         mockMvc.perform(post("/orders")
+                        .with(csrf())
+                        .with(asUser(seller.getId()))
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
@@ -208,6 +199,8 @@ class PartialFillApiIntegrationTest {
 
         // Then request ten shares. Four should execute; six should remain open.
         MvcResult buyResult = mockMvc.perform(post("/orders")
+                        .with(csrf())
+                        .with(asUser(buyer.getId()))
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
@@ -229,7 +222,8 @@ class PartialFillApiIntegrationTest {
         long buyOrderId = buyResponse.get("id").asLong();
 
         // Confirm the API's GET endpoint returns the persisted remainder/status.
-        mockMvc.perform(get("/orders/user/{userId}", buyer.getId()))
+        mockMvc.perform(get("/orders/user/{userId}", buyer.getId())
+                        .with(asUser(buyer.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(buyOrderId))
                 .andExpect(jsonPath("$[0].status").value("PARTIALLY_FILLED"))

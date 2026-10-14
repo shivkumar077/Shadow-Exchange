@@ -1,7 +1,10 @@
 package com.shadowexchange.entity;
 
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -21,6 +24,19 @@ public class User {
     private String password;
     private BigDecimal balance;
     private BigDecimal reservedBalance;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", length = 32)
+    private AuthProvider authProvider = AuthProvider.LOCAL_DEMO;
+
+    @Column(name = "provider_subject_id", length = 128, unique = true)
+    private String providerSubjectId;
+
+    @Column(name = "avatar_url", length = 512)
+    private String avatarUrl;
+
+    @Column(name = "is_demo", nullable = false)
+    private Boolean isDemo = false;
 
     public User() {
     }
@@ -73,6 +89,37 @@ public class User {
         this.reservedBalance = reservedBalance;
     }
 
+    public AuthProvider getAuthProvider() {
+        return authProvider;
+    }
+
+    public void setAuthProvider(AuthProvider authProvider) {
+        this.authProvider = authProvider;
+    }
+
+    public String getProviderSubjectId() {
+        return providerSubjectId;
+    }
+
+    public void setProviderSubjectId(String providerSubjectId) {
+        this.providerSubjectId = providerSubjectId;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
+
+    public Boolean getIsDemo() {
+        return isDemo;
+    }
+
+    public void setIsDemo(Boolean isDemo) {
+        this.isDemo = isDemo != null && isDemo;
+    }
 }
 
 

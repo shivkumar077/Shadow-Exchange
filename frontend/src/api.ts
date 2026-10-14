@@ -36,7 +36,34 @@ export type ApiOrder = {
   createdAt?: string;
 };
 
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "http://localhost:8080";
+export type AuthStatus = {
+  authenticated: boolean;
+  id?: number;
+  username?: string;
+  email?: string;
+  avatarUrl?: string;
+  authProvider?: "LOCAL_DEMO" | "GOOGLE";
+  isDemo?: boolean;
+  balance?: number | string;
+  reservedBalance?: number | string;
+};
+
+export function getApiBaseUrl(): string {
+  const envUrl = import.meta.env?.VITE_API_BASE_URL;
+  if (typeof envUrl === "string") {
+    return envUrl.trim().replace(/\/+$/, "");
+  }
+  if (import.meta.env?.DEV) {
+    return "http://localhost:8080";
+  }
+  return "";
+}
+
+export function getCsrfToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 async function readError(response: Response): Promise<string> {
   const body = await response.text();
@@ -57,9 +84,29 @@ async function readError(response: Response): Promise<string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const isMutating = ["POST", "PUT", "DELETE", "PATCH"].includes(method);
+
+  const headers: Record<string, string> = {
+    ...((init?.headers as Record<string, string>) || {}),
+  };
+
+  if (init?.body && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (isMutating) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers["X-XSRF-TOKEN"] = csrfToken;
+    }
+  }
+
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    credentials: "include",
+    headers,
   });
 
   if (!response.ok) {
@@ -68,6 +115,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+export async function getAuthStatus(): Promise<AuthStatus> {
+  return request<AuthStatus>("/api/auth/me");
+}
+
+export async function logout(): Promise<void> {
+  await request<{ message: string }>("/api/auth/logout", {
+    method: "POST",
+  });
+}
+
+export function getGoogleLoginUrl(): string {
+  const baseUrl = getApiBaseUrl();
+  return `${baseUrl}/oauth2/authorization/google`;
 }
 
 export async function getStocks(): Promise<ApiStock[]> {
@@ -142,17 +204,23 @@ export function resolveWebSocketUrl(apiBase?: string, explicitWs?: string): stri
     return explicitWs.trim();
   }
 
-  const rawBase = typeof apiBase === "string" && apiBase.trim().length > 0
-    ? apiBase.trim()
-    : "http://localhost:8080";
-
-  try {
-    const url = new URL(rawBase.startsWith("http") ? rawBase : `http://${rawBase}`);
-    const protocol = url.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}//${url.host}/ws`;
-  } catch {
-    return "ws://localhost:8080/ws";
+  const rawBase = typeof apiBase === "string" ? apiBase.trim() : "";
+  if (rawBase.length > 0) {
+    try {
+      const url = new URL(rawBase.startsWith("http") ? rawBase : `http://${rawBase}`);
+      const protocol = url.protocol === "https:" ? "wss:" : "ws:";
+      return `${protocol}//${url.host}/ws`;
+    } catch {
+      return "ws://localhost:8080/ws";
+    }
   }
+
+  // Automatic production resolution when running on Vercel
+  if (typeof window !== "undefined" && window.location?.hostname?.includes("vercel.app")) {
+    return "wss://shadow-exchange-1.onrender.com/ws";
+  }
+
+  return "ws://localhost:8080/ws";
 }
 
 export function getWebSocketUrl(): string {

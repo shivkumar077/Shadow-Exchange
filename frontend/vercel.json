@@ -1,6 +1,22 @@
 {
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://shadow-exchange-1.onrender.com/api/$1"
+    },
+    {
+      "source": "/orders/(.*)",
+      "destination": "https://shadow-exchange-1.onrender.com/orders/$1"
+    },
+    {
+      "source": "/oauth2/(.*)",
+      "destination": "https://shadow-exchange-1.onrender.com/oauth2/$1"
+    },
+    {
+      "source": "/login/(.*)",
+      "destination": "https://shadow-exchange-1.onrender.com/login/$1"
+    },
+    {
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }

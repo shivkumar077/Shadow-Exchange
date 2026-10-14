@@ -47,8 +47,20 @@ public class OrderCancellationService {
 
     @Transactional
     public void cancelOrder(Long orderId) {
+        cancelOrder(orderId, null);
+    }
+
+    @Transactional
+    public void cancelOrder(Long orderId, Long requestingUserId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (requestingUserId != null && order.getUser() != null && !order.getUser().getId().equals(requestingUserId)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Cannot cancel an order belonging to another user"
+            );
+        }
 
         if (order.getStatus() != OrderStatus.PENDING &&
             order.getStatus() != OrderStatus.PARTIALLY_FILLED) {

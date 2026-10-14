@@ -25,7 +25,9 @@ class SecurityConfigTest {
         assertThat(config).isNotNull();
         assertThat(config.getAllowedOrigins()).containsExactly("http://localhost:5173");
         assertThat(config.getAllowedMethods()).containsExactly("GET", "POST", "DELETE", "OPTIONS");
-        assertThat(config.getAllowedHeaders()).containsExactly("Content-Type", "Authorization");
+        assertThat(config.getAllowedHeaders()).containsExactly("Content-Type", "Authorization", "X-XSRF-TOKEN", "X-Requested-With", "Accept");
+        assertThat(config.getAllowCredentials()).isTrue();
+        assertThat(config.getExposedHeaders()).contains("Set-Cookie", "X-XSRF-TOKEN");
     }
 
     @Test

@@ -2056,6 +2056,64 @@ body { font-size: 14px; }
   flex-shrink: 0;
 }
 
+/* Google Auth Profile & Session Enhancements */
+.profile-action-btn.google-signin-btn {
+  background: #191e13;
+  border: 1px solid #333d28;
+  color: #e5ece0;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.profile-action-btn.google-signin-btn:hover {
+  background: #252d1c;
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.google-icon-svg {
+  flex-shrink: 0;
+}
+
+.profile-action-btn.logout-action-btn {
+  color: #e28782;
+  margin-bottom: 2px;
+}
+
+.profile-action-btn.logout-action-btn:hover {
+  background: rgba(226, 135, 130, 0.12);
+  color: #ff9d98;
+}
+
+.profile-google-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.profile-persona-tag.is-google {
+  background: rgba(142, 230, 0, 0.15);
+  color: var(--signal);
+  border: 1px solid rgba(142, 230, 0, 0.35);
+}
+
+.session-pill.is-google {
+  border-color: rgba(142, 230, 0, 0.4);
+  color: var(--signal);
+  background: rgba(142, 230, 0, 0.04);
+}
+
+.session-pill.is-google .status-light {
+  background: var(--signal);
+  box-shadow: 0 0 6px var(--signal);
+}
+
+.shield-verified {
+  color: var(--signal);
+}
+
 /* 6. Compact Density Modifier */
 .app-shell.density-compact .table-head,
 .app-shell.density-compact .watchlist-row,

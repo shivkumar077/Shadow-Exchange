@@ -1,13 +1,38 @@
 package com.shadowexchange.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 import com.shadowexchange.dto.ErrorResponse;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException exception) {
+        String reason = exception.getReason() != null ? exception.getReason() : exception.getMessage();
+        return ResponseEntity
+                .status(exception.getStatusCode())
+                .body(new ErrorResponse(
+                        exception.getStatusCode().value(),
+                        exception.getStatusCode().toString(),
+                        reason
+                ));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleAccessDeniedException(AccessDeniedException exception) {
+        return new ErrorResponse(
+                403,
+                "Forbidden",
+                exception.getMessage() != null ? exception.getMessage() : "Access Denied"
+        );
+    }
 
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)

@@ -48,6 +48,8 @@ public class UserService {
         user.setPassword(request.getPassword());
         user.setBalance(new BigDecimal("10000.00"));
         user.setReservedBalance(BigDecimal.ZERO);
+        user.setAuthProvider(com.shadowexchange.entity.AuthProvider.LOCAL_DEMO);
+        user.setIsDemo(false);
 
         return toResponse(userRepository.save(user));
     }
@@ -63,6 +65,8 @@ public class UserService {
         user.setUsername("Shadow Demo Operator");
         user.setEmail("shadow-demo-" + UUID.randomUUID() + "@example.test");
         user.setPassword(UUID.randomUUID().toString());
+        user.setAuthProvider(com.shadowexchange.entity.AuthProvider.LOCAL_DEMO);
+        user.setIsDemo(true);
 
         long minCents = MIN_DEMO_CASH.movePointRight(2).longValueExact();
         long maxCents = MAX_DEMO_CASH.movePointRight(2).longValueExact();
@@ -103,7 +107,10 @@ public class UserService {
                 user.getUsername(),
                 user.getEmail(),
                 user.getBalance(),
-                user.getReservedBalance()
+                user.getReservedBalance(),
+                user.getAuthProvider(),
+                user.getAvatarUrl(),
+                user.getIsDemo()
         );
     }
 }

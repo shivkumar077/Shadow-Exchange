@@ -147,4 +147,47 @@ class ProdProfileConfigTest {
         assertThat(properties.determineUsername())
                 .isEqualTo("sa");
     }
+
+    @Test
+    @DisplayName("Verify prod profile resolves Google OAuth and forwarded headers environment variables")
+    void prodProfileResolvesGoogleOauthAndForwardedHeadersEnvironmentVariables() {
+        StandardEnvironment environment = new StandardEnvironment();
+        environment.setActiveProfiles("prod");
+
+        System.setProperty("SPRING_DATASOURCE_URL", "jdbc:postgresql://mock:5432/db");
+        System.setProperty("SPRING_DATASOURCE_USERNAME", "mock");
+        System.setProperty("SPRING_DATASOURCE_PASSWORD", "mock");
+        System.setProperty("GOOGLE_CLIENT_ID", "test-google-client-id-12345");
+        System.setProperty("GOOGLE_CLIENT_SECRET", "test-google-client-secret-abcde");
+        System.setProperty("APP_FRONTEND_URL", "https://custom-shadow-exchange.vercel.app");
+        System.setProperty("SERVER_FORWARD_HEADERS_STRATEGY", "framework");
+
+        try {
+            ConfigDataEnvironmentPostProcessor.applyTo(
+                    environment,
+                    new DefaultResourceLoader(),
+                    null,
+                    "prod"
+            );
+
+            assertThat(environment.getProperty("spring.security.oauth2.client.registration.google.client-id"))
+                    .isEqualTo("test-google-client-id-12345");
+            assertThat(environment.getProperty("spring.security.oauth2.client.registration.google.client-secret"))
+                    .isEqualTo("test-google-client-secret-abcde");
+            assertThat(environment.getProperty("spring.security.oauth2.client.registration.google.redirect-uri"))
+                    .isEqualTo("{baseUrl}/login/oauth2/code/{registrationId}");
+            assertThat(environment.getProperty("app.frontend-url"))
+                    .isEqualTo("https://custom-shadow-exchange.vercel.app");
+            assertThat(environment.getProperty("server.forward-headers-strategy"))
+                    .isEqualTo("framework");
+        } finally {
+            System.clearProperty("SPRING_DATASOURCE_URL");
+            System.clearProperty("SPRING_DATASOURCE_USERNAME");
+            System.clearProperty("SPRING_DATASOURCE_PASSWORD");
+            System.clearProperty("GOOGLE_CLIENT_ID");
+            System.clearProperty("GOOGLE_CLIENT_SECRET");
+            System.clearProperty("APP_FRONTEND_URL");
+            System.clearProperty("SERVER_FORWARD_HEADERS_STRATEGY");
+        }
+    }
 }
