@@ -1,11 +1,14 @@
 package com.shadowexchange.security;
 
+import com.shadowexchange.entity.AuthProvider;
 import com.shadowexchange.entity.User;
 import com.shadowexchange.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -26,7 +29,7 @@ public class SecurityUserHelper {
 
     /**
      * Resolves the internal database userId of the currently authenticated caller.
-     * Supports both Google OIDC users (CustomOidcUser) and demo operators (DemoUserPrincipal).
+     * Supports CustomOidcUser, DemoUserPrincipal, raw numeric IDs, and generic OidcUser/OAuth2User fallbacks.
      */
     public Optional<Long> getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -43,6 +46,38 @@ public class SecurityUserHelper {
         }
         if (principal instanceof Long id) {
             return Optional.of(id);
+        }
+        if (principal instanceof OidcUser oidcUser) {
+            String sub = oidcUser.getSubject();
+            if (sub != null && !sub.isBlank()) {
+                Optional<User> user = userRepository.findByAuthProviderAndProviderSubjectId(AuthProvider.GOOGLE, sub);
+                if (user.isPresent()) {
+                    return user.map(User::getId);
+                }
+            }
+            String email = oidcUser.getEmail();
+            if (email != null && !email.isBlank()) {
+                Optional<User> user = userRepository.findByEmail(email);
+                if (user.isPresent()) {
+                    return user.map(User::getId);
+                }
+            }
+        }
+        if (principal instanceof OAuth2User oauth2User) {
+            String sub = oauth2User.getAttribute("sub");
+            if (sub != null && !sub.isBlank()) {
+                Optional<User> user = userRepository.findByAuthProviderAndProviderSubjectId(AuthProvider.GOOGLE, sub);
+                if (user.isPresent()) {
+                    return user.map(User::getId);
+                }
+            }
+            String email = oauth2User.getAttribute("email");
+            if (email != null && !email.isBlank()) {
+                Optional<User> user = userRepository.findByEmail(email);
+                if (user.isPresent()) {
+                    return user.map(User::getId);
+                }
+            }
         }
 
         return Optional.empty();

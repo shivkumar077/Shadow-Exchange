@@ -58,6 +58,8 @@ class ProdProfileConfigTest {
                     .isEqualTo("framework");
             assertThat(environment.getProperty("server.servlet.session.cookie.same-site"))
                     .isEqualTo("lax");
+            assertThat(environment.getProperty("server.servlet.session.cookie.secure"))
+                    .isEqualTo("true");
 
             // Spring Boot DataSourceProperties binding verification
             DataSourceProperties properties = new DataSourceProperties();

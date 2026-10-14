@@ -644,6 +644,7 @@ function App() {
 
         if (currentAuth && currentAuth.authenticated && currentAuth.id) {
           if (!cancelled) {
+            window.localStorage.setItem("shadow-exchange-demo-user-id-v2", String(currentAuth.id));
             setAuthStatus(currentAuth);
             setDemoUserId(currentAuth.id);
             setAccount({
@@ -783,7 +784,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (!demoUserId) return;
+    if (!demoUserId || accountLoading) return;
     let cancelled = false;
 
     const syncAccountAndPortfolio = async (showLoading = false) => {

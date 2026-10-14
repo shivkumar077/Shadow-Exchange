@@ -5,6 +5,7 @@ import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 
@@ -12,7 +13,9 @@ import java.util.Map;
  * Custom OidcUser decorator that wraps the Spring Security OidcUser and binds
  * the local Shadow Exchange database userId to the authenticated security principal.
  */
-public class CustomOidcUser implements OidcUser {
+public class CustomOidcUser implements OidcUser, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final Long userId;
     private final OidcUser delegate;

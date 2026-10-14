@@ -24,6 +24,9 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -126,6 +129,7 @@ public class SecurityConfig {
 
                         .anyRequest().permitAll()
                 )
+                .securityContext(sc -> sc.securityContextRepository(new HttpSessionSecurityContextRepository()))
                 // Ensure XSRF-TOKEN cookie is written on every request
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
 
@@ -136,6 +140,8 @@ public class SecurityConfig {
                     oauth2.userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOidcUserService));
                 }
                 oauth2.successHandler((request, response, authentication) -> {
+                    SecurityContext context = SecurityContextHolder.getContext();
+                    new HttpSessionSecurityContextRepository().saveContext(context, request, response);
                     response.sendRedirect(frontendUrl + "/?auth=success");
                 });
                 oauth2.failureHandler((request, response, exception) -> {

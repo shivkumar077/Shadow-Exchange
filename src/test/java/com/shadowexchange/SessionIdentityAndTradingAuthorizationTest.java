@@ -26,6 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
@@ -351,5 +352,48 @@ class SessionIdentityAndTradingAuthorizationTest {
         assertTrue(location.contains("response_type=code"));
         assertTrue(location.contains("scope=openid%20email%20profile"));
         assertTrue(location.contains("redirect_uri="));
+    }
+
+    @Test
+    @DisplayName("12. Authenticated Google principal as generic OidcUser is recognized by /api/auth/me and protected APIs")
+    void testGenericOidcUserPrincipalIsRecognized() throws Exception {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("sub", userA.getProviderSubjectId());
+        claims.put("email", userA.getEmail());
+        claims.put("name", userA.getUsername());
+
+        OidcIdToken idToken = new OidcIdToken("mock-token", Instant.now(), Instant.now().plusSeconds(3600), claims);
+        OidcUserInfo userInfo = new OidcUserInfo(claims);
+        OidcUser defaultOidcUser = new DefaultOidcUser(
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")),
+                idToken,
+                userInfo
+        );
+
+        OAuth2AuthenticationToken oAuth2Auth = new OAuth2AuthenticationToken(
+                defaultOidcUser,
+                defaultOidcUser.getAuthorities(),
+                "google"
+        );
+
+        // 1. /api/auth/me recognizes the user through subject ID fallback
+        mockMvc.perform(get("/api/auth/me")
+                        .with(authentication(oAuth2Auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authenticated").value(true))
+                .andExpect(jsonPath("$.id").value(userA.getId()))
+                .andExpect(jsonPath("$.email").value(userA.getEmail()));
+
+        // 2. Protected user endpoint recognizes the user through subject ID fallback
+        mockMvc.perform(get("/api/users/{userId}", userA.getId())
+                        .with(authentication(oAuth2Auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(userA.getId()))
+                .andExpect(jsonPath("$.username").value(userA.getUsername()));
+
+        // 3. Protected portfolio endpoint recognizes the user through subject ID fallback
+        mockMvc.perform(get("/api/users/{userId}/portfolio", userA.getId())
+                        .with(authentication(oAuth2Auth)))
+                .andExpect(status().isOk());
     }
 }
