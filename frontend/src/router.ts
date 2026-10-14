@@ -12,6 +12,8 @@ export const VALID_APPLICATION_ROUTES: Record<string, string> = {
   "/watchlist": "Your Market",
   "/portfolio": "Portfolio",
   "/activity": "Activity",
+  "/about": "About Me",
+  "/about-me": "About Me",
 };
 
 export function normalizePath(pathname: string): string {

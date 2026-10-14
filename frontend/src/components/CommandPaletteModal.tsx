@@ -12,18 +12,21 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import type { StockItem } from "./InstrumentPickerModal";
 
 export interface CommandItem {
   id: string;
-  category: "Navigation" | "Actions" | "Preferences";
+  type: "command" | "stock";
+  category: "Navigation" | "Actions" | "Preferences" | "Instrument";
   title: string;
   subtitle: string;
-  icon: typeof LayoutDashboard;
+  icon?: typeof LayoutDashboard;
   shortcut?: string;
   action: () => void;
+  stock?: StockItem;
 }
 
-interface CommandPaletteModalProps {
+export interface CommandPaletteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateSection: (section: string) => void;
@@ -31,7 +34,15 @@ interface CommandPaletteModalProps {
   onOpenIdentityPicker: () => void;
   onOpenPreferences: () => void;
   onOpenNotifications: () => void;
+  stocks?: StockItem[];
+  selectedSymbol?: string;
+  onSelectStock?: (stock: StockItem) => void;
+  watchedSymbols?: string[];
+  onToggleWatchSymbol?: (symbol: string) => void;
 }
+
+const money = (value: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 
 export function CommandPaletteModal({
   isOpen,
@@ -41,14 +52,20 @@ export function CommandPaletteModal({
   onOpenIdentityPicker,
   onOpenPreferences,
   onOpenNotifications,
+  stocks = [],
+  selectedSymbol,
+  onSelectStock,
+  watchedSymbols = [],
+  onToggleWatchSymbol,
 }: CommandPaletteModalProps) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const commands: CommandItem[] = [
+  const baseCommands: CommandItem[] = [
     {
       id: "nav-overview",
+      type: "command",
       category: "Navigation",
       title: "Go to Overview Workspace",
       subtitle: "Main market charts, order ticket & order depth",
@@ -61,6 +78,7 @@ export function CommandPaletteModal({
     },
     {
       id: "nav-markets",
+      type: "command",
       category: "Navigation",
       title: "Go to Exchange Markets",
       subtitle: "Full 28-instrument listed catalog",
@@ -73,9 +91,10 @@ export function CommandPaletteModal({
     },
     {
       id: "nav-your-market",
+      type: "command",
       category: "Navigation",
       title: "Go to Your Market Watchlist",
-      subtitle: "Operator's custom watch queue",
+      subtitle: "Operator's custom watch queue & curated market",
       icon: Star,
       shortcut: "3",
       action: () => {
@@ -85,6 +104,7 @@ export function CommandPaletteModal({
     },
     {
       id: "nav-portfolio",
+      type: "command",
       category: "Navigation",
       title: "Go to Positions & Portfolio",
       subtitle: "Virtual cash balance, equity & settled shares",
@@ -97,6 +117,7 @@ export function CommandPaletteModal({
     },
     {
       id: "nav-activity",
+      type: "command",
       category: "Navigation",
       title: "Go to Order Activity History",
       subtitle: "Pending orders, fills, executions & cancellations",
@@ -108,10 +129,24 @@ export function CommandPaletteModal({
       },
     },
     {
+      id: "nav-about-me",
+      type: "command",
+      category: "Navigation",
+      title: "Go to About Me & Architecture",
+      subtitle: "Creator discipline, matching engine & dual-stack design",
+      icon: User,
+      shortcut: "A",
+      action: () => {
+        onNavigateSection("About Me");
+        onClose();
+      },
+    },
+    {
       id: "act-instrument",
+      type: "command",
       category: "Actions",
       title: "Select Active Tradable Instrument",
-      subtitle: "Open quick ticker search dialog",
+      subtitle: "Open quick ticker selection dialog",
       icon: Search,
       shortcut: "S",
       action: () => {
@@ -121,6 +156,7 @@ export function CommandPaletteModal({
     },
     {
       id: "act-identity",
+      type: "command",
       category: "Actions",
       title: "Switch Operator Identity Emblem",
       subtitle: "Choose from 12 art-directed signature emblems",
@@ -133,6 +169,7 @@ export function CommandPaletteModal({
     },
     {
       id: "act-notifications",
+      type: "command",
       category: "Actions",
       title: "View Operator Notifications",
       subtitle: "Lifecycle order alerts and Shadow Cat commentary",
@@ -145,6 +182,7 @@ export function CommandPaletteModal({
     },
     {
       id: "pref-settings",
+      type: "command",
       category: "Preferences",
       title: "Open Terminal Preferences",
       subtitle: "Configure default presets and personality reactions",
@@ -157,15 +195,47 @@ export function CommandPaletteModal({
     },
   ];
 
-  const filtered = commands.filter((cmd) => {
-    const q = query.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      cmd.title.toLowerCase().includes(q) ||
-      cmd.subtitle.toLowerCase().includes(q) ||
-      cmd.category.toLowerCase().includes(q)
+  const q = query.toLowerCase().trim();
+
+  // Convert stocks to searchable items
+  const stockItems: CommandItem[] = stocks.map((stock) => ({
+    id: `stock-${stock.symbol}`,
+    type: "stock",
+    category: "Instrument",
+    title: stock.symbol,
+    subtitle: stock.name,
+    stock,
+    action: () => {
+      if (onSelectStock) {
+        onSelectStock(stock);
+      }
+      onClose();
+    },
+  }));
+
+  // Filtering: when query is empty, show navigation + top popular instruments.
+  // When query is typed, search both instruments and commands.
+  let filtered: CommandItem[] = [];
+  if (!q) {
+    // Show base commands + top 6 stocks
+    const initialStocks = stockItems.slice(0, 6);
+    filtered = [...baseCommands, ...initialStocks];
+  } else {
+    // Match stocks first
+    const matchedStocks = stockItems.filter(
+      (s) =>
+        s.title.toLowerCase().includes(q) ||
+        s.subtitle.toLowerCase().includes(q)
     );
-  });
+    // Match commands
+    const matchedCommands = baseCommands.filter(
+      (cmd) =>
+        cmd.title.toLowerCase().includes(q) ||
+        cmd.subtitle.toLowerCase().includes(q) ||
+        cmd.category.toLowerCase().includes(q)
+    );
+    filtered = [...matchedStocks, ...matchedCommands];
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -217,7 +287,7 @@ export function CommandPaletteModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="command-palette-search">
-          <Command size={16} className="command-icon" />
+          <Search size={16} className="command-icon" />
           <input
             ref={inputRef}
             type="text"
@@ -227,14 +297,19 @@ export function CommandPaletteModal({
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            placeholder="Type a command or jump to workspace…"
-            aria-label="Command search"
+            placeholder="Search all 28 instruments, commands, or workspaces…"
+            aria-label="Search instruments and commands"
           />
           {query && (
             <button
               type="button"
               className="clear-search-btn"
-              onClick={() => setQuery("")}
+              onClick={() => {
+                setQuery("");
+                setSelectedIndex(0);
+                inputRef.current?.focus();
+              }}
+              aria-label="Clear search"
             >
               <X size={13} />
             </button>
@@ -242,17 +317,70 @@ export function CommandPaletteModal({
         </div>
 
         <div className="command-list" role="listbox">
-          {filtered.map((cmd, idx) => {
-            const Icon = cmd.icon;
+          {filtered.map((item, idx) => {
             const isSelected = idx === selectedIndex;
+
+            if (item.type === "stock" && item.stock) {
+              const stock = item.stock;
+              const isWatched = watchedSymbols.includes(stock.symbol);
+              const isCurrentStock = stock.symbol === selectedSymbol;
+              const hasValidPrice = Number.isFinite(stock.price) && stock.price > 0;
+
+              return (
+                <div
+                  key={item.id}
+                  className={`command-item command-stock-item ${isSelected ? "is-selected" : ""} ${isCurrentStock ? "is-active-stock" : ""}`}
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={item.action}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                >
+                  <div className="command-item-main">
+                    <span className="stock-ticker-avatar">
+                      {stock.symbol.slice(0, 2)}
+                    </span>
+                    <div className="command-stock-info">
+                      <div className="command-stock-title-row">
+                        <strong className="command-item-title">{stock.symbol}</strong>
+                        <span className="command-stock-exchange">NASDAQ</span>
+                      </div>
+                      <small className="command-item-subtitle">{stock.name}</small>
+                    </div>
+                  </div>
+                  <div className="command-item-meta">
+                    <span className="command-stock-price">
+                      {hasValidPrice ? money(stock.price) : "Quote pending"}
+                    </span>
+                    {onToggleWatchSymbol && (
+                      <button
+                        type="button"
+                        className={`star-watch-btn icon-only ${isWatched ? "is-watched watched" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          onToggleWatchSymbol(stock.symbol);
+                        }}
+                        title={isWatched ? `Remove ${stock.symbol} from favorites` : `Add ${stock.symbol} to favorites`}
+                        aria-label={isWatched ? `Remove ${stock.symbol} from favorites` : `Add ${stock.symbol} to favorites`}
+                      >
+                        <Star size={12} fill={isWatched ? "currentColor" : "none"} />
+                      </button>
+                    )}
+                    <span className="command-item-cat">STOCK</span>
+                  </div>
+                </div>
+              );
+            }
+
+            const Icon = item.icon ?? Command;
             return (
               <button
-                key={cmd.id}
+                key={item.id}
                 type="button"
                 className={`command-item ${isSelected ? "is-selected" : ""}`}
                 role="option"
                 aria-selected={isSelected}
-                onClick={cmd.action}
+                onClick={item.action}
                 onMouseEnter={() => setSelectedIndex(idx)}
               >
                 <div className="command-item-main">
@@ -260,27 +388,28 @@ export function CommandPaletteModal({
                     <Icon size={15} />
                   </span>
                   <div>
-                    <strong className="command-item-title">{cmd.title}</strong>
-                    <small className="command-item-subtitle">{cmd.subtitle}</small>
+                    <strong className="command-item-title">{item.title}</strong>
+                    <small className="command-item-subtitle">{item.subtitle}</small>
                   </div>
                 </div>
                 <div className="command-item-meta">
-                  <span className="command-item-cat">{cmd.category}</span>
-                  {cmd.shortcut && <kbd className="command-shortcut">{cmd.shortcut}</kbd>}
+                  <span className="command-item-cat">{item.category}</span>
+                  {item.shortcut && <kbd className="command-shortcut">{item.shortcut}</kbd>}
                 </div>
               </button>
             );
           })}
 
           {filtered.length === 0 && (
-            <div className="empty-state">No commands match “{query}”.</div>
+            <div className="empty-state">No instruments or commands match “{query}”.</div>
           )}
         </div>
 
         <div className="command-palette-footer">
           <span>
-            Use <kbd>↑</kbd> <kbd>↓</kbd> to navigate, <kbd>Enter</kbd> to run, <kbd>Esc</kbd> to dismiss
+            Use <kbd>↑</kbd> <kbd>↓</kbd> to navigate, <kbd>Enter</kbd> to select, <kbd>Esc</kbd> to dismiss
           </span>
+          <span className="command-palette-hint">28 INSTRUMENTS LISTED</span>
         </div>
       </div>
     </div>

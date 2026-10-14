@@ -24,7 +24,6 @@ import {
   ArrowUpRight,
   Bell,
   ChevronDown,
-  CircleHelp,
   Command,
   LayoutDashboard,
   Menu,
@@ -35,6 +34,7 @@ import {
   SlidersHorizontal,
   Star,
   Terminal,
+  User,
   Wallet,
   X,
 } from "lucide-react";
@@ -43,6 +43,7 @@ import { InstrumentPickerModal, type StockItem } from "./components/InstrumentPi
 import { PreferencesModal, type TerminalPreferences } from "./components/PreferencesModal";
 import { ProfileMenu } from "./components/ProfileMenu";
 import { MarketsView } from "./components/MarketsView";
+import { AboutMeView } from "./components/AboutMeView";
 import { ActivityView } from "./components/ActivityView";
 import { IdentityPickerModal } from "./components/IdentityPickerModal";
 import { IdentityIcon } from "./components/IdentityIcon";
@@ -410,6 +411,8 @@ function App() {
         ? "/"
         : section === "Your Market"
         ? "/your-market"
+        : section === "About Me"
+        ? "/about"
         : `/${section.toLowerCase()}`;
     navigateTo(targetPath);
     setCurrentPath(targetPath);
@@ -1023,15 +1026,6 @@ function App() {
     }
   };
 
-  const handleTopbarSearch = () => {
-    if (activeSection !== "Overview" && activeSection !== "Markets") {
-      navigateToSection("Overview");
-    }
-    setTimeout(() => {
-      const input = document.getElementById(activeSection === "Markets" ? "markets-view-search" : "market-search");
-      input?.focus();
-    }, 60);
-  };
 
   // If path is unknown, render the cat-themed 404 page
   if (routeInfo.isNotFound) {
@@ -1130,12 +1124,12 @@ function App() {
             <span>Preferences</span>
           </button>
           <button
-            className="nav-item utility-item"
+            className={`nav-item utility-item ${activeSection === "About Me" ? "active" : ""}`}
             type="button"
-            onClick={() => setToast("Help centre & documentation is in development.")}
+            onClick={() => navigateToSection("About Me")}
           >
-            <CircleHelp size={16} />
-            <span>Help &amp; documentation</span>
+            <User size={16} />
+            <span>About Me</span>
           </button>
           <div className="profile-container">
             <button
@@ -1179,7 +1173,14 @@ function App() {
           <div className="breadcrumbs"><span>Workspace</span><span className="crumb-slash">/</span><strong>{activeSection}</strong></div>
           <div className="topbar-actions">
             <div className="session-pill"><span className="status-light" /> SIMULATED SESSION</div>
-            <button className="icon-button" aria-label="Search markets" onClick={handleTopbarSearch}><Search size={17} /></button>
+            <button
+              className="icon-button"
+              aria-label="Search instruments and commands"
+              onClick={() => setCommandPaletteOpen(true)}
+              title="Search instruments & commands (Cmd+K)"
+            >
+              <Search size={17} />
+            </button>
             <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setNotificationsOpen(true)}>
               <Bell size={17} />
               {notifications.some((n) => !n.read) && <i />}
@@ -1204,18 +1205,22 @@ function App() {
           <WorldClocks />
 
           <section className="market-ribbon" aria-label="Market summary">
-            <div className="ribbon-heading"><span className="ribbon-dot" /> MARKET PULSE</div>
-            {marketPulse.map((ind) => (
-              <div className="ribbon-stat" key={ind.id}>
-                <span>{ind.name}</span>
-                <strong>{ind.formattedValue}</strong>
-                <small className={ind.isPositive ? "positive" : "negative"}>
-                  {ind.isPositive ? "+" : "−"}{Math.abs(ind.changePercent).toFixed(2)}%
-                </small>
-                <Sparkline points={ind.sparkline} negative={!ind.isPositive} />
-              </div>
-            ))}
-            <div className="ribbon-footnote">SIMULATED BENCHMARKS <span>·</span> 30M CADENCE <span>·</span> DETERMINISTIC</div>
+            <div className="ribbon-header-cell">
+              <div className="ribbon-heading"><span className="ribbon-dot" /> MARKET PULSE</div>
+              <div className="ribbon-footnote">SIMULATED BENCHMARKS <span>·</span> 30M CADENCE <span>·</span> DETERMINISTIC</div>
+            </div>
+            <div className="ribbon-benchmarks">
+              {marketPulse.map((ind) => (
+                <div className="ribbon-stat" key={ind.id}>
+                  <span>{ind.name}</span>
+                  <strong>{ind.formattedValue}</strong>
+                  <small className={ind.isPositive ? "positive" : "negative"}>
+                    {ind.isPositive ? "+" : "−"}{Math.abs(ind.changePercent).toFixed(2)}%
+                  </small>
+                  <Sparkline points={ind.sparkline} negative={!ind.isPositive} />
+                </div>
+              ))}
+            </div>
           </section>
 
           {activeSection === "Portfolio" ? (
@@ -1229,17 +1234,27 @@ function App() {
               </div>
               <section className="panel portfolio-table-panel">
                 <div className="panel-topline"><div className="panel-label"><span className="panel-index">06</span> YOUR POSITIONS</div>
-                  <button className="subtle-button" onClick={() => {
-                    if (demoUserId) {
-                      setPortfolioLoading(true);
-                      Promise.all([
-                        getPortfolio(demoUserId).then(setPortfolio),
-                        getUser(demoUserId).then(setAccount),
-                      ])
-                        .catch((error: unknown) => setToast(error instanceof Error ? error.message : "Unable to refresh portfolio."))
-                        .finally(() => setPortfolioLoading(false));
-                    }
-                  }}>Refresh <ArrowUpRight size={13} /></button>
+                  <button
+                    className="subtle-button"
+                    onClick={() => {
+                      if (demoUserId) {
+                        setPortfolioLoading(true);
+                        Promise.all([
+                          getPortfolio(demoUserId).then(setPortfolio),
+                          getUser(demoUserId).then(setAccount),
+                        ])
+                          .then(() => setToast("Portfolio and balance updated."))
+                          .catch((error: unknown) => setToast(error instanceof Error ? error.message : "Unable to refresh portfolio."))
+                          .finally(() => setPortfolioLoading(false));
+                      }
+                    }}
+                    disabled={portfolioLoading}
+                    aria-label="Refresh portfolio data"
+                    title="Refresh account holdings & cash"
+                  >
+                    <RefreshCw size={12} className={portfolioLoading ? "animate-spin" : ""} />
+                    <span>Refresh</span>
+                  </button>
                 </div>
                 <div className="portfolio-table">
                   <div className="portfolio-table-head"><span>INSTRUMENT</span><span>TOTAL</span><span>AVAILABLE</span><span>RESERVED</span><span>PRICE</span><span>MARKET VALUE</span></div>
@@ -1285,6 +1300,15 @@ function App() {
                 setPickerMode("BUY");
                 setPickerOpen(true);
               }}
+              onRefresh={async () => {
+                try {
+                  await loadStocks();
+                  setToast("Market reference quotes updated.");
+                } catch (err) {
+                  setToast(err instanceof Error ? err.message : "Failed to refresh market data.");
+                }
+              }}
+              isLoading={stocksLoading}
             />
           ) : activeSection === "Markets" ? (
             <MarketsView
@@ -1295,6 +1319,14 @@ function App() {
               onSelectStock={chooseStock}
               onNavigateToOverview={() => navigateToSection("Overview")}
               onRetry={loadStocks}
+              onRefresh={async () => {
+                try {
+                  await loadStocks();
+                  setToast("Market reference quotes updated.");
+                } catch (err) {
+                  setToast(err instanceof Error ? err.message : "Failed to refresh market data.");
+                }
+              }}
               watchedSymbols={watchedSymbols}
               onToggleWatchSymbol={handleToggleWatchSymbol}
             />
@@ -1308,6 +1340,11 @@ function App() {
                 }
               }}
               isLoading={accountLoading}
+            />
+          ) : activeSection === "About Me" ? (
+            <AboutMeView
+              onNavigateOverview={() => navigateToSection("Overview")}
+              onNavigateMarkets={() => navigateToSection("Markets")}
             />
           ) : (
             <>
@@ -1762,6 +1799,14 @@ function App() {
         onOpenIdentityPicker={() => setIdentityPickerOpen(true)}
         onOpenPreferences={() => setPreferencesOpen(true)}
         onOpenNotifications={() => setNotificationsOpen(true)}
+        stocks={stocks}
+        selectedSymbol={selectedSymbol}
+        onSelectStock={(stock) => {
+          chooseStock(stock);
+          navigateToSection("Overview");
+        }}
+        watchedSymbols={watchedSymbols}
+        onToggleWatchSymbol={handleToggleWatchSymbol}
       />
 
       <OnboardingModal

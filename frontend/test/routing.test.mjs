@@ -70,4 +70,19 @@ test("VALID_APPLICATION_ROUTES covers all primary terminal workspaces", () => {
   assert.ok(sections.includes("Markets"));
   assert.ok(sections.includes("Portfolio"));
   assert.ok(sections.includes("Activity"));
+  assert.ok(sections.includes("About Me"));
+});
+
+test("About Me routes /about and /about-me resolve correctly", () => {
+  assert.equal(isKnownAppPath("/about"), true);
+  assert.equal(isKnownAppPath("/about-me"), true);
+  assert.equal(isKnownAppPath("/ABOUT"), true);
+
+  const aboutRoute = getRouteInfo("/about");
+  assert.equal(aboutRoute.isNotFound, false);
+  assert.equal(aboutRoute.section, "About Me");
+
+  const aboutMeRoute = getRouteInfo("/about-me");
+  assert.equal(aboutMeRoute.isNotFound, false);
+  assert.equal(aboutMeRoute.section, "About Me");
 });

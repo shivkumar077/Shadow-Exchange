@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpRight, Compass, Plus, Search, Star, Trash2, X } from "lucide-react";
+import { ArrowUpRight, Compass, Plus, RefreshCw, Search, Star, Trash2, X } from "lucide-react";
 import { ShadowCat } from "./ShadowCat";
 import type { StockItem } from "./InstrumentPickerModal";
 import { StockIdentity } from "./StockIdentity";
@@ -13,6 +13,8 @@ export interface YourMarketViewProps {
   onSelectStock: (stock: StockItem) => void;
   onNavigateToOverview: () => void;
   onOpenInstrumentPicker: () => void;
+  onRefresh?: () => Promise<void> | void;
+  isLoading?: boolean;
   // Backward compatibility aliases if any existing callers use them
   favoriteSymbols?: string[];
   onToggleFavoriteSymbol?: (symbol: string) => void;
@@ -55,6 +57,8 @@ export function YourMarketView({
   onSelectStock,
   onNavigateToOverview,
   onOpenInstrumentPicker,
+  onRefresh,
+  isLoading,
   favoriteSymbols,
   onToggleFavoriteSymbol,
 }: YourMarketViewProps) {
@@ -65,6 +69,19 @@ export function YourMarketView({
   const [activeTab, setActiveTab] = useState<"watchlist" | "curated">("watchlist");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"symbol" | "price_desc" | "price_asc">("symbol");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (refreshing || isLoading) return;
+    setRefreshing(true);
+    try {
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Symbols to display depending on tab
   const activeSymbolList = activeTab === "watchlist" ? activeFavorites : personalizedSymbols;
@@ -196,6 +213,19 @@ export function YourMarketView({
               >
                 <X size={11} />
                 <span>Reset</span>
+              </button>
+            )}
+            {onRefresh && (
+              <button
+                type="button"
+                className="subtle-button refresh-markets-btn"
+                onClick={handleRefresh}
+                disabled={refreshing || isLoading}
+                title="Refresh market data"
+                aria-label="Refresh market data"
+              >
+                <RefreshCw size={12} className={refreshing || isLoading ? "animate-spin" : ""} />
+                <span>Refresh</span>
               </button>
             )}
             <button

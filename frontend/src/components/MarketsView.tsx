@@ -11,6 +11,7 @@ interface MarketsViewProps {
   onSelectStock: (stock: StockItem) => void;
   onNavigateToOverview: () => void;
   onRetry?: () => void;
+  onRefresh?: () => Promise<void> | void;
   watchedSymbols?: string[];
   onToggleWatchSymbol?: (symbol: string) => void;
 }
@@ -35,11 +36,27 @@ export function MarketsView({
   onSelectStock,
   onNavigateToOverview,
   onRetry,
+  onRefresh,
   watchedSymbols = [],
   onToggleWatchSymbol,
 }: MarketsViewProps) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"symbol" | "price_desc" | "price_asc">("symbol");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (refreshing || stocksLoading) return;
+    setRefreshing(true);
+    try {
+      if (onRefresh) {
+        await onRefresh();
+      } else if (onRetry) {
+        await onRetry();
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const filtered = stocks.filter(
     (s) =>
@@ -146,6 +163,17 @@ export function MarketsView({
                 <span>Reset Filters</span>
               </button>
             )}
+            <button
+              type="button"
+              className="subtle-button refresh-markets-btn"
+              onClick={handleRefresh}
+              disabled={refreshing || stocksLoading}
+              title="Refresh market data"
+              aria-label="Refresh market data"
+            >
+              <RefreshCw size={12} className={refreshing || stocksLoading ? "animate-spin" : ""} />
+              <span>Refresh</span>
+            </button>
           </div>
         </div>
 
