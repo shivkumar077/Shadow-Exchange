@@ -546,7 +546,8 @@ function App() {
     onTrade: handleTradePrint,
   });
 
-  const loadStocks = useCallback(async () => {
+  const loadStocks = useCallback(async (options?: { retryCount?: number }) => {
+    const retryCount = typeof options?.retryCount === "number" ? options.retryCount : 2;
     setStocksLoading(true);
     setStocksError("");
     try {
@@ -571,6 +572,13 @@ function App() {
         setStocksError("The API responded, but there are no instruments in the exchange yet.");
       }
     } catch (error: unknown) {
+      if (retryCount > 0 && isMountedRef.current) {
+        // Backend might be waking up from sleep; retry after 1.5s
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        if (isMountedRef.current) {
+          return loadStocks({ retryCount: retryCount - 1 });
+        }
+      }
       if (isMountedRef.current) {
         setStocksError(error instanceof Error ? error.message : "Unable to connect to the exchange API.");
       }
@@ -623,7 +631,15 @@ function App() {
         try {
           currentAuth = await getAuthStatus();
         } catch {
-          // Server may be spinning up
+          // Server may be spinning up; retry once after short delay
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            if (!cancelled) {
+              currentAuth = await getAuthStatus();
+            }
+          } catch {
+            // Cold start still in progress or unauthenticated
+          }
         }
 
         if (currentAuth && currentAuth.authenticated && currentAuth.id) {
@@ -1617,7 +1633,7 @@ function App() {
                         {stocksError && (
                           <div className="empty-state is-error">
                             <span>{stocksError}</span>
-                            <button type="button" className="subtle-button retry-btn" onClick={loadStocks}>
+                            <button type="button" className="subtle-button retry-btn" onClick={() => void loadStocks()}>
                               <RefreshCw size={13} /> Retry Connection
                             </button>
                           </div>

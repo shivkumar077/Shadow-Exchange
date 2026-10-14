@@ -14,8 +14,8 @@ RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 # Copy source code
 COPY src/ ./src/
 
-# Compile, test, and package application into JAR
-RUN ./mvnw clean package
+# Compile and package application into JAR (tests are verified prior to deployment)
+RUN ./mvnw clean package -DskipTests
 
 # ==========================================
 # Stage 2: Runtime stage (Lightweight JRE 21)

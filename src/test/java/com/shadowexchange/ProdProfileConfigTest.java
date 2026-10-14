@@ -52,6 +52,12 @@ class ProdProfileConfigTest {
                     .isEqualTo("org.hibernate.dialect.PostgreSQLDialect");
             assertThat(environment.getProperty("spring.jpa.show-sql"))
                     .isEqualTo("false");
+            assertThat(environment.getProperty("spring.jpa.hibernate.ddl-auto"))
+                    .isEqualTo("update");
+            assertThat(environment.getProperty("server.forward-headers-strategy"))
+                    .isEqualTo("framework");
+            assertThat(environment.getProperty("server.servlet.session.cookie.same-site"))
+                    .isEqualTo("lax");
 
             // Spring Boot DataSourceProperties binding verification
             DataSourceProperties properties = new DataSourceProperties();
