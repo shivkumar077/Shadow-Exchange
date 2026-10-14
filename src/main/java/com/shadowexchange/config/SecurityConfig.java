@@ -11,8 +11,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
@@ -37,22 +41,19 @@ public class SecurityConfig {
     private final String allowedOrigins;
     private final String frontendUrl;
     private final CustomOidcUserService customOidcUserService;
-    private final ClientRegistrationRepository clientRegistrationRepository;
 
     @Autowired
     public SecurityConfig(
             @Value("${cors.allowed-origins:${CORS_ALLOWED_ORIGINS:http://localhost:5173}}") String allowedOrigins,
             @Value("${app.frontend-url:${APP_FRONTEND_URL:http://localhost:5173}}") String frontendUrl,
-            @Autowired(required = false) CustomOidcUserService customOidcUserService,
-            @Autowired(required = false) ClientRegistrationRepository clientRegistrationRepository) {
+            @Autowired(required = false) CustomOidcUserService customOidcUserService) {
         this.allowedOrigins = allowedOrigins;
         this.frontendUrl = frontendUrl;
         this.customOidcUserService = customOidcUserService;
-        this.clientRegistrationRepository = clientRegistrationRepository;
     }
 
     public SecurityConfig(String allowedOrigins) {
-        this(allowedOrigins, "http://localhost:5173", null, null);
+        this(allowedOrigins, "http://localhost:5173", null);
     }
 
     public SecurityConfig() {
@@ -60,7 +61,32 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @ConditionalOnMissingBean(ClientRegistrationRepository.class)
+    public ClientRegistrationRepository fallbackClientRegistrationRepository(
+            @Value("${spring.security.oauth2.client.registration.google.client-id:${GOOGLE_CLIENT_ID:${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID:mock-google-client-id}}}") String clientId,
+            @Value("${spring.security.oauth2.client.registration.google.client-secret:${GOOGLE_CLIENT_SECRET:${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET:mock-google-client-secret}}}") String clientSecret,
+            @Value("${spring.security.oauth2.client.registration.google.redirect-uri:{baseUrl}/login/oauth2/code/{registrationId}}") String redirectUri) {
+
+        String effectiveClientId = (clientId != null && !clientId.trim().isEmpty()) ? clientId.trim() : "mock-google-client-id";
+        String effectiveClientSecret = (clientSecret != null && !clientSecret.trim().isEmpty()) ? clientSecret.trim() : "mock-google-client-secret";
+
+        ClientRegistration googleRegistration = CommonOAuth2Provider.GOOGLE.getBuilder("google")
+                .clientId(effectiveClientId)
+                .clientSecret(effectiveClientSecret)
+                .redirectUri(redirectUri)
+                .scope("openid", "email", "profile")
+                .build();
+
+        return new InMemoryClientRegistrationRepository(googleRegistration);
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            @Autowired(required = false) ClientRegistrationRepository clientRegistrations) throws Exception {
+
+        ClientRegistrationRepository effectiveRepo = clientRegistrations;
+
         http
                 .cors(cors -> {})
                 // CSRF Protection using standard SPA cookie-to-header pattern
@@ -103,8 +129,9 @@ public class SecurityConfig {
                 // Ensure XSRF-TOKEN cookie is written on every request
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
 
-        if (clientRegistrationRepository != null) {
+        if (effectiveRepo != null) {
             http.oauth2Login(oauth2 -> {
+                oauth2.clientRegistrationRepository(effectiveRepo);
                 if (customOidcUserService != null) {
                     oauth2.userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOidcUserService));
                 }
