@@ -49,13 +49,36 @@ export type AuthStatus = {
 };
 
 export function getApiBaseUrl(): string {
-  const envUrl = import.meta.env?.VITE_API_BASE_URL;
-  if (typeof envUrl === "string") {
-    return envUrl.trim().replace(/\/+$/, "");
+  // When running in the browser on Vercel or any non-localhost host proxying to backend,
+  // we must return "" (relative path) so that all requests (/oauth2, /login, /api, /orders)
+  // use the same browser-visible origin via Vercel rewrites.
+  // This guarantees:
+  // 1. /oauth2/authorization/google starts on the Vercel domain
+  // 2. The JSESSIONID cookie is set as a first-party cookie on the Vercel domain
+  // 3. The OAuth callback at /login/oauth2/code/google includes the JSESSIONID cookie
+  // 4. API calls (/api/auth/me, /orders, etc.) include the session cookie without cross-origin blocking
+  if (typeof window !== "undefined") {
+    const hostname = window.location?.hostname || "";
+    if (hostname.includes("vercel.app") || (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "")) {
+      return "";
+    }
   }
+
+  const envUrl = import.meta.env?.VITE_API_BASE_URL;
+  if (typeof envUrl === "string" && envUrl.trim().length > 0) {
+    const trimmed = envUrl.trim().replace(/\/+$/, "");
+    // If the configured URL is an external Render backend while in a browser,
+    // force relative URL so reverse proxy rewrites are used instead of cross-origin calls.
+    if (typeof window !== "undefined" && (trimmed.includes("onrender.com") || trimmed.includes("render.com"))) {
+      return "";
+    }
+    return trimmed;
+  }
+
   if (import.meta.env?.DEV) {
     return "http://localhost:8080";
   }
+
   return "";
 }
 
@@ -215,8 +238,14 @@ export function resolveWebSocketUrl(apiBase?: string, explicitWs?: string): stri
     }
   }
 
-  // Automatic production resolution when running on Vercel
-  if (typeof window !== "undefined" && window.location?.hostname?.includes("vercel.app")) {
+  // Automatic production resolution when running on Vercel or production domain
+  if (
+    typeof window !== "undefined" &&
+    (window.location?.hostname?.includes("vercel.app") ||
+      (window.location?.hostname !== "localhost" &&
+        window.location?.hostname !== "127.0.0.1" &&
+        window.location?.hostname !== ""))
+  ) {
     return "wss://shadow-exchange-1.onrender.com/ws";
   }
 

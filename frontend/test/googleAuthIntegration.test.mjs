@@ -123,3 +123,56 @@ test("Google Auth Integration: Production WebSocket URL on Vercel origin", () =>
     delete globalThis.window;
   }
 });
+
+test("Google Auth Integration: Same-origin API and OAuth URLs on Vercel deployment", () => {
+  globalThis.window = {
+    location: {
+      hostname: "shadow-exchange-live.vercel.app",
+    },
+  };
+  try {
+    assert.equal(getApiBaseUrl(), "", "getApiBaseUrl() must return relative empty string on Vercel");
+    assert.equal(
+      getGoogleLoginUrl(),
+      "/oauth2/authorization/google",
+      "getGoogleLoginUrl() must be relative so authorization flow begins on the Vercel origin"
+    );
+  } finally {
+    delete globalThis.window;
+  }
+});
+
+test("Google Auth Integration: Prevents cross-origin Render URL leakage in browser", () => {
+  globalThis.window = {
+    location: {
+      hostname: "shadow-exchange-live.vercel.app",
+    },
+  };
+  try {
+    const baseUrl = getApiBaseUrl();
+    assert.equal(baseUrl, "", "Must not return Render URL even if configured in build env");
+    const loginUrl = getGoogleLoginUrl();
+    assert.ok(!loginUrl.includes("onrender.com"), "OAuth login URL must not point directly to Render");
+    assert.equal(loginUrl, "/oauth2/authorization/google");
+  } finally {
+    delete globalThis.window;
+  }
+});
+
+test("Google Auth Integration: Localhost development base URL preserved", () => {
+  globalThis.window = {
+    location: {
+      hostname: "localhost",
+    },
+  };
+  try {
+    const baseUrl = getApiBaseUrl();
+    assert.ok(
+      baseUrl === "" || baseUrl === "http://localhost:8080",
+      `Expected localhost URL or proxy default, got: ${baseUrl}`
+    );
+  } finally {
+    delete globalThis.window;
+  }
+});
+
