@@ -135,3 +135,25 @@ test("Precision diamond + cat-eye cursor: asset files, CSS definitions, and pres
   assert.ok(stylesSource.includes("cursor: not-allowed !important"), "Must preserve not-allowed cursor on disabled elements");
   assert.ok(stylesSource.includes("cursor: auto !important"), "Must preserve auto cursor on coarse touch devices");
 });
+
+test("About Me personal portrait: shiv-profile.jpg asset, alt text, and clean framing styles", () => {
+  const aboutMeFile = fs.readFileSync(path.join(__dirname, "../src/components/AboutMeView.tsx"), "utf-8");
+  const stylesSource = fs.readFileSync(path.join(__dirname, "../src/styles.css"), "utf-8");
+  const portraitPath = path.join(__dirname, "../src/assets/shiv-profile.jpg");
+
+  // Verify personal photo asset exists
+  assert.ok(fs.existsSync(portraitPath), "src/assets/shiv-profile.jpg must exist in assets directory");
+
+  // Verify import in AboutMeView.tsx
+  assert.ok(aboutMeFile.includes('import shivProfileImg from "../assets/shiv-profile.jpg";'), "AboutMeView must import shiv-profile.jpg");
+
+  // Verify image rendering with accessible alt text
+  assert.ok(aboutMeFile.includes('alt="Portrait of Shiv Kumar"'), "Avatar img must specify alt text 'Portrait of Shiv Kumar'");
+  assert.ok(aboutMeFile.includes('className="about-avatar-image"'), "Avatar img must use class 'about-avatar-image'");
+  assert.ok(!aboutMeFile.includes("<User size={38}"), "Must not render default User icon placeholder");
+
+  // Verify styling in styles.css
+  assert.ok(stylesSource.includes(".about-avatar-image {"), "styles.css must style .about-avatar-image");
+  assert.ok(stylesSource.includes("object-fit: cover;"), "Avatar image must specify object-fit: cover");
+  assert.ok(stylesSource.includes("object-position: center 20%;"), "Avatar image must center on face with object-position");
+});

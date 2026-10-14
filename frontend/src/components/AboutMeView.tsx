@@ -14,8 +14,8 @@ import {
   ShieldCheck,
   Terminal,
   Twitter,
-  User,
 } from "lucide-react";
+import shivProfileImg from "../assets/shiv-profile.jpg";
 
 interface AboutMeViewProps {
   onNavigateOverview: () => void;
@@ -36,7 +36,14 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
         <div className="about-hero-grid">
           <div className="about-avatar-col">
             <div className="about-avatar-frame">
-              <User size={38} className="about-avatar-icon" />
+              <img
+                src={shivProfileImg}
+                alt="Portrait of Shiv Kumar"
+                className="about-avatar-image"
+                width={78}
+                height={78}
+                loading="eager"
+              />
               <div className="about-status-indicator" title="Creator active" />
             </div>
             <div className="about-badge">CREATOR &amp; LEAD ENGINEER</div>
