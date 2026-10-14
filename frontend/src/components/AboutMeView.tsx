@@ -24,9 +24,9 @@ interface AboutMeViewProps {
 
 const GITHUB_REPO_URL = "https://github.com/shivkumar077/Shadow-Exchange";
 const GITHUB_PROFILE_URL = "https://github.com/shivkumar077";
-const LINKEDIN_URL = "https://linkedin.com/in/shivkumar077";
-const TWITTER_URL = "https://x.com/shivkumar077";
-const INSTAGRAM_URL = "https://instagram.com/shivkumar077";
+const LINKEDIN_URL = "https://www.linkedin.com/in/shiv-kumar-399a32231/";
+const TWITTER_URL = "https://x.com/nightcore_077";
+const INSTAGRAM_URL = "https://www.instagram.com/nightcore_077/";
 
 export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeViewProps) {
   return (
@@ -45,7 +45,7 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
             <div className="eyebrow">
               <span className="eyebrow-line" /> ENGINEERING DISCIPLINE <span className="eyebrow-index">/ 001</span>
             </div>
-            <h2>Shivkumar</h2>
+            <h2>Shiv Kumar</h2>
             <p className="about-role">Full-Stack &amp; Distributed Systems Engineer · Creator of Shadow Exchange</p>
             <p className="about-bio">
               Engineered Shadow Exchange as an exploration into institutional exchange mechanics: limit order books,
@@ -73,7 +73,7 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
                 target="_blank"
                 rel="noopener noreferrer"
                 className="about-link-pill"
-                aria-label="Shivkumar GitHub Profile (opens in new tab)"
+                aria-label="Shiv Kumar GitHub Profile (opens in new tab)"
                 title="View GitHub profile"
               >
                 <Github size={13} />
@@ -86,8 +86,8 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
                 target="_blank"
                 rel="noopener noreferrer"
                 className="about-link-pill"
-                aria-label="Shivkumar LinkedIn Profile (opens in new tab)"
-                title="View LinkedIn profile (placeholder handle: shivkumar077)"
+                aria-label="Shiv Kumar LinkedIn Profile (opens in new tab)"
+                title="View LinkedIn profile: Shiv Kumar"
               >
                 <Linkedin size={13} />
                 <span>LinkedIn</span>
@@ -99,8 +99,8 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
                 target="_blank"
                 rel="noopener noreferrer"
                 className="about-link-pill"
-                aria-label="Shivkumar Twitter / X Profile (opens in new tab)"
-                title="View X / Twitter profile (placeholder handle: @shivkumar077)"
+                aria-label="Shiv Kumar X / Twitter Profile (opens in new tab)"
+                title="View X / Twitter profile: @nightcore_077"
               >
                 <Twitter size={13} />
                 <span>Twitter / X</span>
@@ -112,8 +112,8 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
                 target="_blank"
                 rel="noopener noreferrer"
                 className="about-link-pill"
-                aria-label="Shivkumar Instagram Profile (opens in new tab)"
-                title="View Instagram profile (placeholder handle: @shivkumar077)"
+                aria-label="Shiv Kumar Instagram Profile (opens in new tab)"
+                title="View Instagram profile: @nightcore_077"
               >
                 <Instagram size={13} />
                 <span>Instagram</span>
@@ -215,7 +215,7 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
                 <Terminal size={15} />
                 <strong>Vanilla CSS Design System</strong>
               </div>
-              <p>Curated dark terminal aesthetic, precision reticle &amp; paw cursors, responsive grid, zero external CSS bloat.</p>
+              <p>Curated dark terminal aesthetic, precision reticle &amp; diamond cat-eye cursors, responsive grid, zero external CSS bloat.</p>
             </div>
           </div>
         </div>

@@ -210,7 +210,9 @@ test("Deliverable 3: Custom cursor defines precision trading reticle and interac
   // Verify SVG data-URI with reticle crosshair and lime green pupil (%23d3f17b)
   assert.ok(stylesSource.includes("%23d3f17b"), "Must use brand signal accent #d3f17b in cursor SVG");
   assert.ok(stylesSource.includes("12 12, crosshair"), "Must use 12 12 hotspot and crosshair fallback");
-  assert.ok(stylesSource.includes("4 4, pointer"), "Must use 4 4 hotspot and pointer fallback for precision paw");
+  assert.ok(stylesSource.includes("12 12, pointer"), "Must use 12 12 hotspot and pointer fallback for precision diamond cat-eye pointer");
+  assert.ok(stylesSource.includes("points='12,3 21,12 12,21 3,12'"), "Must define precision diamond polygon in interactive pointer");
+  assert.ok(!stylesSource.includes("rx='1.6' ry='1.9'"), "Must remove old paw pad prints from interactive cursor");
 
   // Verify interactive elements use var(--cursor-pointer)
   assert.ok(stylesSource.includes("cursor: var(--cursor-pointer)"), "Interactive elements must use var(--cursor-pointer)");

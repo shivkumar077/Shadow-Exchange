@@ -65,15 +65,16 @@ test("Task 3: About Me personal links, preserved sections, and clickable GitHub 
   const aboutMeFile = fs.readFileSync(path.join(__dirname, "../src/components/AboutMeView.tsx"), "utf-8");
 
   // Creator name
-  assert.ok(aboutMeFile.includes("Shivkumar"), "AboutMeView must display creator name Shivkumar");
+  assert.ok(aboutMeFile.includes("<h2>Shiv Kumar</h2>"), "AboutMeView must display creator name as 'Shiv Kumar'");
+  assert.ok(!aboutMeFile.includes("<h2>Shivkumar</h2>"), "AboutMeView must not display unspaced 'Shivkumar'");
 
   // Social & project links are clickable <a> tags
   const expectedLinks = [
     "https://github.com/shivkumar077/Shadow-Exchange",
     "https://github.com/shivkumar077",
-    "https://linkedin.com/in/shivkumar077",
-    "https://x.com/shivkumar077",
-    "https://instagram.com/shivkumar077",
+    "https://www.linkedin.com/in/shiv-kumar-399a32231/",
+    "https://x.com/nightcore_077",
+    "https://www.instagram.com/nightcore_077/",
   ];
   for (const url of expectedLinks) {
     assert.ok(aboutMeFile.includes(url), `AboutMeView must contain link to ${url}`);
@@ -104,4 +105,33 @@ test("Task 3: About Me personal links, preserved sections, and clickable GitHub 
 
   // No file:///C:/ local paths
   assert.ok(!aboutMeFile.includes("file:///"), "Must NOT contain any file:/// local filesystem links");
+});
+
+test("Precision diamond + cat-eye cursor: asset files, CSS definitions, and preserved system cursors", () => {
+  const stylesSource = fs.readFileSync(path.join(__dirname, "../src/styles.css"), "utf-8");
+  const localSvgPath = path.join(__dirname, "../src/assets/cursor-pointer.svg");
+  const publicSvgPath = path.join(__dirname, "../public/cursor-pointer.svg");
+
+  // Verify standalone SVG cursor asset files exist
+  assert.ok(fs.existsSync(localSvgPath), "src/assets/cursor-pointer.svg must exist");
+  assert.ok(fs.existsSync(publicSvgPath), "public/cursor-pointer.svg must exist");
+
+  const localSvg = fs.readFileSync(localSvgPath, "utf-8");
+  assert.ok(localSvg.includes("points=\"12,3 21,12 12,21 3,12\""), "SVG must define diamond outline");
+  assert.ok(localSvg.includes("#d3f17b"), "SVG must use brand signal color #d3f17b");
+  assert.ok(!localSvg.includes("rx=\"1.6\" ry=\"1.9\""), "SVG must NOT contain paw pads");
+
+  // Verify styles.css interactive pointer definitions
+  assert.ok(stylesSource.includes("--cursor-pointer:"), "styles.css must define --cursor-pointer");
+  assert.ok(stylesSource.includes("12 12, pointer"), "Interactive pointer must use 12 12 hotspot and pointer fallback");
+  assert.ok(stylesSource.includes("points='12,3 21,12 12,21 3,12'"), "styles.css pointer must define diamond polygon");
+
+  // Verify default precision reticle crosshair cursor remains intact
+  assert.ok(stylesSource.includes("--cursor-default:"), "styles.css must keep --cursor-default");
+  assert.ok(stylesSource.includes("12 12, crosshair"), "Default cursor must use 12 12 crosshair");
+
+  // Verify standard cursor preservation
+  assert.ok(stylesSource.includes("cursor: text !important"), "Must preserve native text cursor on inputs");
+  assert.ok(stylesSource.includes("cursor: not-allowed !important"), "Must preserve not-allowed cursor on disabled elements");
+  assert.ok(stylesSource.includes("cursor: auto !important"), "Must preserve auto cursor on coarse touch devices");
 });
