@@ -576,6 +576,21 @@ function App() {
     }
   }, []);
 
+  const [refreshingFeatured, setRefreshingFeatured] = useState(false);
+
+  const handleRefreshFeaturedMarket = useCallback(async () => {
+    if (refreshingFeatured || stocksLoading) return;
+    setRefreshingFeatured(true);
+    try {
+      await loadStocks();
+      setToast("Featured market data refreshed (simulated quote).");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Failed to refresh market data.");
+    } finally {
+      setRefreshingFeatured(false);
+    }
+  }, [refreshingFeatured, stocksLoading, loadStocks]);
+
   useEffect(() => {
     void loadStocks();
   }, [loadStocks]);
@@ -1193,35 +1208,49 @@ function App() {
         </header>
 
         <div className="page-content">
-          <section className="page-heading">
-            <div>
-              <div className="eyebrow"><span className="eyebrow-line" /> MARKET INTELLIGENCE <span className="eyebrow-index">/ 001</span></div>
-              <h1>{activeSection === "Overview" ? <>The market,<br /><em>without the noise.</em></> : <>{activeSection}<br /><em>at a glance.</em></>}</h1>
-              <p className="heading-description">A considered view of the market. Every signal, nothing superfluous.</p>
-            </div>
-          </section>
-
-          {/* Live Multi-Timezone Financial Center Clocks */}
-          <WorldClocks />
-
-          <section className="market-ribbon" aria-label="Market summary">
-            <div className="ribbon-header-cell">
-              <div className="ribbon-heading"><span className="ribbon-dot" /> MARKET PULSE</div>
-              <div className="ribbon-footnote">SIMULATED BENCHMARKS <span>·</span> 30M CADENCE <span>·</span> DETERMINISTIC</div>
-            </div>
-            <div className="ribbon-benchmarks">
-              {marketPulse.map((ind) => (
-                <div className="ribbon-stat" key={ind.id}>
-                  <span>{ind.name}</span>
-                  <strong>{ind.formattedValue}</strong>
-                  <small className={ind.isPositive ? "positive" : "negative"}>
-                    {ind.isPositive ? "+" : "−"}{Math.abs(ind.changePercent).toFixed(2)}%
-                  </small>
-                  <Sparkline points={ind.sparkline} negative={!ind.isPositive} />
+          {activeSection !== "About Me" && (
+            <>
+              <section className="page-heading">
+                <div>
+                  <div className="eyebrow"><span className="eyebrow-line" /> MARKET INTELLIGENCE <span className="eyebrow-index">/ 001</span></div>
+                  <h1>{activeSection === "Overview" ? <>The market,<br /><em>without the noise.</em></> : <>{activeSection}<br /><em>at a glance.</em></>}</h1>
+                  <p className="heading-description">A considered view of the market. Every signal, nothing superfluous.</p>
                 </div>
-              ))}
-            </div>
-          </section>
+              </section>
+
+              {/* Live Multi-Timezone Financial Center Clocks */}
+              <WorldClocks />
+
+              <section className="market-ribbon" aria-label="Market summary">
+                <div className="ribbon-header-cell">
+                  <div className="ribbon-heading"><span className="ribbon-dot" /> MARKET PULSE</div>
+                  <div className="ribbon-footnote">
+                    <span>SIMULATED BENCHMARKS</span>
+                    <span className="footnote-separator">·</span>
+                    <span>30M CADENCE</span>
+                    <span className="footnote-separator">·</span>
+                    <span>DETERMINISTIC</span>
+                  </div>
+                </div>
+                <div className="ribbon-benchmarks">
+                  {marketPulse.map((ind) => (
+                    <div className="ribbon-stat" key={ind.id}>
+                      <div className="ribbon-stat-info">
+                        <span className="ribbon-stat-name">{ind.name}</span>
+                        <strong className="ribbon-stat-value">{ind.formattedValue}</strong>
+                        <small className={`ribbon-stat-change ${ind.isPositive ? "positive" : "negative"}`}>
+                          {ind.isPositive ? "+" : "−"}{Math.abs(ind.changePercent).toFixed(2)}%
+                        </small>
+                      </div>
+                      <div className="ribbon-stat-chart">
+                        <Sparkline points={ind.sparkline} negative={!ind.isPositive} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
 
           {activeSection === "Portfolio" ? (
             <section className="portfolio-view">
@@ -1353,7 +1382,17 @@ function App() {
                   <section className="panel featured-panel">
                     <div className="panel-topline">
                       <div className="panel-label"><span className="panel-index">01</span> IN FOCUS</div>
-                      <button className="subtle-button" onClick={() => navigateToSection("Markets")}>All markets <ArrowUpRight size={13} /></button>
+                      <button
+                        type="button"
+                        className="subtle-button refresh-markets-btn"
+                        onClick={handleRefreshFeaturedMarket}
+                        disabled={refreshingFeatured || stocksLoading}
+                        aria-label="Refresh featured market data"
+                        title="Refresh featured market quotes (simulated)"
+                      >
+                        <RefreshCw size={12} className={refreshingFeatured || stocksLoading ? "animate-spin" : ""} />
+                        <span>Refresh</span>
+                      </button>
                     </div>
                     <div className="featured-asset">
                       <div className="asset-identity">
