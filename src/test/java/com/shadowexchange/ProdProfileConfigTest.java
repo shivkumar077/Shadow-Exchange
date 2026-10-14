@@ -181,7 +181,7 @@ class ProdProfileConfigTest {
             assertThat(environment.getProperty("spring.security.oauth2.client.registration.google.client-secret"))
                     .isEqualTo("test-google-client-secret-abcde");
             assertThat(environment.getProperty("spring.security.oauth2.client.registration.google.redirect-uri"))
-                    .isEqualTo("{baseUrl}/login/oauth2/code/{registrationId}");
+                    .isEqualTo("https://shadow-exchange-live.vercel.app/login/oauth2/code/google");
             assertThat(environment.getProperty("app.frontend-url"))
                     .isEqualTo("https://custom-shadow-exchange.vercel.app");
             assertThat(environment.getProperty("server.forward-headers-strategy"))
@@ -194,6 +194,35 @@ class ProdProfileConfigTest {
             System.clearProperty("GOOGLE_CLIENT_SECRET");
             System.clearProperty("APP_FRONTEND_URL");
             System.clearProperty("SERVER_FORWARD_HEADERS_STRATEGY");
+        }
+    }
+
+    @Test
+    @DisplayName("Verify prod profile allows overriding Google redirect-uri via GOOGLE_REDIRECT_URI")
+    void prodProfileAllowsOverridingGoogleRedirectUriViaEnvironmentVariable() {
+        StandardEnvironment environment = new StandardEnvironment();
+        environment.setActiveProfiles("prod");
+
+        System.setProperty("SPRING_DATASOURCE_URL", "jdbc:postgresql://mock:5432/db");
+        System.setProperty("SPRING_DATASOURCE_USERNAME", "mock");
+        System.setProperty("SPRING_DATASOURCE_PASSWORD", "mock");
+        System.setProperty("GOOGLE_REDIRECT_URI", "https://custom-domain.com/login/oauth2/code/google");
+
+        try {
+            ConfigDataEnvironmentPostProcessor.applyTo(
+                    environment,
+                    new DefaultResourceLoader(),
+                    null,
+                    "prod"
+            );
+
+            assertThat(environment.getProperty("spring.security.oauth2.client.registration.google.redirect-uri"))
+                    .isEqualTo("https://custom-domain.com/login/oauth2/code/google");
+        } finally {
+            System.clearProperty("SPRING_DATASOURCE_URL");
+            System.clearProperty("SPRING_DATASOURCE_USERNAME");
+            System.clearProperty("SPRING_DATASOURCE_PASSWORD");
+            System.clearProperty("GOOGLE_REDIRECT_URI");
         }
     }
 }

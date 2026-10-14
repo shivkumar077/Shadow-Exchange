@@ -337,4 +337,19 @@ class SessionIdentityAndTradingAuthorizationTest {
                         .with(asOidcUser(userA)))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("11. OAuth2 Google authorization endpoint redirects to Google accounts with correct parameters")
+    void testGoogleOAuth2AuthorizationEndpointRedirectsCorrectly() throws Exception {
+        MvcResult result = mockMvc.perform(get("/oauth2/authorization/google"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        String location = result.getResponse().getHeader("Location");
+        assertNotNull(location);
+        assertTrue(location.startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
+        assertTrue(location.contains("response_type=code"));
+        assertTrue(location.contains("scope=openid%20email%20profile"));
+        assertTrue(location.contains("redirect_uri="));
+    }
 }

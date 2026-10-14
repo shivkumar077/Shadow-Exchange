@@ -65,7 +65,7 @@ public class SecurityConfig {
     public ClientRegistrationRepository fallbackClientRegistrationRepository(
             @Value("${spring.security.oauth2.client.registration.google.client-id:${GOOGLE_CLIENT_ID:${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID:mock-google-client-id}}}") String clientId,
             @Value("${spring.security.oauth2.client.registration.google.client-secret:${GOOGLE_CLIENT_SECRET:${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET:mock-google-client-secret}}}") String clientSecret,
-            @Value("${spring.security.oauth2.client.registration.google.redirect-uri:{baseUrl}/login/oauth2/code/{registrationId}}") String redirectUri) {
+            @Value("${spring.security.oauth2.client.registration.google.redirect-uri:${GOOGLE_REDIRECT_URI:{baseUrl}/login/oauth2/code/{registrationId}}}") String redirectUri) {
 
         String effectiveClientId = (clientId != null && !clientId.trim().isEmpty()) ? clientId.trim() : "mock-google-client-id";
         String effectiveClientSecret = (clientSecret != null && !clientSecret.trim().isEmpty()) ? clientSecret.trim() : "mock-google-client-secret";
