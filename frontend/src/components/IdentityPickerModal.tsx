@@ -1,6 +1,11 @@
 import { useEffect } from "react";
 import { X, Check } from "lucide-react";
-import { SIGNATURE_IDENTITIES, type SignatureIdentity } from "../identities";
+import {
+  SIGNATURE_IDENTITIES,
+  GOOGLE_AVATAR_ID,
+  createGoogleIdentity,
+  type SignatureIdentity,
+} from "../identities";
 import { IdentityIcon } from "./IdentityIcon";
 
 interface IdentityPickerModalProps {
@@ -8,6 +13,8 @@ interface IdentityPickerModalProps {
   onClose: () => void;
   selectedIdentity: SignatureIdentity;
   onSelectIdentity: (identity: SignatureIdentity) => void;
+  googleAvatarUrl?: string | null;
+  googleUsername?: string | null;
 }
 
 export function IdentityPickerModal({
@@ -15,6 +22,8 @@ export function IdentityPickerModal({
   onClose,
   selectedIdentity,
   onSelectIdentity,
+  googleAvatarUrl,
+  googleUsername,
 }: IdentityPickerModalProps) {
   useEffect(() => {
     if (!isOpen) return;
@@ -27,6 +36,8 @@ export function IdentityPickerModal({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const hasGooglePhoto = Boolean(googleAvatarUrl && googleAvatarUrl.trim().length > 0);
 
   return (
     <div
@@ -59,11 +70,46 @@ export function IdentityPickerModal({
 
         <div className="identity-picker-intro">
           <p>
-            Shadow Exchange does not use profile photographs. Select an original terminal emblem to represent your operator persona across sessions.
+            {hasGooglePhoto
+              ? "Choose your verified Google profile picture or select an original terminal emblem to represent your operator persona across sessions."
+              : "Select an original terminal emblem to represent your operator persona across sessions."}
           </p>
         </div>
 
         <div className="identity-grid" role="listbox" aria-label="Available signature identities">
+          {hasGooglePhoto && (
+            <button
+              type="button"
+              role="option"
+              aria-selected={selectedIdentity.id === GOOGLE_AVATAR_ID}
+              className={`identity-card ${selectedIdentity.id === GOOGLE_AVATAR_ID ? "is-selected" : ""}`}
+              onClick={() => {
+                onSelectIdentity(createGoogleIdentity(googleAvatarUrl!, googleUsername));
+                onClose();
+              }}
+            >
+              <div className="identity-icon-wrap" style={{ backgroundColor: "#4285F415" }}>
+                <img
+                  src={googleAvatarUrl!}
+                  alt={googleUsername || "Google profile picture"}
+                  className="identity-google-picker-img"
+                />
+                {selectedIdentity.id === GOOGLE_AVATAR_ID && (
+                  <span className="identity-check-badge">
+                    <Check size={10} strokeWidth={3} />
+                  </span>
+                )}
+              </div>
+              <div className="identity-card-copy">
+                <div className="identity-card-title-row">
+                  <strong>Google Photo</strong>
+                  <span className="identity-category-pill google-pill">GOOGLE</span>
+                </div>
+                <small>{googleUsername ? `Photo from ${googleUsername}` : "Verified Google photo"}</small>
+              </div>
+            </button>
+          )}
+
           {SIGNATURE_IDENTITIES.map((identity) => {
             const isSelected = identity.id === selectedIdentity.id;
             return (
@@ -99,7 +145,11 @@ export function IdentityPickerModal({
         </div>
 
         <div className="modal-footer">
-          <span>{SIGNATURE_IDENTITIES.length} SIGNATURE EMBLEMS · LOCALLY PERSISTED PER DEMO OPERATOR</span>
+          <span>
+            {hasGooglePhoto
+              ? `GOOGLE PROFILE PHOTO + ${SIGNATURE_IDENTITIES.length} SIGNATURE EMBLEMS · PERSISTED PER OPERATOR`
+              : `${SIGNATURE_IDENTITIES.length} SIGNATURE EMBLEMS · LOCALLY PERSISTED PER DEMO OPERATOR`}
+          </span>
         </div>
       </div>
     </div>

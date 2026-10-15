@@ -31,6 +31,7 @@ class ProdProfileConfigTest {
     @DisplayName("Verify prod profile loads PostgreSQL driver and dialect into DataSourceProperties")
     void prodProfileLoadsPostgresConfigurationAndBindsDataSource() {
         StandardEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
         environment.setActiveProfiles("prod");
 
         // Supply synthetic mock placeholders so environment post-processing succeeds offline
@@ -81,6 +82,7 @@ class ProdProfileConfigTest {
     @DisplayName("Verify prod profile resolves environment-variable placeholders (offline, mock values only)")
     void prodProfileResolvesEnvironmentVariablePlaceholders() {
         StandardEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
         environment.setActiveProfiles("prod");
 
         final String mockUrl = "jdbc:postgresql://dev-db.mock.neon.tech/neondb";
@@ -126,6 +128,7 @@ class ProdProfileConfigTest {
     @DisplayName("Verify default profile loads H2 configuration and binds H2 driver")
     void defaultProfileLoadsH2ConfigurationAndBindsDataSource() {
         StandardEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
         ConfigDataEnvironmentPostProcessor.applyTo(
                 environment,
                 new DefaultResourceLoader(),
@@ -160,6 +163,7 @@ class ProdProfileConfigTest {
     @DisplayName("Verify prod profile resolves Google OAuth and forwarded headers environment variables")
     void prodProfileResolvesGoogleOauthAndForwardedHeadersEnvironmentVariables() {
         StandardEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
         environment.setActiveProfiles("prod");
 
         System.setProperty("SPRING_DATASOURCE_URL", "jdbc:postgresql://mock:5432/db");
@@ -203,6 +207,7 @@ class ProdProfileConfigTest {
     @DisplayName("Verify prod profile allows overriding Google redirect-uri via GOOGLE_REDIRECT_URI")
     void prodProfileAllowsOverridingGoogleRedirectUriViaEnvironmentVariable() {
         StandardEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
         environment.setActiveProfiles("prod");
 
         System.setProperty("SPRING_DATASOURCE_URL", "jdbc:postgresql://mock:5432/db");

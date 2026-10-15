@@ -142,6 +142,9 @@ public class SecurityConfig {
                 oauth2.successHandler((request, response, authentication) -> {
                     SecurityContext context = SecurityContextHolder.getContext();
                     new HttpSessionSecurityContextRepository().saveContext(context, request, response);
+                    if (request.getSession(false) != null) {
+                        request.getSession().setMaxInactiveInterval(7 * 24 * 60 * 60);
+                    }
                     response.sendRedirect(frontendUrl + "/?auth=success");
                 });
                 oauth2.failureHandler((request, response, exception) -> {

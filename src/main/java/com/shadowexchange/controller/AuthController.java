@@ -70,6 +70,8 @@ public class AuthController {
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
+                .sameSite("Lax")
+                .secure(request.isSecure() || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto")))
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
 

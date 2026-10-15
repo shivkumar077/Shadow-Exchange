@@ -3,8 +3,23 @@ export interface SignatureIdentity {
   name: string;
   tagline: string;
   accentColor: string;
-  category: "creature" | "celestial" | "insignia";
+  category: "creature" | "celestial" | "insignia" | "google";
   svgPath: string; // ViewBox 0 0 32 32 SVG inner markup
+  imageUrl?: string;
+}
+
+export const GOOGLE_AVATAR_ID = "google-avatar";
+
+export function createGoogleIdentity(avatarUrl: string, username?: string | null): SignatureIdentity {
+  return {
+    id: GOOGLE_AVATAR_ID,
+    name: username ? `${username} (Google)` : "Google Profile Photo",
+    tagline: "Verified Google Account photo",
+    accentColor: "#4285F4",
+    category: "google",
+    svgPath: "",
+    imageUrl: avatarUrl,
+  };
 }
 
 export const SIGNATURE_IDENTITIES: SignatureIdentity[] = [
@@ -201,12 +216,25 @@ export function assignRandomIdentityForUser(userId: number): SignatureIdentity {
   }
 }
 
-export function getStoredIdentity(userId?: number | null): SignatureIdentity {
+export function getStoredIdentity(
+  userId?: number | null,
+  googleAvatarUrl?: string | null,
+  googleUsername?: string | null
+): SignatureIdentity {
   try {
     const key = getStorageKey(userId);
     const stored = window.localStorage.getItem(key);
+    if (stored === GOOGLE_AVATAR_ID) {
+      if (googleAvatarUrl) {
+        return createGoogleIdentity(googleAvatarUrl, googleUsername);
+      }
+      return getDefaultIdentity();
+    }
     if (stored) {
       return getIdentity(stored);
+    }
+    if (googleAvatarUrl) {
+      return createGoogleIdentity(googleAvatarUrl, googleUsername);
     }
     return getDefaultIdentity();
   } catch {

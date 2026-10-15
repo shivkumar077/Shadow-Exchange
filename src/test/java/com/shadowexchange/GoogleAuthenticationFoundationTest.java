@@ -5,6 +5,8 @@ import com.shadowexchange.entity.AuthProvider;
 import com.shadowexchange.entity.Holding;
 import com.shadowexchange.entity.User;
 import com.shadowexchange.repository.HoldingRepository;
+import com.shadowexchange.repository.OrderRepository;
+import com.shadowexchange.repository.TradeRepository;
 import com.shadowexchange.repository.UserRepository;
 import com.shadowexchange.security.CustomOidcUser;
 import com.shadowexchange.service.GoogleAccountProvisioningService;
@@ -43,10 +45,18 @@ class GoogleAuthenticationFoundationTest {
     private HoldingRepository holdingRepository;
 
     @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private TradeRepository tradeRepository;
+
+    @Autowired
     private UserService userService;
 
     @BeforeEach
     void setUp() {
+        tradeRepository.deleteAll();
+        orderRepository.deleteAll();
         holdingRepository.deleteAll();
         userRepository.deleteAll();
     }

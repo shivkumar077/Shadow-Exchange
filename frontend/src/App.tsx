@@ -51,6 +51,7 @@ import { AboutMeView } from "./components/AboutMeView";
 import { ActivityView } from "./components/ActivityView";
 import { IdentityPickerModal } from "./components/IdentityPickerModal";
 import { IdentityIcon } from "./components/IdentityIcon";
+import { LoginPage } from "./components/LoginPage";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { assignRandomIdentityForUser, getStoredIdentity, saveStoredIdentity, type SignatureIdentity } from "./identities";
 import { getRouteInfo, navigateTo } from "./router";
@@ -175,17 +176,9 @@ function App() {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [stocksLoading, setStocksLoading] = useState(true);
   const [stocksError, setStocksError] = useState("");
-  const [demoUserId, setDemoUserId] = useState<number | null>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const stored = window.localStorage.getItem("shadow-exchange-demo-user-id-v2");
-        if (stored && /^\d+$/.test(stored)) {
-          return Number(stored);
-        }
-      }
-    } catch {}
-    return null;
-  });
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [demoUserId, setDemoUserId] = useState<number | null>(null);
   const [accountLoading, setAccountLoading] = useState(true);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
@@ -221,7 +214,11 @@ function App() {
   const [identity, setIdentity] = useState<SignatureIdentity>(() => getStoredIdentity(demoUserId));
 
   useEffect(() => {
-    setIdentity(getStoredIdentity(demoUserId));
+    if (authStatus?.authProvider === "GOOGLE") {
+      setIdentity(getStoredIdentity(demoUserId, authStatus.avatarUrl, authStatus.username));
+    } else {
+      setIdentity(getStoredIdentity(demoUserId));
+    }
     setNotifications(loadUserNotifications(demoUserId));
     setWatchedSymbols(loadUserWatchlist(demoUserId));
     setPersonalizedSymbols(loadPersonalizedMarket(demoUserId));
@@ -231,7 +228,7 @@ function App() {
       setWatchedSymbols(symbols);
     });
     return unsubscribe;
-  }, [demoUserId]);
+  }, [demoUserId, authStatus?.avatarUrl, authStatus?.username, authStatus?.authProvider]);
 
   // Auto-dismiss ordinary bottom-right toasts after approximately 6 seconds with cleanup
   useEffect(() => {
@@ -647,6 +644,7 @@ function App() {
             window.localStorage.setItem("shadow-exchange-demo-user-id-v2", String(currentAuth.id));
             setAuthStatus(currentAuth);
             setDemoUserId(currentAuth.id);
+            setIdentity(getStoredIdentity(currentAuth.id, currentAuth.avatarUrl, currentAuth.username));
             setAccount({
               id: currentAuth.id,
               username: currentAuth.username || "Operator",
@@ -669,40 +667,22 @@ function App() {
           return;
         }
 
-        // 2. No active session exists: establish fresh anonymous demo session with server binding
-        const newUser = await createDemoUser();
+        // 2. Unauthenticated visitor: show login screen without forcing demo session
         if (!cancelled) {
-          window.localStorage.setItem("shadow-exchange-demo-user-id-v2", String(newUser.id));
-          assignRandomIdentityForUser(newUser.id);
-          setDemoUserId(newUser.id);
-          setAccount(newUser);
-          setAuthStatus({
-            authenticated: true,
-            id: newUser.id,
-            username: newUser.username,
-            email: newUser.email,
-            isDemo: true,
-            authProvider: "LOCAL_DEMO",
-            balance: newUser.balance,
-            reservedBalance: newUser.reservedBalance,
-          });
-          if (!window.localStorage.getItem(`shadow_onboarded_user_${newUser.id}`)) {
-            setOnboardingOpen(true);
-            window.localStorage.setItem(`shadow_onboarded_user_${newUser.id}`, "true");
-          }
-          const [savedOrders, userHoldings] = await Promise.all([
-            getOrders(newUser.id).catch(() => []),
-            getPortfolio(newUser.id).catch(() => []),
-          ]);
-          if (!cancelled) {
-            setRawOrders(savedOrders);
-            setPortfolio(userHoldings);
-          }
+          setAuthStatus(null);
+          setDemoUserId(null);
+          setAccount(null);
         }
       } catch (error) {
-        if (!cancelled) setToast(error instanceof Error ? `Session unavailable: ${error.message}` : "Session unavailable.");
+        if (!cancelled) {
+          const errMsg = error instanceof Error ? error.message : "Session unavailable.";
+          setAuthError(errMsg);
+        }
       } finally {
-        if (!cancelled) setAccountLoading(false);
+        if (!cancelled) {
+          setAuthLoading(false);
+          setAccountLoading(false);
+        }
       }
     }
     void initSession();
@@ -753,29 +733,15 @@ function App() {
     setAccountLoading(true);
     try {
       await logout().catch((err) => console.warn("Backend session logout notice:", err));
-      setToast("Signed out. Switching to anonymous demo session…");
-      const demoUser = await createDemoUser();
-      window.localStorage.setItem("shadow-exchange-demo-user-id-v2", String(demoUser.id));
-      assignRandomIdentityForUser(demoUser.id);
-      setDemoUserId(demoUser.id);
-      setAccount(demoUser);
-      setAuthStatus({
-        authenticated: true,
-        id: demoUser.id,
-        username: demoUser.username,
-        email: demoUser.email,
-        isDemo: true,
-        authProvider: "LOCAL_DEMO",
-        balance: demoUser.balance,
-        reservedBalance: demoUser.reservedBalance,
-      });
-      const [savedOrders, userHoldings] = await Promise.all([
-        getOrders(demoUser.id).catch(() => []),
-        getPortfolio(demoUser.id).catch(() => []),
-      ]);
-      setRawOrders(savedOrders);
-      setPortfolio(userHoldings);
-      setToast("Signed out successfully. Active as anonymous demo operator.");
+      try {
+        window.localStorage.removeItem("shadow-exchange-demo-user-id-v2");
+      } catch {}
+      setAuthStatus(null);
+      setDemoUserId(null);
+      setAccount(null);
+      setRawOrders([]);
+      setPortfolio([]);
+      setToast("Signed out of session.");
     } catch (err) {
       setToast(err instanceof Error ? `Logout failed: ${err.message}` : "Logout failed.");
     } finally {
@@ -1183,6 +1149,40 @@ function App() {
     { label: "Activity", icon: Activity },
   ];
 
+  if (authLoading) {
+    return (
+      <div className="terminal-boot-screen" role="status" aria-label="Verifying terminal session">
+        <div className="boot-terminal-card">
+          <ShadowCat expression="neutral" size={38} interactive={false} />
+          <div className="boot-text">
+            <strong>SHADOW EXCHANGE</strong>
+            <small>VERIFYING SECURE TERMINAL SESSION…</small>
+          </div>
+          <div className="boot-progress-bar">
+            <div className="boot-progress-fill" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authStatus?.authenticated) {
+    return (
+      <>
+        <LoginPage
+          onGoogleSignIn={handleGoogleSignIn}
+          onExploreDemo={handleSwitchNewDemoUser}
+          authError={authError}
+        />
+        {toast && (
+          <div className="app-toast-container" role="status" aria-live="polite">
+            <div className="app-toast">{toast}</div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className={`app-shell ${preferences.density === "compact" ? "density-compact" : ""} ${preferences.personalityMode === "extreme" ? "extreme-mode" : ""}`}>
       {mobileNavOpen && (
@@ -1281,8 +1281,8 @@ function App() {
                 className="profile-avatar identity-sidebar-avatar"
                 style={{ borderColor: authStatus?.authProvider === "GOOGLE" ? "var(--signal)" : identity.accentColor }}
               >
-                {authStatus?.authProvider === "GOOGLE" && authStatus.avatarUrl ? (
-                  <img src={authStatus.avatarUrl} alt="Google avatar" className="profile-google-avatar-img" />
+                {identity.imageUrl ? (
+                  <img src={identity.imageUrl} alt={identity.name} className="profile-google-avatar-img" />
                 ) : (
                   <IdentityIcon identity={identity} size={18} />
                 )}
@@ -1937,6 +1937,8 @@ function App() {
         onClose={() => setIdentityPickerOpen(false)}
         selectedIdentity={identity}
         onSelectIdentity={handleSelectIdentity}
+        googleAvatarUrl={authStatus?.authProvider === "GOOGLE" ? authStatus.avatarUrl : null}
+        googleUsername={authStatus?.username}
       />
 
       <PreferencesModal

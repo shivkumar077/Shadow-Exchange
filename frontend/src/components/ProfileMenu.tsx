@@ -95,7 +95,6 @@ export function ProfileMenu({
   const isGoogle = Boolean(authStatus?.authenticated && authStatus.authProvider === "GOOGLE");
   const displayName = isGoogle && authStatus?.username ? authStatus.username : identity.name;
   const displayEmail = authStatus?.email || account?.email || `operator-${demoUserId ?? "none"}@shadow.test`;
-  const avatarUrl = isGoogle && authStatus?.avatarUrl ? authStatus.avatarUrl : null;
 
   const handleCopyId = () => {
     if (!demoUserId) return;
@@ -122,9 +121,9 @@ export function ProfileMenu({
           className="profile-avatar-lg"
           style={{ borderColor: isGoogle ? "var(--signal)" : identity.accentColor }}
         >
-          {avatarUrl && !avatarError ? (
+          {identity.imageUrl && !avatarError ? (
             <img
-              src={avatarUrl}
+              src={identity.imageUrl}
               alt={displayName}
               className="profile-google-avatar-img"
               onError={() => setAvatarError(true)}
