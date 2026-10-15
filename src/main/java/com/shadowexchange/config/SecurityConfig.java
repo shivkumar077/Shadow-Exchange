@@ -3,14 +3,17 @@ package com.shadowexchange.config;
 import com.shadowexchange.security.CustomOidcUserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
@@ -116,6 +119,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public read-only market data and auth probes
                         .requestMatchers(HttpMethod.GET, "/api/stocks/**", "/orders/book/**", "/api/auth/me").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/suto/status").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/demo").permitAll()
                         .requestMatchers("/ws/**", "/oauth2/**", "/login/oauth2/**").permitAll()
 
@@ -126,6 +130,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/users/*/portfolio").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/*").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+                        .requestMatchers("/api/suto/content").authenticated()
 
                         .anyRequest().permitAll()
                 )
@@ -145,7 +150,27 @@ public class SecurityConfig {
                     if (request.getSession(false) != null) {
                         request.getSession().setMaxInactiveInterval(7 * 24 * 60 * 60);
                     }
-                    response.sendRedirect(frontendUrl + "/?auth=success");
+
+                    String redirectPath = "/?auth=success";
+                    if (request.getCookies() != null) {
+                        for (Cookie cookie : request.getCookies()) {
+                            if ("OAUTH_REDIRECT_PATH".equals(cookie.getName())) {
+                                String val = cookie.getValue();
+                                if ("/suto".equalsIgnoreCase(val) || "suto".equalsIgnoreCase(val)) {
+                                    redirectPath = "/suto?auth=success";
+                                }
+                                ResponseCookie clearCookie = ResponseCookie.from("OAUTH_REDIRECT_PATH", "")
+                                        .path("/")
+                                        .maxAge(0)
+                                        .httpOnly(false)
+                                        .sameSite("Lax")
+                                        .build();
+                                response.addHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
+                                break;
+                            }
+                        }
+                    }
+                    response.sendRedirect(frontendUrl + redirectPath);
                 });
                 oauth2.failureHandler((request, response, exception) -> {
                     String errorMsg = exception != null && exception.getMessage() != null

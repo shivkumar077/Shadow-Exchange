@@ -53,8 +53,9 @@ import { IdentityPickerModal } from "./components/IdentityPickerModal";
 import { IdentityIcon } from "./components/IdentityIcon";
 import { LoginPage } from "./components/LoginPage";
 import { NotFoundPage } from "./components/NotFoundPage";
+import { SutoExperience } from "./components/SutoExperience";
 import { assignRandomIdentityForUser, getStoredIdentity, saveStoredIdentity, type SignatureIdentity } from "./identities";
-import { getRouteInfo, navigateTo } from "./router";
+import { getRouteInfo, isSutoRoute, navigateTo } from "./router";
 import { DEFAULT_CHART_POINTS, getChartPoints } from "./stockCharts";
 import { ShadowCat } from "./components/ShadowCat";
 import { getChartHistory, type ChartTimeframe, type ChartTimeframeData } from "./chartHistory";
@@ -615,6 +616,12 @@ function App() {
           const authParam = params.get("auth");
           if (authParam === "success") {
             authRedirectSuccess = true;
+            const returnToSuto = window.sessionStorage?.getItem("suto_auth_return") === "true";
+            if (returnToSuto) {
+              window.sessionStorage?.removeItem("suto_auth_return");
+              navigateTo("/suto");
+              setCurrentPath("/suto");
+            }
             window.history.replaceState({}, document.title, window.location.pathname);
           } else if (authParam === "error") {
             const errorMsg = params.get("message") || "Authentication failed";
@@ -1129,6 +1136,11 @@ function App() {
     }
   };
 
+
+  // Dedicated private romantic experience at /suto
+  if (isSutoRoute(currentPath) || routeInfo.section === "Suto") {
+    return <SutoExperience />;
+  }
 
   // If path is unknown, render the cat-themed 404 page
   if (routeInfo.isNotFound) {

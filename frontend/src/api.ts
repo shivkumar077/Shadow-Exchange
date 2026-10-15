@@ -347,3 +347,41 @@ export function isSellableStock(
   const holding = holdings.find((h) => h.stockId === stock.id || h.symbol === stock.symbol);
   return computeSellableShares(holding) > 0;
 }
+
+export interface SutoStatus {
+  authenticated: boolean;
+  authorized: boolean;
+  recipientName?: string | null;
+}
+
+export interface SutoLetterSection {
+  id: string;
+  title: string;
+  content: string;
+}
+
+export interface SutoContent {
+  authorized: boolean;
+  recipientName: string;
+  welcomeMessage: string;
+  letterSections: SutoLetterSection[];
+}
+
+export async function getSutoStatus(): Promise<SutoStatus> {
+  return request<SutoStatus>("/api/suto/status");
+}
+
+export async function getSutoContent(): Promise<SutoContent> {
+  return request<SutoContent>("/api/suto/content");
+}
+
+export function initiateSutoGoogleSignIn(): void {
+  if (typeof document !== "undefined") {
+    document.cookie = "OAUTH_REDIRECT_PATH=/suto; path=/; max-age=600; SameSite=Lax";
+  }
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    window.sessionStorage.setItem("suto_auth_return", "true");
+  }
+  window.location.href = getGoogleLoginUrl();
+}
+

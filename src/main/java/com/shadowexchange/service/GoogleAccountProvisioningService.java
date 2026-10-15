@@ -91,6 +91,10 @@ public class GoogleAccountProvisioningService {
             // Update email only if verified by Google and different
             if (Boolean.TRUE.equals(emailVerified) && email != null && !email.isBlank() && !email.equalsIgnoreCase(user.getEmail())) {
                 user.setEmail(email);
+                user.setEmailVerified(true);
+                updated = true;
+            } else if (Boolean.TRUE.equals(emailVerified) && !Boolean.TRUE.equals(user.getEmailVerified())) {
+                user.setEmailVerified(true);
                 updated = true;
             }
             if (updated) {
@@ -122,6 +126,7 @@ public class GoogleAccountProvisioningService {
         String displayName = (name != null && !name.isBlank()) ? name : (email != null ? email : "Google Operator");
         newUser.setUsername(displayName);
         newUser.setEmail(Boolean.TRUE.equals(emailVerified) ? email : null);
+        newUser.setEmailVerified(Boolean.TRUE.equals(emailVerified));
         newUser.setPassword(null); // No local password for Google OIDC users
         newUser.setBalance(STARTING_GOOGLE_BALANCE);
         newUser.setReservedBalance(BigDecimal.ZERO);

@@ -38,6 +38,9 @@ public class User {
     @Column(name = "is_demo", nullable = false)
     private Boolean isDemo = false;
 
+    @Column(name = "email_verified")
+    private Boolean emailVerified = false;
+
     public User() {
     }
 
@@ -119,6 +122,14 @@ public class User {
 
     public void setIsDemo(Boolean isDemo) {
         this.isDemo = isDemo != null && isDemo;
+    }
+
+    public Boolean getEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = Boolean.TRUE.equals(emailVerified);
     }
 }
 

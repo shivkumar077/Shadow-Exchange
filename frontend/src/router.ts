@@ -14,7 +14,12 @@ export const VALID_APPLICATION_ROUTES: Record<string, string> = {
   "/activity": "Activity",
   "/about": "About Me",
   "/about-me": "About Me",
+  "/suto": "Suto",
 };
+
+export function isSutoRoute(pathname: string): boolean {
+  return normalizePath(pathname) === "/suto";
+}
 
 export function normalizePath(pathname: string): string {
   if (!pathname || pathname.trim() === "") return "/";
