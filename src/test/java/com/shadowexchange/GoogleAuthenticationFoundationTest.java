@@ -1,8 +1,11 @@
 package com.shadowexchange;
 
+import com.shadowexchange.dto.OrderRequestDTO;
+import com.shadowexchange.dto.OrderResponseDTO;
 import com.shadowexchange.dto.UserResponse;
 import com.shadowexchange.entity.AuthProvider;
 import com.shadowexchange.entity.Holding;
+import com.shadowexchange.entity.OrderType;
 import com.shadowexchange.entity.User;
 import com.shadowexchange.repository.HoldingRepository;
 import com.shadowexchange.repository.OrderRepository;
@@ -10,6 +13,7 @@ import com.shadowexchange.repository.TradeRepository;
 import com.shadowexchange.repository.UserRepository;
 import com.shadowexchange.security.CustomOidcUser;
 import com.shadowexchange.service.GoogleAccountProvisioningService;
+import com.shadowexchange.service.OrderService;
 import com.shadowexchange.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,6 +57,9 @@ class GoogleAuthenticationFoundationTest {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private OrderService orderService;
+
     @BeforeEach
     void setUp() {
         tradeRepository.deleteAll();
@@ -62,8 +69,8 @@ class GoogleAuthenticationFoundationTest {
     }
 
     @Test
-    @DisplayName("Creating a new Google-linked user provisions exact $10,000 cash and no stock holdings")
-    void testCreateNewGoogleUserWithCorrectBalanceAndNoHoldings() {
+    @DisplayName("Creating a new Google-linked user provisions exact $10,000 cash and random starter holdings")
+    void testCreateNewGoogleUserWithCorrectBalanceAndStarterHoldings() {
         String sub = "google-sub-10001";
         String email = "trader.operator@gmail.com";
         String name = "Alex Mercer";
@@ -89,14 +96,31 @@ class GoogleAuthenticationFoundationTest {
         assertEquals(picture, user.getAvatarUrl());
         assertFalse(user.getIsDemo(), "Google-authenticated user must not be flagged as demo");
 
-        // Verify no preloaded stock holdings were added to new Google account
-        List<Holding> holdings = holdingRepository.findAll();
-        boolean hasHoldingsForUser = holdings.stream().anyMatch(h -> h.getUser().getId().equals(user.getId()));
-        assertFalse(hasHoldingsForUser, "New Google users must have clean, empty holdings");
+        // Verify starter stock holdings were granted from existing catalogue
+        List<Holding> userHoldings = holdingRepository.findAll().stream()
+                .filter(h -> h.getUser().getId().equals(user.getId()))
+                .toList();
+
+        assertFalse(userHoldings.isEmpty(), "New Google users must receive starter stock holdings");
+        assertTrue(userHoldings.size() >= GoogleAccountProvisioningService.MIN_GOOGLE_STARTER_HOLDINGS,
+                "Holdings count should be >= " + GoogleAccountProvisioningService.MIN_GOOGLE_STARTER_HOLDINGS);
+        assertTrue(userHoldings.size() <= GoogleAccountProvisioningService.MAX_GOOGLE_STARTER_HOLDINGS,
+                "Holdings count should be <= " + GoogleAccountProvisioningService.MAX_GOOGLE_STARTER_HOLDINGS);
+
+        for (Holding h : userHoldings) {
+            assertNotNull(h.getStock(), "Holding must reference a valid stock");
+            assertTrue(h.getQuantity() >= GoogleAccountProvisioningService.MIN_GOOGLE_STARTER_QUANTITY,
+                    "Holding quantity must be >= " + GoogleAccountProvisioningService.MIN_GOOGLE_STARTER_QUANTITY);
+            assertTrue(h.getQuantity() <= GoogleAccountProvisioningService.MAX_GOOGLE_STARTER_QUANTITY,
+                    "Holding quantity must be <= " + GoogleAccountProvisioningService.MAX_GOOGLE_STARTER_QUANTITY);
+            assertEquals(0, h.getReservedQuantity(), "Reserved quantity must start at 0");
+            int availableShares = h.getQuantity() - h.getReservedQuantity();
+            assertTrue(availableShares > 0, "Available shares must be greater than zero");
+        }
     }
 
     @Test
-    @DisplayName("Finding an existing user by Google provider subject returns existing record without duplicating")
+    @DisplayName("Finding an existing user by Google provider subject returns existing record without duplicating users or holdings")
     void testFindExistingUserByProviderSubject() {
         String sub = "google-sub-20002";
         User firstLogin = provisioningService.provisionOrUpdateGoogleUser(
@@ -108,6 +132,10 @@ class GoogleAuthenticationFoundationTest {
         );
 
         long initialUserCount = userRepository.count();
+        List<Holding> initialHoldings = holdingRepository.findAll().stream()
+                .filter(h -> h.getUser().getId().equals(firstLogin.getId()))
+                .toList();
+        assertFalse(initialHoldings.isEmpty(), "User should have starter holdings after first login");
 
         // Second login with identical provider subject
         User secondLogin = provisioningService.provisionOrUpdateGoogleUser(
@@ -120,6 +148,53 @@ class GoogleAuthenticationFoundationTest {
 
         assertEquals(firstLogin.getId(), secondLogin.getId(), "Must return the exact same user ID");
         assertEquals(initialUserCount, userRepository.count(), "User count in database must not increase on repeated login");
+
+        List<Holding> subsequentHoldings = holdingRepository.findAll().stream()
+                .filter(h -> h.getUser().getId().equals(secondLogin.getId()))
+                .toList();
+        assertEquals(initialHoldings.size(), subsequentHoldings.size(), "Holdings count must not duplicate on repeated login");
+    }
+
+    @Test
+    @DisplayName("Starter holdings allow Google users to place sell orders immediately")
+    void testStarterHoldingsAllowPlacingSellOrdersImmediately() {
+        String sub = "google-sub-50005";
+        User user = provisioningService.provisionOrUpdateGoogleUser(
+                sub,
+                "seller.operator@gmail.com",
+                true,
+                "Seller Operator",
+                "https://lh3.googleusercontent.com/pic-5"
+        );
+
+        List<Holding> userHoldings = holdingRepository.findAll().stream()
+                .filter(h -> h.getUser().getId().equals(user.getId()))
+                .toList();
+
+        assertFalse(userHoldings.isEmpty(), "Google user must have starter holdings");
+        Holding firstHolding = userHoldings.get(0);
+        int sellQuantity = Math.min(2, firstHolding.getQuantity());
+
+        OrderRequestDTO sellOrder = new OrderRequestDTO();
+        sellOrder.setUserId(user.getId());
+        sellOrder.setStockId(firstHolding.getStock().getId());
+        sellOrder.setType(OrderType.SELL);
+        sellOrder.setPrice(new BigDecimal("150.00"));
+        sellOrder.setQuantity(sellQuantity);
+
+        OrderResponseDTO response = orderService.createOrder(sellOrder);
+
+        assertNotNull(response);
+        assertNotNull(response.getId());
+        assertEquals(user.getId(), response.getUserId());
+        assertEquals(firstHolding.getStock().getId(), response.getStockId());
+        assertEquals(OrderType.SELL, response.getType());
+        assertEquals(sellQuantity, response.getQuantity());
+
+        // Verify holding reserved quantity was updated
+        Holding updatedHolding = holdingRepository.findById(firstHolding.getId()).orElseThrow();
+        assertEquals(sellQuantity, updatedHolding.getReservedQuantity());
+        assertEquals(firstHolding.getQuantity() - sellQuantity, updatedHolding.getQuantity() - updatedHolding.getReservedQuantity());
     }
 
     @Test

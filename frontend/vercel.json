@@ -5,6 +5,10 @@
       "destination": "https://shadow-exchange-1.onrender.com/api/$1"
     },
     {
+      "source": "/orders",
+      "destination": "https://shadow-exchange-1.onrender.com/orders"
+    },
+    {
       "source": "/orders/(.*)",
       "destination": "https://shadow-exchange-1.onrender.com/orders/$1"
     },

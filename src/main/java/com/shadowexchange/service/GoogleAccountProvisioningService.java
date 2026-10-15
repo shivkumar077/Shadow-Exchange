@@ -1,7 +1,11 @@
 package com.shadowexchange.service;
 
 import com.shadowexchange.entity.AuthProvider;
+import com.shadowexchange.entity.Holding;
+import com.shadowexchange.entity.Stock;
 import com.shadowexchange.entity.User;
+import com.shadowexchange.repository.HoldingRepository;
+import com.shadowexchange.repository.StockRepository;
 import com.shadowexchange.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,18 +15,33 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class GoogleAccountProvisioningService {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleAccountProvisioningService.class);
     public static final BigDecimal STARTING_GOOGLE_BALANCE = new BigDecimal("10000.00");
+    public static final int MIN_GOOGLE_STARTER_HOLDINGS = 2;
+    public static final int MAX_GOOGLE_STARTER_HOLDINGS = 5;
+    public static final int MIN_GOOGLE_STARTER_QUANTITY = 5;
+    public static final int MAX_GOOGLE_STARTER_QUANTITY = 30;
 
     private final UserRepository userRepository;
+    private final StockRepository stockRepository;
+    private final HoldingRepository holdingRepository;
 
-    public GoogleAccountProvisioningService(UserRepository userRepository) {
+    public GoogleAccountProvisioningService(
+            UserRepository userRepository,
+            StockRepository stockRepository,
+            HoldingRepository holdingRepository) {
         this.userRepository = userRepository;
+        this.stockRepository = stockRepository;
+        this.holdingRepository = holdingRepository;
     }
 
     /**
@@ -97,7 +116,7 @@ public class GoogleAccountProvisioningService {
         }
 
         // 3. New User Provisioning:
-        // Real Google-authenticated account starts with $10,000 virtual cash and zero preloaded stock holdings.
+        // Real Google-authenticated account starts with $10,000 virtual cash and starter stock portfolio.
         log.info("Provisioning new Google user: sub={}, email={}", sub, email);
         User newUser = new User();
         String displayName = (name != null && !name.isBlank()) ? name : (email != null ? email : "Google Operator");
@@ -111,6 +130,23 @@ public class GoogleAccountProvisioningService {
         newUser.setAvatarUrl(pictureUrl);
         newUser.setIsDemo(false);
 
-        return userRepository.save(newUser);
+        User savedUser = userRepository.save(newUser);
+
+        List<Stock> allStocks = stockRepository.findAll();
+        if (!allStocks.isEmpty()) {
+            List<Stock> shuffled = new ArrayList<>(allStocks);
+            Collections.shuffle(shuffled);
+            int targetHoldingsCount = Math.min(
+                    shuffled.size(),
+                    ThreadLocalRandom.current().nextInt(MIN_GOOGLE_STARTER_HOLDINGS, MAX_GOOGLE_STARTER_HOLDINGS + 1)
+            );
+            for (int i = 0; i < targetHoldingsCount; i++) {
+                Stock stock = shuffled.get(i);
+                int quantity = ThreadLocalRandom.current().nextInt(MIN_GOOGLE_STARTER_QUANTITY, MAX_GOOGLE_STARTER_QUANTITY + 1);
+                holdingRepository.save(new Holding(savedUser, stock, quantity));
+            }
+        }
+
+        return savedUser;
     }
 }

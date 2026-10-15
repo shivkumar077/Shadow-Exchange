@@ -23,6 +23,7 @@ test("Google Auth Integration: Vercel rewrites proxy all required backend routes
 
   // Must proxy /api, /orders, /oauth2, /login to Render backend
   assert.ok(sources.includes("/api/(.*)"), "Must rewrite /api/(.*)");
+  assert.ok(sources.includes("/orders"), "Must rewrite exact /orders to prevent SPA 405 Method Not Allowed");
   assert.ok(sources.includes("/orders/(.*)"), "Must rewrite /orders/(.*)");
   assert.ok(sources.includes("/oauth2/(.*)"), "Must rewrite /oauth2/(.*)");
   assert.ok(sources.includes("/login/(.*)"), "Must rewrite /login/(.*)");
@@ -35,6 +36,11 @@ test("Google Auth Integration: Vercel rewrites proxy all required backend routes
   assert.ok(
     destinations.some((d) => d.startsWith("https://shadow-exchange-1.onrender.com/api/")),
     "API destination must point to Render backend"
+  );
+  assert.equal(
+    vercelConfig.rewrites.find((r) => r.source === "/orders")?.destination,
+    "https://shadow-exchange-1.onrender.com/orders",
+    "Exact /orders destination must target Render backend"
   );
   assert.ok(
     destinations.some((d) => d.startsWith("https://shadow-exchange-1.onrender.com/login/")),
