@@ -14,6 +14,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const srcDir = path.resolve(__dirname, "../src");
+const publicDir = path.resolve(__dirname, "../public");
 
 test("Route /suto is recognized, normalized, and strictly scoped", () => {
   // Exact lowercase route
@@ -38,9 +39,61 @@ test("Route /suto is recognized, normalized, and strictly scoped", () => {
   assert.equal(VALID_APPLICATION_ROUTES["/suto"], "Suto");
 });
 
-test("Unauthorized visitor experience contains mischievous cat and exact copy", () => {
+test("Assets exist: download (2).jpg and Night Bubble.ttf are in public assets", () => {
+  const sutoImg = path.join(publicDir, "assets/suto/download (2).jpg");
+  const sutoFont = path.join(publicDir, "assets/suto/Night Bubble.ttf");
+
+  assert.ok(fs.existsSync(sutoImg), "download (2).jpg must exist in public assets");
+  assert.ok(fs.existsSync(sutoFont), "Night Bubble.ttf must exist in public assets");
+});
+
+test("Full-screen background coverage and Night Bubble @font-face in suto.css", () => {
+  const cssPath = path.join(srcDir, "suto.css");
+  assert.ok(fs.existsSync(cssPath), "suto.css must exist");
+  const css = fs.readFileSync(cssPath, "utf-8");
+
+  // Night Bubble font-face declaration
+  assert.ok(css.includes("@font-face"), "Must declare @font-face");
+  assert.ok(css.includes("font-family: 'Night Bubble'"), "Must declare font-family Night Bubble");
+  assert.ok(css.includes("Night%20Bubble.ttf") || css.includes("Night Bubble.ttf"), "Must reference Night Bubble.ttf");
+
+  // Full-screen background cover
+  assert.ok(css.includes("background-size: cover"), "Must use background-size: cover");
+  assert.ok(css.includes("download%20(2).jpg") || css.includes("download (2).jpg"), "Must reference download (2).jpg");
+  assert.ok(css.includes("100vh"), "Must cover full viewport height");
+
+  // Custom lily cursor SVG
+  assert.ok(css.includes("cursor: url(\"data:image/svg+xml"), "Must define custom SVG lily cursor");
+  assert.ok(css.includes(".suto-experience"), "Must scope cursor to .suto-experience");
+
+  // Touch and coarse pointer fallback
+  assert.ok(css.includes("@media (hover: none) or (pointer: coarse)"), "Must handle touch devices fallback");
+  assert.ok(css.includes("cursor: auto !important"), "Must fallback to auto cursor on touch devices");
+
+  // Reduced motion support
+  assert.ok(css.includes("@media (prefers-reduced-motion: reduce)"), "Must respect prefers-reduced-motion");
+});
+
+test("Authorized view displays exclusively 'Hello Baby' without clutter or decorative cards", () => {
   const compPath = path.join(srcDir, "components/SutoExperience.tsx");
   assert.ok(fs.existsSync(compPath), "SutoExperience.tsx component must exist");
+  const content = fs.readFileSync(compPath, "utf-8");
+
+  // Exact required heading
+  assert.ok(content.includes("Hello Baby"), "Must contain exact text: Hello Baby");
+
+  // Previous paragraphs, chapter sections, and keepsakes shelf must be removed from authorized view
+  assert.ok(!content.includes("suto-letters-grid"), "Chapter letters grid must be removed");
+  assert.ok(!content.includes("suto-keepsakes-shelf"), "Keepsakes shelf must be removed");
+  assert.ok(!content.includes("suto-topbar"), "Topbar must be removed for clean full-screen look");
+
+  // Falling cherry-blossom animation and custom lily cursor preserved
+  assert.ok(content.includes("suto-petals-canvas"), "Must keep falling cherry blossom petals canvas");
+  assert.ok(content.includes("canvasRef"), "Must manage canvas animation loop");
+});
+
+test("Unauthorized visitor experience preserves mischievous cat and exact copy", () => {
+  const compPath = path.join(srcDir, "components/SutoExperience.tsx");
   const content = fs.readFileSync(compPath, "utf-8");
 
   // Exact required mischievous copy
@@ -61,54 +114,6 @@ test("Unauthorized visitor experience contains mischievous cat and exact copy", 
   // Must NEVER leak the allowlisted emails to visitors
   assert.ok(!content.includes("shivkumar6990655@gmail.com"), "Must not leak user email in frontend component");
   assert.ok(!content.includes("sutanukachakraborty004@gmail.com"), "Must not leak girlfriend email in frontend component");
-});
-
-test("Authorized welcome experience contains exact love letter opening", () => {
-  const compPath = path.join(srcDir, "components/SutoExperience.tsx");
-  const content = fs.readFileSync(compPath, "utf-8");
-
-  // Exact welcome opening statement is handled
-  assert.ok(content.includes("welcomeMessage"), "Must render backend welcomeMessage dynamically");
-  assert.ok(content.includes("letterSections"), "Must render letter sections");
-
-  // Check backend service defaults match exact required quote
-  const sutoServicePath = path.resolve(__dirname, "../../src/main/java/com/shadowexchange/service/SutoService.java");
-  assert.ok(fs.existsSync(sutoServicePath), "SutoService.java must exist");
-  const backendServiceContent = fs.readFileSync(sutoServicePath, "utf-8");
-  assert.ok(
-    backendServiceContent.includes("Hey, baby. Welcome to the little world I made for you, where I poured my heart out for you."),
-    "Backend must deliver exact welcome message"
-  );
-
-  // Extensible keepsakes structure for future letters, photos, voice notes
-  assert.ok(content.includes("Future Keepsakes"), "Must include extensible future keepsakes container");
-  assert.ok(content.includes("Personal Letters"), "Must have letter slot");
-  assert.ok(content.includes("Photographs"), "Must have photo slot");
-  assert.ok(content.includes("Voice Notes"), "Must have voice notes slot");
-});
-
-test("Custom lily cursor and responsive aesthetics in suto.css", () => {
-  const cssPath = path.join(srcDir, "suto.css");
-  assert.ok(fs.existsSync(cssPath), "suto.css must exist");
-  const css = fs.readFileSync(cssPath, "utf-8");
-
-  // Custom lily cursor SVG
-  assert.ok(css.includes("cursor: url(\"data:image/svg+xml"), "Must define custom SVG lily cursor");
-  assert.ok(css.includes(".suto-experience"), "Must scope cursor to .suto-experience");
-
-  // Touch and coarse pointer fallback
-  assert.ok(css.includes("@media (hover: none) or (pointer: coarse)"), "Must handle touch devices fallback");
-  assert.ok(css.includes("cursor: auto !important"), "Must fallback to auto cursor on touch devices");
-
-  // Reduced motion support
-  assert.ok(css.includes("@media (prefers-reduced-motion: reduce)"), "Must respect prefers-reduced-motion");
-
-  // Storybook garden color palette tokens
-  assert.ok(css.includes("--suto-blush"), "Must include blush pink palette token");
-  assert.ok(css.includes("--suto-cream"), "Must include cream palette token");
-  assert.ok(css.includes("--suto-butter"), "Must include butter yellow palette token");
-  assert.ok(css.includes("--suto-sage"), "Must include sage green palette token");
-  assert.ok(css.includes("--suto-forest"), "Must include rich botanical green token");
 });
 
 test("App.tsx integrates /suto route cleanly without regressing trading terminal", () => {

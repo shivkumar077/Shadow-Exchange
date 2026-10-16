@@ -1,36 +1,28 @@
 /* ==========================================================================
-   /suto — A Private Romantic Garden Experience
-   Visual Direction: Storybook Garden with Lush Forests, Cherry Blossoms,
-   Falling Petals, Soft Sunlight, Dreamy Scenery, and Floral Details.
+   /suto — Minimal Background & Typography Pass
+   - Background: download (2).jpg covering the entire screen edge-to-edge
+   - Typography: Night Bubble font loaded via @font-face and applied everywhere
+   - Visible content: "Hello Baby" large, expressive, playful, and beautifully proportioned
+   - Falling cherry-blossom petals canvas and custom lily cursor preserved
    ========================================================================== */
 
+/* 1. Load Night Bubble font via @font-face */
+@font-face {
+  font-family: 'Night Bubble';
+  src: url('/assets/suto/Night%20Bubble.ttf') format('truetype'),
+       url('/assets/suto/Night Bubble.ttf') format('truetype'),
+       url('/assets/shuto/Night%20Bubble.ttf') format('truetype'),
+       url('/assets/shuto/Night Bubble.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --suto-bg: #fcfaf7;
-  --suto-bg-gradient: radial-gradient(circle at 50% 10%, #fff7fa 0%, #f7f1ea 60%, #eef3ed 100%);
-  --suto-text-main: #223628;
-  --suto-text-muted: #5e7264;
-  --suto-text-faint: #899c8e;
-
-  --suto-blush: #fde8ef;
-  --suto-blush-soft: #fcf2f5;
-  --suto-blush-deep: #e594ad;
-  --suto-blush-accent: #d27290;
-
-  --suto-cream: #fffdf9;
-  --suto-butter: #fff9e6;
-  --suto-butter-soft: #fbf5db;
-  --suto-lavender: #f1ecf9;
-  --suto-lavender-deep: #bfaedc;
-
-  --suto-sage: #8fa38c;
-  --suto-sage-light: #eaf0e9;
-  --suto-forest: #1c3624;
-  --suto-forest-dark: #122418;
-
-  --suto-card-bg: rgba(255, 253, 249, 0.88);
-  --suto-card-border: rgba(143, 163, 140, 0.35);
-  --suto-card-shadow: 0 24px 60px -15px rgba(28, 54, 36, 0.1), 0 10px 24px -8px rgba(229, 148, 173, 0.15);
-  --suto-glow: 0 0 32px rgba(245, 215, 127, 0.28);
+  --suto-font: 'Night Bubble', cursive, sans-serif;
+  --suto-text-glow: 0 4px 20px rgba(65, 20, 29, 0.45),
+                    0 8px 40px rgba(84, 31, 40, 0.35),
+                    0 0 50px rgba(255, 225, 235, 0.55);
 }
 
 /* ==========================================================================
@@ -63,20 +55,46 @@
 }
 
 /* ==========================================================================
-   Page Layout & Garden Scenery
+   Full-Screen Background Coverage
+   - download (2).jpg covers the entire screen edge to edge
+   - background-size: cover, properly proportioned without distortion
    ========================================================================== */
 
 .suto-experience {
   min-height: 100vh;
+  min-height: 100dvh;
+  width: 100vw;
   width: 100%;
-  background: var(--suto-bg-gradient);
-  color: var(--suto-text-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   position: relative;
-  overflow-x: hidden;
+  background-color: #cf8b95;
+  background-image: url('/assets/suto/download%20(2).jpg'), url('/assets/shuto/download%20(2).jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  font-family: var(--suto-font);
+  color: #fff8fa;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: opacity 0.5s ease;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Desktop widescreen framing: blossoms on the right, open watercolor on the left/center */
+@media (min-width: 1024px) {
+  .suto-experience {
+    background-position: 65% center;
+  }
+}
+
+/* Mobile responsive framing: keeps the cherry blossom flowers visible */
+@media (max-width: 768px) {
+  .suto-experience {
+    background-position: 70% center;
+  }
 }
 
 /* Falling cherry blossom petals canvas */
@@ -89,162 +107,52 @@
   z-index: 10;
 }
 
-/* Background layers: soft sunlight & misty garden foliage */
-.suto-garden-backdrop {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  overflow: hidden;
-}
-
-.suto-sunlight-beam {
-  position: absolute;
-  top: -20%;
-  left: 15%;
-  width: 130%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(255, 249, 230, 0.4) 0%, rgba(255, 238, 244, 0.2) 40%, transparent 75%);
-  transform: rotate(-15deg);
-  filter: blur(40px);
-  animation: sutoSunlightShift 18s ease-in-out infinite alternate;
-}
-
-@keyframes sutoSunlightShift {
-  0% { opacity: 0.7; transform: rotate(-18deg) scale(0.98); }
-  100% { opacity: 0.95; transform: rotate(-12deg) scale(1.02); }
-}
-
-.suto-forest-layer-back {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 280px;
-  background: radial-gradient(ellipse 120% 100% at 50% 100%, rgba(143, 163, 140, 0.22) 0%, transparent 80%);
-}
-
-.suto-forest-layer-front {
-  position: absolute;
-  bottom: -40px;
-  left: -5%;
-  width: 110%;
-  height: 220px;
-  background: radial-gradient(ellipse 100% 90% at 50% 100%, rgba(28, 54, 36, 0.08) 0%, transparent 75%);
-}
-
-/* Top romantic navigation */
-.suto-topbar {
-  position: relative;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.suto-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  text-decoration: none;
-  color: var(--suto-forest);
-  font-family: "Playfair Display", "Cormorant Garamond", Georgia, serif;
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
-  background: rgba(255, 253, 249, 0.75);
-  border: 1px solid var(--suto-card-border);
-  box-shadow: 0 4px 12px rgba(28, 54, 36, 0.04);
-  transition: transform 0.25s ease, background 0.25s ease;
-}
-
-.suto-brand:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 253, 249, 0.95);
-}
-
-.suto-brand-icon {
-  width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--suto-blush-accent);
-}
-
-.suto-nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.suto-terminal-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--suto-forest);
-  background: rgba(255, 253, 249, 0.75);
-  border: 1px solid var(--suto-card-border);
-  border-radius: 999px;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.suto-terminal-link:hover {
-  background: var(--suto-cream);
-  border-color: var(--suto-sage);
-  transform: translateY(-1px);
-}
-
 /* ==========================================================================
-   Loading State
+   Visible Authorized Content: Only "Hello Baby"
+   - Large, expressive, playful, beautifully proportioned to the background
+   - No opaque cards, no clutter, no decorative boxes
    ========================================================================== */
 
-.suto-loading-container {
+.suto-hero-stage {
   position: relative;
   z-index: 20;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 70vh;
-  gap: 1.5rem;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  padding: 1.5rem;
+  box-sizing: border-box;
   text-align: center;
+  pointer-events: none;
 }
 
-.suto-loading-flower {
-  width: 64px;
-  height: 64px;
-  animation: sutoBloomSpin 6s linear infinite;
-  filter: drop-shadow(0 6px 12px rgba(229, 148, 173, 0.25));
+.suto-hello-baby {
+  font-family: var(--suto-font);
+  font-size: clamp(3.8rem, 11vw, 9.5rem);
+  font-weight: normal;
+  line-height: 1.1;
+  letter-spacing: 0.035em;
+  color: #fff8fa;
+  text-shadow: var(--suto-text-glow);
+  margin: 0;
+  user-select: none;
+  pointer-events: auto;
+  animation: sutoGentlyFloat 5s ease-in-out infinite alternate;
+  filter: drop-shadow(0 10px 24px rgba(78, 24, 35, 0.3));
+  word-break: keep-all;
 }
 
-@keyframes sutoBloomSpin {
-  0% { transform: rotate(0deg) scale(0.95); }
-  50% { transform: rotate(180deg) scale(1.05); }
-  100% { transform: rotate(360deg) scale(0.95); }
-}
-
-.suto-loading-text {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 1.15rem;
-  color: var(--suto-text-muted);
-  letter-spacing: 0.05em;
-  font-style: italic;
+@keyframes sutoGentlyFloat {
+  0% { transform: translateY(0px) scale(1); }
+  100% { transform: translateY(-8px) scale(1.015); }
 }
 
 /* ==========================================================================
    Unauthenticated Sign-In View
+   - Translucent, non-obscuring card so the background remains visible
+   - Uses Night Bubble font
    ========================================================================== */
 
 .suto-auth-container {
@@ -253,60 +161,44 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  padding: 2rem 1.5rem 4rem;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 1.5rem;
+  box-sizing: border-box;
 }
 
 .suto-envelope-card {
-  max-width: 540px;
+  max-width: 480px;
   width: 100%;
-  background: var(--suto-card-bg);
-  border: 1px solid var(--suto-card-border);
+  background: rgba(255, 248, 250, 0.35);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
   border-radius: 28px;
-  padding: 3.5rem 3rem;
-  box-shadow: var(--suto-card-shadow);
+  padding: 3rem 2.5rem;
+  box-shadow: 0 20px 50px rgba(54, 18, 27, 0.25);
   text-align: center;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  animation: sutoFadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.suto-card-floral-accent {
-  position: absolute;
-  top: 1.25rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--suto-sage);
-  opacity: 0.8;
-}
-
-.suto-card-floral-line {
-  width: 42px;
-  height: 1px;
-  background: currentColor;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: var(--suto-font);
 }
 
 .suto-auth-title {
-  font-family: "Playfair Display", "Cormorant Garamond", Georgia, serif;
-  font-size: clamp(2rem, 4vw, 2.75rem);
-  color: var(--suto-forest);
-  margin: 1.25rem 0 0.85rem;
-  font-weight: 700;
+  font-family: var(--suto-font);
+  font-size: clamp(2.4rem, 6vw, 3.2rem);
+  color: #fff8fa;
+  text-shadow: 0 4px 16px rgba(65, 20, 29, 0.5);
+  margin: 0 0 1rem;
+  font-weight: normal;
   line-height: 1.2;
-  letter-spacing: -0.01em;
 }
 
 .suto-auth-subtitle {
-  font-size: 1.05rem;
-  line-height: 1.6;
-  color: var(--suto-text-muted);
-  margin: 0 auto 2.5rem;
-  max-width: 400px;
+  font-family: var(--suto-font);
+  font-size: 1.25rem;
+  line-height: 1.5;
+  color: #fff0f5;
+  text-shadow: 0 2px 8px rgba(65, 20, 29, 0.4);
+  margin: 0 auto 2.25rem;
 }
 
 .suto-google-btn {
@@ -315,43 +207,34 @@
   justify-content: center;
   gap: 0.85rem;
   width: 100%;
-  padding: 1.05rem 1.75rem;
-  background: var(--suto-cream);
-  color: var(--suto-forest);
-  border: 1.5px solid rgba(143, 163, 140, 0.5);
+  padding: 1rem 1.75rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #4a1924;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
   border-radius: 999px;
-  font-size: 1rem;
-  font-weight: 600;
-  box-shadow: 0 8px 20px -4px rgba(28, 54, 36, 0.08);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: var(--suto-font);
+  font-size: 1.25rem;
+  font-weight: normal;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 24px rgba(65, 20, 29, 0.25);
+  transition: all 0.25s ease;
 }
 
 .suto-google-btn:hover {
   transform: translateY(-2px);
   background: #ffffff;
-  border-color: var(--suto-blush-accent);
-  box-shadow: 0 14px 28px -6px rgba(229, 148, 173, 0.25);
-}
-
-.suto-google-btn:active {
-  transform: translateY(0);
+  box-shadow: 0 14px 32px rgba(65, 20, 29, 0.35);
 }
 
 .suto-google-g-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.suto-auth-footer-note {
-  margin-top: 2rem;
-  font-size: 0.825rem;
-  color: var(--suto-text-faint);
-  letter-spacing: 0.04em;
-  font-style: italic;
+  width: 22px;
+  height: 22px;
 }
 
 /* ==========================================================================
    Unauthorized Visitor View (Mischievous Cat)
+   - Preserves exact required copy: “No, no, no. You're not invited here. Shoo, go away!”
+   - Uses Night Bubble font throughout
    ========================================================================== */
 
 .suto-unauthorized-container {
@@ -360,40 +243,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  padding: 2.5rem 1.5rem 5rem;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 1.5rem;
+  box-sizing: border-box;
 }
 
 .suto-cat-card {
-  max-width: 580px;
+  max-width: 520px;
   width: 100%;
-  background: var(--suto-card-bg);
-  border: 1px solid var(--suto-card-border);
-  border-radius: 32px;
-  padding: 3.5rem 2.5rem;
-  box-shadow: var(--suto-card-shadow);
+  background: rgba(255, 248, 250, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  border-radius: 30px;
+  padding: 3rem 2.25rem;
+  box-shadow: 0 20px 50px rgba(54, 18, 27, 0.25);
   text-align: center;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  animation: sutoFadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: var(--suto-font);
 }
 
 .suto-mischief-cat-stage {
-  width: 180px;
-  height: 180px;
-  margin: 0 auto 1.5rem;
+  width: 170px;
+  height: 170px;
+  margin: 0 auto 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
 }
 
 .suto-mischief-cat-svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 10px 18px rgba(28, 54, 36, 0.12));
+  filter: drop-shadow(0 10px 18px rgba(65, 20, 29, 0.3));
   animation: sutoCatWiggle 3.5s ease-in-out infinite;
   transform-origin: bottom center;
 }
@@ -426,20 +309,23 @@
 }
 
 .suto-unauth-copy {
-  font-family: "Playfair Display", "Cormorant Garamond", Georgia, serif;
-  font-size: clamp(1.75rem, 3.5vw, 2.35rem);
-  color: var(--suto-forest);
+  font-family: var(--suto-font);
+  font-size: clamp(1.85rem, 4.5vw, 2.5rem);
+  color: #fff8fa;
+  text-shadow: 0 3px 14px rgba(65, 20, 29, 0.5);
   margin: 0.5rem 0 1rem;
-  font-weight: 700;
+  font-weight: normal;
   line-height: 1.25;
 }
 
 .suto-unauth-desc {
-  font-size: 1.05rem;
-  line-height: 1.6;
-  color: var(--suto-text-muted);
-  max-width: 440px;
-  margin: 0 auto 2.25rem;
+  font-family: var(--suto-font);
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: #fff0f5;
+  text-shadow: 0 2px 8px rgba(65, 20, 29, 0.4);
+  max-width: 420px;
+  margin: 0 auto 2rem;
 }
 
 .suto-return-btn {
@@ -448,214 +334,60 @@
   justify-content: center;
   gap: 0.65rem;
   padding: 0.95rem 2rem;
-  background: var(--suto-forest);
-  color: var(--suto-cream);
-  border: none;
+  background: rgba(78, 24, 35, 0.85);
+  color: #fff8fa;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 999px;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-family: var(--suto-font);
+  font-size: 1.15rem;
+  font-weight: normal;
   text-decoration: none;
-  box-shadow: 0 8px 24px -4px rgba(28, 54, 36, 0.28);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 24px rgba(65, 20, 29, 0.3);
+  transition: all 0.25s ease;
 }
 
 .suto-return-btn:hover {
-  background: var(--suto-forest-dark);
+  background: rgba(78, 24, 35, 1);
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -4px rgba(28, 54, 36, 0.38);
+  box-shadow: 0 12px 30px rgba(65, 20, 29, 0.45);
 }
 
 /* ==========================================================================
-   Authorized Romantic Garden Experience
+   Loading State
    ========================================================================== */
 
-.suto-garden-content {
+.suto-loading-container {
   position: relative;
   z-index: 20;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 6rem;
-  width: 100%;
-  box-sizing: border-box;
-  animation: sutoFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Hero opening welcome card */
-.suto-welcome-hero {
-  background: var(--suto-card-bg);
-  border: 1px solid var(--suto-card-border);
-  border-radius: 36px;
-  padding: 4rem 3.5rem;
-  box-shadow: var(--suto-card-shadow);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  margin-bottom: 3.5rem;
-}
-
-.suto-hero-badge {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 1.1rem;
-  border-radius: 999px;
-  background: var(--suto-blush);
-  border: 1px solid rgba(229, 148, 173, 0.4);
-  color: var(--suto-blush-accent);
-  font-size: 0.85rem;
-  font-weight: 600;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.suto-loading-flower {
+  width: 64px;
+  height: 64px;
+  animation: sutoBloomSpin 6s linear infinite;
+  filter: drop-shadow(0 6px 12px rgba(65, 20, 29, 0.3));
+}
+
+@keyframes sutoBloomSpin {
+  0% { transform: rotate(0deg) scale(0.95); }
+  50% { transform: rotate(180deg) scale(1.05); }
+  100% { transform: rotate(360deg) scale(0.95); }
+}
+
+.suto-loading-text {
+  font-family: var(--suto-font);
+  font-size: 1.75rem;
+  color: #fff8fa;
+  text-shadow: 0 2px 10px rgba(65, 20, 29, 0.4);
   letter-spacing: 0.05em;
-  text-transform: uppercase;
-  margin-bottom: 2rem;
-}
-
-.suto-welcome-headline {
-  font-family: "Playfair Display", "Cormorant Garamond", Georgia, serif;
-  font-size: clamp(2.1rem, 4.5vw, 3.4rem);
-  font-weight: 700;
-  color: var(--suto-forest);
-  line-height: 1.25;
-  letter-spacing: -0.015em;
-  margin: 0 0 2rem;
-}
-
-.suto-floral-divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  color: var(--suto-sage);
-  opacity: 0.75;
-  margin: 2rem auto;
-  max-width: 320px;
-}
-
-.suto-divider-line {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, currentColor, transparent);
-}
-
-.suto-divider-flower {
-  width: 20px;
-  height: 20px;
-}
-
-.suto-hero-subtext {
-  font-size: 1.15rem;
-  line-height: 1.75;
-  color: var(--suto-text-muted);
-  max-width: 620px;
-  margin: 0 auto;
-  font-style: italic;
-}
-
-/* Storybook letter cards */
-.suto-letters-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 2.25rem;
-  margin-bottom: 4rem;
-}
-
-.suto-letter-card {
-  background: var(--suto-card-bg);
-  border: 1px solid var(--suto-card-border);
-  border-radius: 28px;
-  padding: 2.75rem 3rem;
-  box-shadow: 0 16px 40px -12px rgba(28, 54, 36, 0.07);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  position: relative;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
-}
-
-.suto-letter-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 22px 50px -12px rgba(229, 148, 173, 0.18);
-  border-color: rgba(210, 114, 144, 0.4);
-}
-
-.suto-letter-tag {
-  font-size: 0.775rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--suto-sage);
-  margin-bottom: 0.65rem;
-  display: block;
-}
-
-.suto-letter-title {
-  font-family: "Playfair Display", "Cormorant Garamond", Georgia, serif;
-  font-size: clamp(1.4rem, 2.8vw, 1.85rem);
-  color: var(--suto-forest);
-  margin: 0 0 1.25rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.suto-letter-body {
-  font-size: 1.05rem;
-  line-height: 1.8;
-  color: var(--suto-text-main);
-  margin: 0;
-}
-
-/* Extensible future keepsakes showcase */
-.suto-keepsakes-shelf {
-  background: rgba(255, 253, 249, 0.65);
-  border: 1.5px dashed rgba(143, 163, 140, 0.45);
-  border-radius: 24px;
-  padding: 2.25rem;
-  text-align: center;
-  margin-top: 1rem;
-}
-
-.suto-shelf-title {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 1.2rem;
-  color: var(--suto-forest);
-  margin: 0 0 0.5rem;
-}
-
-.suto-shelf-desc {
-  font-size: 0.95rem;
-  color: var(--suto-text-muted);
-  max-width: 500px;
-  margin: 0 auto 1.5rem;
-  line-height: 1.5;
-}
-
-.suto-keepsakes-placeholders {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.suto-keepsake-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 1.25rem 1.5rem;
-  background: var(--suto-cream);
-  border: 1px solid var(--suto-card-border);
-  border-radius: 16px;
-  min-width: 140px;
-  color: var(--suto-sage);
-  font-size: 0.85rem;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(28, 54, 36, 0.03);
-}
-
-.suto-keepsake-icon {
-  width: 24px;
-  height: 24px;
-  color: var(--suto-blush-deep);
 }
 
 /* Click petal sparkle */
@@ -674,56 +406,15 @@
   100% { transform: translate(-50%, -90px) scale(1.3) rotate(45deg); opacity: 0; }
 }
 
-/* Animations */
-@keyframes sutoFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes sutoFadeSlideUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Respect reduced motion */
+/* Reduced-motion accessibility */
 @media (prefers-reduced-motion: reduce) {
-  .suto-sunlight-beam,
+  .suto-hello-baby,
   .suto-loading-flower,
   .suto-mischief-cat-svg,
   .suto-cat-paw-shoo,
   .suto-cat-tail-swish,
-  .suto-envelope-card,
-  .suto-cat-card,
-  .suto-garden-content,
   .suto-click-sparkle {
     animation: none !important;
     transition: none !important;
-  }
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 640px) {
-  .suto-topbar {
-    padding: 1rem 1.25rem;
-  }
-  .suto-envelope-card,
-  .suto-cat-card {
-    padding: 2.5rem 1.75rem;
-    border-radius: 24px;
-  }
-  .suto-welcome-hero {
-    padding: 2.75rem 1.75rem;
-    border-radius: 28px;
-  }
-  .suto-letter-card {
-    padding: 2rem 1.5rem;
-    border-radius: 22px;
-  }
-  .suto-keepsakes-placeholders {
-    flex-direction: column;
-  }
-  .suto-keepsake-box {
-    width: 100%;
-    box-sizing: border-box;
   }
 }

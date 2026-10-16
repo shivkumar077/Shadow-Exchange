@@ -16,7 +16,7 @@ interface Sparkle {
 
 export function SutoExperience() {
   const [viewState, setViewState] = useState<"loading" | "unauthenticated" | "unauthorized" | "authorized">("loading");
-  const [content, setContent] = useState<SutoContent | null>(null);
+  const [, setContent] = useState<SutoContent | null>(null);
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -106,22 +106,22 @@ export function SutoExperience() {
     }
 
     const petalColors = [
-      "rgba(253, 232, 239, 0.85)", // blush pink
-      "rgba(247, 210, 222, 0.75)", // pastel pink
-      "rgba(255, 245, 248, 0.9)",  // pale rose cream
-      "rgba(240, 225, 245, 0.7)",  // lavender mist
+      "rgba(255, 235, 242, 0.9)", // soft white-pink
+      "rgba(255, 215, 230, 0.8)", // cherry blossom pink
+      "rgba(252, 228, 236, 0.85)", // pale blush rose
+      "rgba(255, 245, 248, 0.95)", // pure rose cream
     ];
 
-    const PETAL_COUNT = Math.min(32, Math.floor(window.innerWidth / 40));
+    const PETAL_COUNT = Math.min(36, Math.floor(window.innerWidth / 36));
     const petals: Petal[] = Array.from({ length: PETAL_COUNT }, () => ({
       x: Math.random() * width,
       y: Math.random() * height - height,
-      size: 8 + Math.random() * 9,
-      speedX: 0.6 + Math.random() * 1.2,
-      speedY: 0.8 + Math.random() * 1.4,
+      size: 9 + Math.random() * 10,
+      speedX: 0.5 + Math.random() * 1.3,
+      speedY: 0.8 + Math.random() * 1.5,
       angle: Math.random() * Math.PI * 2,
       angularSpeed: (Math.random() - 0.5) * 0.03,
-      opacity: 0.5 + Math.random() * 0.45,
+      opacity: 0.55 + Math.random() * 0.4,
       petalColor: petalColors[Math.floor(Math.random() * petalColors.length)],
     }));
 
@@ -169,7 +169,6 @@ export function SutoExperience() {
 
   // Spawn gentle floral sparkles on interactive garden click
   const handleGardenClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
-    // Only spawn if clicking on garden background, not on interactive buttons
     const target = e.target as HTMLElement;
     if (target.closest("button") || target.closest("a") || target.closest("input")) return;
 
@@ -189,69 +188,13 @@ export function SutoExperience() {
   };
 
   return (
-    <div className="suto-experience" onClick={handleGardenClick} role="main" aria-label="A Private Romantic Garden">
+    <div className="suto-experience" onClick={handleGardenClick} role="main" aria-label="Suto">
       {/* Falling cherry blossoms canvas */}
       <canvas ref={canvasRef} className="suto-petals-canvas" aria-hidden="true" />
 
-      {/* Layered scenery backdrop */}
-      <div className="suto-garden-backdrop" aria-hidden="true">
-        <div className="suto-sunlight-beam" />
-        <div className="suto-forest-layer-back" />
-        <div className="suto-forest-layer-front" />
-      </div>
-
-      {/* Top navigation header */}
-      <header className="suto-topbar">
-        <a
-          href="/suto"
-          className="suto-brand"
-          onClick={(e) => {
-            e.preventDefault();
-            navigateTo("/suto");
-          }}
-          aria-label="Suto's Sanctuary"
-        >
-          <span className="suto-brand-icon" aria-hidden="true">
-            {/* Delicate Blossom SVG icon */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2C12 2 15 7 15 11C15 13 14 15 12 16C10 15 9 13 9 11C9 7 12 2 12 2Z"
-                fill="currentColor"
-              />
-              <path
-                d="M12 16C12 16 6 12 4 10C2.5 8.5 3 6.5 4.5 6C6.5 5.5 10 11 12 14"
-                fill="currentColor"
-                opacity="0.75"
-              />
-              <path
-                d="M12 16C12 16 18 12 20 10C21.5 8.5 21 6.5 19.5 6C17.5 5.5 14 11 12 14"
-                fill="currentColor"
-                opacity="0.75"
-              />
-              <circle cx="12" cy="13" r="2" fill="#F5D77F" />
-            </svg>
-          </span>
-          <span>Suto's World</span>
-        </a>
-
-        <div className="suto-nav-actions">
-          <a
-            href="/"
-            className="suto-terminal-link"
-            onClick={(e) => {
-              e.preventDefault();
-              handleReturnToTerminal();
-            }}
-          >
-            <span>Shadow Exchange Terminal</span>
-            <span aria-hidden="true">→</span>
-          </a>
-        </div>
-      </header>
-
       {/* View State: Loading */}
       {viewState === "loading" && (
-        <div className="suto-loading-container" role="status" aria-label="Entering the garden">
+        <div className="suto-loading-container" role="status" aria-label="Opening">
           <div className="suto-loading-flower" aria-hidden="true">
             <svg viewBox="0 0 64 64" fill="none" width="64" height="64">
               <circle cx="32" cy="32" r="8" fill="#F5D77F" />
@@ -261,23 +204,17 @@ export function SutoExperience() {
               <path d="M10 32C10 32 20 26 26 32C20 38 10 32 10 32Z" fill="#FDE8EF" stroke="#E594AD" strokeWidth="1.5" />
             </svg>
           </div>
-          <div className="suto-loading-text">Opening the garden gates…</div>
+          <div className="suto-loading-text">Loading…</div>
         </div>
       )}
 
       {/* View State: Unauthenticated visitor */}
       {viewState === "unauthenticated" && (
         <div className="suto-auth-container">
-          <div className="suto-envelope-card" role="region" aria-label="Sign in to the garden">
-            <div className="suto-card-floral-accent" aria-hidden="true">
-              <span className="suto-card-floral-line" />
-              <span>🌸</span>
-              <span className="suto-card-floral-line" />
-            </div>
-
-            <h1 className="suto-auth-title">A Secret Garden</h1>
+          <div className="suto-envelope-card" role="region" aria-label="Sign in">
+            <h1 className="suto-auth-title">A Secret World</h1>
             <p className="suto-auth-subtitle">
-              A quiet sanctuary crafted petal by petal. Please sign in with your Google account to step inside.
+              Please sign in with Google to enter.
             </p>
 
             <button
@@ -306,10 +243,6 @@ export function SutoExperience() {
               </svg>
               <span>Continue with Google</span>
             </button>
-
-            <div className="suto-auth-footer-note">
-              Private romantic experience • Access restricted to authorized accounts
-            </div>
           </div>
         </div>
       )}
@@ -319,13 +252,8 @@ export function SutoExperience() {
         <div className="suto-unauthorized-container">
           <div className="suto-cat-card" role="alert" aria-label="Access denied">
             <div className="suto-mischief-cat-stage" aria-hidden="true">
-              {/* Mischievous Cat Vector Artwork with Animated Paw & Tail */}
               <svg className="suto-mischief-cat-svg" viewBox="0 0 200 200" fill="none">
-                {/* Stone base with garden moss */}
-                <ellipse cx="100" cy="180" rx="72" ry="14" fill="#97AB95" opacity="0.35" />
-                <ellipse cx="100" cy="178" rx="60" ry="10" fill="#8FA38C" opacity="0.4" />
-
-                {/* Animated swishing tail */}
+                <ellipse cx="100" cy="180" rx="72" ry="14" fill="#6E2837" opacity="0.3" />
                 <g className="suto-cat-tail-swish">
                   <path
                     d="M48 140C30 135 22 110 32 95C38 85 50 88 48 100C45 115 56 128 65 132"
@@ -334,62 +262,35 @@ export function SutoExperience() {
                     strokeLinecap="round"
                   />
                 </g>
-
-                {/* Cat Body */}
                 <ellipse cx="100" cy="138" rx="42" ry="34" fill="#223628" />
-
-                {/* Chest Fluff */}
                 <path d="M88 126C95 134 105 134 112 126C110 142 90 142 88 126Z" fill="#FDFBF7" />
-
-                {/* Cat Head */}
                 <circle cx="100" cy="85" r="32" fill="#223628" />
-
-                {/* Left Ear */}
                 <path d="M72 65L82 42L95 62Z" fill="#223628" />
                 <path d="M77 62L83 48L91 60Z" fill="#FDE8EF" />
-
-                {/* Right Ear */}
                 <path d="M128 65L118 42L105 62Z" fill="#223628" />
                 <path d="M123 62L117 48L109 60Z" fill="#FDE8EF" />
-
-                {/* Mischievous floral head wreath */}
                 <circle cx="82" cy="56" r="5" fill="#E594AD" />
                 <circle cx="82" cy="56" r="2" fill="#F5D77F" />
                 <circle cx="118" cy="56" r="5" fill="#E594AD" />
                 <circle cx="118" cy="56" r="2" fill="#F5D77F" />
                 <circle cx="100" cy="52" r="6" fill="#FDE8EF" />
                 <circle cx="100" cy="52" r="2.5" fill="#E594AD" />
-
-                {/* Mischievous Eyes (Winking / squinting cheeky look) */}
-                {/* Left Eye: arched wink */}
                 <path d="M84 82C87 78 92 78 95 82" stroke="#FDFBF7" strokeWidth="2.5" strokeLinecap="round" />
-                {/* Right Eye: wide playful pupil with sparkle */}
                 <circle cx="112" cy="82" r="4.5" fill="#FDFBF7" />
                 <circle cx="112" cy="82" r="2.5" fill="#223628" />
                 <circle cx="113.5" cy="80.5" r="1" fill="#FFFFFF" />
-
-                {/* Cute Pink Nose */}
                 <polygon points="100,90 96,86 104,86" fill="#E594AD" />
-
-                {/* Cheeky Smiling Mouth */}
                 <path d="M96 92C98 95 100 95 100 92C100 95 102 95 104 92" stroke="#FDFBF7" strokeWidth="2" strokeLinecap="round" />
-
-                {/* Whiskers */}
                 <line x1="70" y1="88" x2="86" y2="89" stroke="#8FA38C" strokeWidth="1.5" strokeLinecap="round" />
                 <line x1="68" y1="94" x2="86" y2="92" stroke="#8FA38C" strokeWidth="1.5" strokeLinecap="round" />
                 <line x1="130" y1="88" x2="114" y2="89" stroke="#8FA38C" strokeWidth="1.5" strokeLinecap="round" />
                 <line x1="132" y1="94" x2="114" y2="92" stroke="#8FA38C" strokeWidth="1.5" strokeLinecap="round" />
-
-                {/* Left Paw resting */}
                 <ellipse cx="80" cy="158" rx="9" ry="7" fill="#223628" />
                 <ellipse cx="80" cy="157" rx="6" ry="4" fill="#FDE8EF" opacity="0.6" />
-
-                {/* Right Animated Shoo Paw */}
                 <g className="suto-cat-paw-shoo">
                   <path d="M125 130C135 125 145 110 148 100" stroke="#223628" strokeWidth="10" strokeLinecap="round" />
                   <circle cx="148" cy="100" r="9" fill="#223628" />
                   <ellipse cx="148" cy="100" rx="5" ry="4" fill="#FDE8EF" />
-                  {/* Little paw pads */}
                   <circle cx="145" cy="94" r="2" fill="#E594AD" />
                   <circle cx="149" cy="93" r="2" fill="#E594AD" />
                   <circle cx="153" cy="95" r="2" fill="#E594AD" />
@@ -401,7 +302,7 @@ export function SutoExperience() {
               “No, no, no. You're not invited here. Shoo, go away!”
             </h2>
             <p className="suto-unauth-desc">
-              This little sanctuary is kept private for someone very special. Your authenticated account is not on the guest list.
+              This little sanctuary is kept private for someone very special.
             </p>
 
             <button
@@ -416,69 +317,12 @@ export function SutoExperience() {
         </div>
       )}
 
-      {/* View State: Authorized Welcome Experience */}
-      {viewState === "authorized" && content && (
-        <div className="suto-garden-content">
-          {/* Welcome Hero Opening */}
-          <section className="suto-welcome-hero" aria-label="Welcome moment">
-            <div className="suto-hero-badge">
-              <span>🌸</span>
-              <span>A sanctuary crafted for {content.recipientName || "you"}</span>
-            </div>
-
-            <h1 className="suto-welcome-headline">
-              {content.welcomeMessage}
-            </h1>
-
-            <div className="suto-floral-divider" aria-hidden="true">
-              <span className="suto-divider-line" />
-              <svg className="suto-divider-flower" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="12" r="3" fill="#F5D77F" />
-                <path d="M12 4C12 4 14 8 12 10C10 8 12 4 12 4Z" />
-                <path d="M20 12C20 12 16 14 14 12C16 10 20 12 20 12Z" />
-                <path d="M12 20C12 20 10 16 12 14C14 16 12 20 12 20Z" />
-                <path d="M4 12C4 12 8 10 10 12C8 14 4 12 4 12Z" />
-              </svg>
-              <span className="suto-divider-line" />
-            </div>
-
-            <p className="suto-hero-subtext">
-              Far away from trading tickers, candle charts, and noise—this garden is forever yours.
-            </p>
-          </section>
-
-          {/* Letter Sections */}
-          <section className="suto-letters-grid" aria-label="Love letter chapters">
-            {content.letterSections.map((section, idx) => (
-              <article key={section.id || idx} className="suto-letter-card">
-                <span className="suto-letter-tag">Chapter 0{idx + 1}</span>
-                <h2 className="suto-letter-title">{section.title}</h2>
-                <p className="suto-letter-body">{section.content}</p>
-              </article>
-            ))}
-          </section>
-
-          {/* Extensible Future Keepsakes Shelf */}
-          <section className="suto-keepsakes-shelf" aria-label="Future keepsakes shelf">
-            <h3 className="suto-shelf-title">Future Keepsakes & Memories</h3>
-            <p className="suto-shelf-desc">
-              This space will hold our letters, photographs, and voice memos as time blossoms.
-            </p>
-            <div className="suto-keepsakes-placeholders">
-              <div className="suto-keepsake-box">
-                <span className="suto-keepsake-icon">✉️</span>
-                <span>Personal Letters</span>
-              </div>
-              <div className="suto-keepsake-box">
-                <span className="suto-keepsake-icon">📷</span>
-                <span>Photographs</span>
-              </div>
-              <div className="suto-keepsake-box">
-                <span className="suto-keepsake-icon">🎙️</span>
-                <span>Voice Notes</span>
-              </div>
-            </div>
-          </section>
+      {/* View State: Authorized Experience — Only "Hello Baby" */}
+      {viewState === "authorized" && (
+        <div className="suto-hero-stage">
+          <h1 className="suto-hello-baby">
+            Hello Baby
+          </h1>
         </div>
       )}
 
