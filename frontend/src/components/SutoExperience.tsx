@@ -154,6 +154,68 @@ const PETAL_TRANSITION_PARTICLES: TransitionPetalParticle[] = [
   { id: 24, startX: 54, startY: 36, dx: 30, dy: 630, scale: 1.15, initRot: 18, targetRot: -180, delay: 0.42, swayAmp: 26, color: "#FFB6C1" },
 ];
 
+const FINALE_BUTTERFLY_PARTICLES: ButterflyParticle[] = [
+  // Left side upward flyers
+  { id: 101, startX: 18, startY: 68, dx: -90, dy: -680, scale: 1.15, initRot: -10, targetRot: -28, duration: 2.5, delay: 0.08, flutter: 0.15, color: "#F5B81C", wingColor: "#FFFECB" },
+  { id: 102, startX: 26, startY: 74, dx: -140, dy: -740, scale: 0.95, initRot: -18, targetRot: -38, duration: 2.8, delay: 0.20, flutter: 0.14, color: "#F5A623", wingColor: "#FFFDF0" },
+  { id: 103, startX: 22, startY: 62, dx: -60, dy: -640, scale: 1.05, initRot: -6, targetRot: -22, duration: 2.4, delay: 0.14, flutter: 0.16, color: "#D97706", wingColor: "#FCD3DE" },
+  { id: 104, startX: 32, startY: 80, dx: -180, dy: -800, scale: 1.25, initRot: -15, targetRot: -35, duration: 3.0, delay: 0.32, flutter: 0.13, color: "#F5B81C", wingColor: "#FFFECB" },
+
+  // Center-left upward flyers
+  { id: 105, startX: 38, startY: 66, dx: -40, dy: -710, scale: 1.1, initRot: -5, targetRot: -16, duration: 2.6, delay: 0.12, flutter: 0.16, color: "#E68A0D", wingColor: "#FFFECB" },
+  { id: 106, startX: 44, startY: 76, dx: -20, dy: -770, scale: 0.9, initRot: 2, targetRot: -10, duration: 2.7, delay: 0.24, flutter: 0.17, color: "#F5B81C", wingColor: "#FFFDF0" },
+
+  // Center upward sky drifters
+  { id: 107, startX: 49, startY: 70, dx: 15, dy: -820, scale: 1.3, initRot: 0, targetRot: 12, duration: 2.9, delay: 0.06, flutter: 0.14, color: "#C97F0A", wingColor: "#FFFECB" },
+  { id: 108, startX: 53, startY: 78, dx: 35, dy: -790, scale: 1.0, initRot: 6, targetRot: 18, duration: 2.8, delay: 0.26, flutter: 0.15, color: "#F5B81C", wingColor: "#FAD2E1" },
+
+  // Center-right upward flyers
+  { id: 109, startX: 58, startY: 65, dx: 60, dy: -730, scale: 1.15, initRot: 8, targetRot: 24, duration: 2.5, delay: 0.16, flutter: 0.16, color: "#F5A623", wingColor: "#FFFECB" },
+  { id: 110, startX: 64, startY: 75, dx: 90, dy: -780, scale: 0.95, initRot: 14, targetRot: 30, duration: 2.7, delay: 0.28, flutter: 0.15, color: "#D97706", wingColor: "#FFFDF0" },
+
+  // Right side upward flyers
+  { id: 111, startX: 70, startY: 68, dx: 120, dy: -700, scale: 1.2, initRot: 16, targetRot: 36, duration: 2.6, delay: 0.10, flutter: 0.14, color: "#F5B81C", wingColor: "#FFFECB" },
+  { id: 112, startX: 78, startY: 74, dx: 160, dy: -760, scale: 1.05, initRot: 20, targetRot: 42, duration: 2.9, delay: 0.22, flutter: 0.16, color: "#E68A0D", wingColor: "#FCD3DE" },
+  { id: 113, startX: 84, startY: 64, dx: 140, dy: -660, scale: 0.85, initRot: 12, targetRot: 28, duration: 2.3, delay: 0.18, flutter: 0.18, color: "#F5A623", wingColor: "#FFFDF0" },
+  { id: 114, startX: 74, startY: 82, dx: 190, dy: -820, scale: 1.25, initRot: 22, targetRot: 46, duration: 3.1, delay: 0.36, flutter: 0.13, color: "#F5B81C", wingColor: "#FFFECB" },
+
+  // Outer ambient floaters
+  { id: 115, startX: 14, startY: 72, dx: -120, dy: -720, scale: 0.85, initRot: -14, targetRot: -32, duration: 2.6, delay: 0.38, flutter: 0.17, color: "#F5B81C", wingColor: "#FFFECB" },
+  { id: 116, startX: 86, startY: 70, dx: 170, dy: -710, scale: 0.9, initRot: 18, targetRot: 40, duration: 2.7, delay: 0.40, flutter: 0.16, color: "#C97F0A", wingColor: "#FFFECB" },
+];
+
+const FINALE_PETAL_PARTICLES: TransitionPetalParticle[] = [
+  // Upper-left falling petals
+  { id: 201, startX: 20, startY: 22, dx: -80, dy: 660, scale: 1.15, initRot: -12, targetRot: 150, delay: 0.06, swayAmp: 24, color: "#FFD1DC" },
+  { id: 202, startX: 28, startY: 28, dx: -40, dy: 720, scale: 0.95, initRot: 15, targetRot: -130, delay: 0.16, swayAmp: 20, color: "#FDE8EF" },
+  { id: 203, startX: 16, startY: 34, dx: -110, dy: 620, scale: 1.25, initRot: -22, targetRot: 170, delay: 0.10, swayAmp: 28, color: "#FFB6C1" },
+
+  // Upper center-left
+  { id: 204, startX: 36, startY: 20, dx: -30, dy: 740, scale: 1.05, initRot: 8, targetRot: -110, delay: 0.14, swayAmp: 22, color: "#FFF0F5" },
+  { id: 205, startX: 42, startY: 30, dx: -10, dy: 700, scale: 1.2, initRot: -16, targetRot: 160, delay: 0.22, swayAmp: 26, color: "#FFC0CB" },
+
+  // Center falling cascade
+  { id: 206, startX: 48, startY: 18, dx: 15, dy: 780, scale: 1.3, initRot: 0, targetRot: 190, delay: 0.05, swayAmp: 30, color: "#FFE4E1" },
+  { id: 207, startX: 52, startY: 26, dx: -15, dy: 750, scale: 1.0, initRot: -10, targetRot: -140, delay: 0.18, swayAmp: 24, color: "#FFD1DC" },
+  { id: 208, startX: 46, startY: 36, dx: 20, dy: 680, scale: 1.1, initRot: 12, targetRot: 175, delay: 0.26, swayAmp: 27, color: "#FDE8EF" },
+
+  // Upper center-right
+  { id: 209, startX: 58, startY: 22, dx: 35, dy: 730, scale: 1.15, initRot: -8, targetRot: 145, delay: 0.12, swayAmp: 25, color: "#FFB6C1" },
+  { id: 210, startX: 64, startY: 32, dx: 60, dy: 690, scale: 0.95, initRot: 18, targetRot: -125, delay: 0.24, swayAmp: 21, color: "#FAD2E1" },
+
+  // Upper-right falling petals
+  { id: 211, startX: 72, startY: 20, dx: 90, dy: 720, scale: 1.25, initRot: 22, targetRot: 180, delay: 0.08, swayAmp: 29, color: "#FFD1DC" },
+  { id: 212, startX: 80, startY: 28, dx: 120, dy: 660, scale: 1.0, initRot: -18, targetRot: -150, delay: 0.20, swayAmp: 23, color: "#FDE8EF" },
+  { id: 213, startX: 86, startY: 34, dx: 140, dy: 630, scale: 0.85, initRot: 10, targetRot: 130, delay: 0.15, swayAmp: 18, color: "#FFE4E1" },
+
+  // Trailing soft cascade
+  { id: 214, startX: 30, startY: 38, dx: -50, dy: 650, scale: 0.85, initRot: -6, targetRot: 155, delay: 0.32, swayAmp: 19, color: "#FFF0F5" },
+  { id: 215, startX: 50, startY: 40, dx: 10, dy: 710, scale: 1.05, initRot: 14, targetRot: -145, delay: 0.35, swayAmp: 28, color: "#FFD1DC" },
+  { id: 216, startX: 68, startY: 38, dx: 80, dy: 670, scale: 0.9, initRot: -14, targetRot: 140, delay: 0.34, swayAmp: 22, color: "#FDE8EF" },
+  { id: 217, startX: 24, startY: 44, dx: -70, dy: 610, scale: 1.1, initRot: 16, targetRot: -160, delay: 0.38, swayAmp: 25, color: "#FFB6C1" },
+  { id: 218, startX: 76, startY: 42, dx: 105, dy: 620, scale: 0.95, initRot: -20, targetRot: 165, delay: 0.36, swayAmp: 20, color: "#FFC0CB" },
+];
+
 function SakuraPetalSvg({ color, strokeColor }: { color: string; strokeColor?: string }) {
   return (
     <svg viewBox="0 0 24 28" className="suto-transition-petal-svg" fill="none">
@@ -325,10 +387,10 @@ export function computePartOneStyle(p: number, reducedMotion: boolean): React.CS
     if (p < 0.16) {
       return { opacity: 0, pointerEvents: "none" };
     }
-    if (p <= 0.78) {
+    if (p <= 0.44) {
       return { opacity: 1, pointerEvents: "auto" };
     }
-    const fadeOut = Math.max(0, 1 - (p - 0.78) / 0.16);
+    const fadeOut = Math.max(0, 1 - (p - 0.44) / 0.10);
     return {
       opacity: fadeOut,
       pointerEvents: fadeOut > 0.1 ? "auto" : "none",
@@ -344,9 +406,9 @@ export function computePartOneStyle(p: number, reducedMotion: boolean): React.CS
     };
   }
 
-  // Phase 2: Entrance from butterflies (0.16 to 0.30)
-  if (p < 0.30) {
-    const t = (p - 0.16) / 0.14;
+  // Phase 2: Entrance from butterflies (0.16 to 0.24)
+  if (p < 0.24) {
+    const t = (p - 0.16) / 0.08;
     const easeT = easeOutCubic(t);
     const opacity = easeOutQuad(t);
     const translateY = (28 * (1 - easeT)).toFixed(1);
@@ -359,8 +421,8 @@ export function computePartOneStyle(p: number, reducedMotion: boolean): React.CS
     };
   }
 
-  // Phase 3: Peaceful, stable reading plateau (0.30 to 0.76) - generous, comfortable reading space
-  if (p <= 0.76) {
+  // Phase 3: Peaceful, stable reading plateau (0.24 to 0.42)
+  if (p <= 0.42) {
     return {
       opacity: 1,
       transform: "translate3d(0px, 0px, 0px) scale(1)",
@@ -369,9 +431,9 @@ export function computePartOneStyle(p: number, reducedMotion: boolean): React.CS
     };
   }
 
-  // Phase 4: Dissolves into falling cherry-blossom petals (0.76 to 0.94)
-  if (p < 0.94) {
-    const t = (p - 0.76) / 0.18;
+  // Phase 4: Dissolves into falling cherry-blossom petals (0.42 to 0.54)
+  if (p < 0.54) {
+    const t = (p - 0.42) / 0.12;
     const easeT = easeOutQuad(t);
     const opacity = Math.max(0, 1 - easeT);
     const translateY = (-10 * easeT).toFixed(1);
@@ -406,8 +468,8 @@ function computePetalStyle(
     return { display: "none" };
   }
 
-  const startP = 0.74 + (petal.delay / 0.45) * 0.08; // 0.74 to 0.82
-  const endP = Math.min(0.98, startP + 0.16 + (petal.scale / 1.35) * 0.06); // 0.90 to 0.98
+  const startP = 0.41 + (petal.delay / 0.45) * 0.05; // 0.41 to 0.46
+  const endP = Math.min(0.57, startP + 0.09 + (petal.scale / 1.35) * 0.03); // 0.50 to 0.57
 
   if (p <= startP) {
     return {
@@ -451,44 +513,234 @@ function computePetalStyle(
   } as React.CSSProperties;
 }
 
-function computePartTwoStyle(p: number, reducedMotion: boolean): React.CSSProperties {
+export function computePartTwoStyle(p: number, reducedMotion: boolean): React.CSSProperties {
   if (reducedMotion) {
-    if (p <= 0.82) {
+    if (p <= 0.46) {
       return { opacity: 0, pointerEvents: "none" };
     }
-    const opacity = Math.min(1, (p - 0.82) / 0.14);
+    if (p <= 0.72) {
+      return { opacity: 1, pointerEvents: "auto" };
+    }
+    const fadeOut = Math.max(0, 1 - (p - 0.72) / 0.10);
     return {
-      opacity,
-      pointerEvents: opacity > 0.1 ? "auto" : "none",
+      opacity: fadeOut,
+      pointerEvents: fadeOut > 0.1 ? "auto" : "none",
     };
   }
 
-  if (p <= 0.84) {
+  // Phase 1: Before entrance (p <= 0.46)
+  if (p <= 0.46) {
     return {
       opacity: 0,
-      transform: "translate3d(0px, 32px, 0px) scale(0.96)",
+      transform: "translate3d(0px, 30px, 0px) scale(0.96)",
       pointerEvents: "none",
     };
   }
 
-  if (p >= 0.96) {
+  // Phase 2: Entrance as petals descend (0.46 to 0.55)
+  if (p < 0.55) {
+    const t = (p - 0.46) / 0.09;
+    const easeT = easeOutCubic(t);
+    const opacity = easeOutQuad(t);
+    const translateY = (30 * (1 - easeT)).toFixed(1);
+    const scale = (0.96 + 0.04 * easeT).toFixed(3);
+    return {
+      opacity: Math.round(opacity * 1000) / 1000,
+      transform: `translate3d(0px, ${translateY}px, 0px) scale(${scale})`,
+      filter: "none",
+      pointerEvents: opacity > 0.2 ? "auto" : "none",
+    };
+  }
+
+  // Phase 3: Peaceful, stable reading plateau (0.55 to 0.72)
+  if (p <= 0.72) {
     return {
       opacity: 1,
       transform: "translate3d(0px, 0px, 0px) scale(1)",
+      filter: "none",
       pointerEvents: "auto",
     };
   }
 
-  const t = (p - 0.84) / 0.12;
-  const easeT = easeOutCubic(t);
-  const opacity = easeOutQuad(t);
-  const translateY = (32 * (1 - easeT)).toFixed(1);
-  const scale = (0.96 + 0.04 * easeT).toFixed(3);
+  // Phase 4: Dissolves as finale sequence begins (0.72 to 0.84)
+  if (p < 0.84) {
+    const t = (p - 0.72) / 0.12;
+    const easeT = easeOutQuad(t);
+    const opacity = Math.max(0, 1 - easeT);
+    const translateY = (-10 * easeT).toFixed(1);
+    const blur = (10 * easeT).toFixed(1);
+    const bright = (1 + 0.3 * (1 - easeT)).toFixed(2);
+    const scale = (1 + 0.02 * easeT).toFixed(3);
+    return {
+      opacity: Math.round(opacity * 1000) / 1000,
+      transform: `translate3d(0px, ${translateY}px, 0px) scale(${scale})`,
+      filter: `drop-shadow(0 0 24px rgba(255, 182, 193, 0.85)) blur(${blur}px) brightness(${bright})`,
+      pointerEvents: opacity > 0.1 ? "auto" : "none",
+    };
+  }
+
+  // Phase 5: Fully dissolved into finale signature
+  return {
+    opacity: 0,
+    transform: "translate3d(0px, -10px, 0px) scale(1.02)",
+    filter: "blur(10px)",
+    pointerEvents: "none",
+  };
+}
+
+function computeFinaleButterflyStyle(
+  b: ButterflyParticle,
+  p: number,
+  reducedMotion: boolean
+): React.CSSProperties {
+  if (reducedMotion) {
+    return { display: "none" };
+  }
+
+  // Finale butterfly flight phase: starts around 0.72 - 0.78, ends around 0.88 - 0.94
+  const startP = 0.72 + (b.delay / 0.65) * 0.06;
+  const endP = Math.min(0.94, startP + 0.16 + (b.duration / 3.3) * 0.04);
+
+  if (p <= startP) {
+    return {
+      left: `${b.startX}%`,
+      top: `${b.startY}%`,
+      opacity: 0,
+      transform: `translate3d(0px, 0px, 0px) scale(${b.scale}) rotate(${b.initRot}deg)`,
+      pointerEvents: "none",
+      "--flutter-speed": `${b.flutter}s`,
+    } as React.CSSProperties;
+  }
+
+  if (p >= endP) {
+    return {
+      left: `${b.startX}%`,
+      top: `${b.startY}%`,
+      opacity: 0,
+      transform: `translate3d(${b.dx}px, ${b.dy}px, 0px) scale(${b.scale * 0.7}) rotate(${b.targetRot}deg)`,
+      pointerEvents: "none",
+      "--flutter-speed": `${b.flutter}s`,
+    } as React.CSSProperties;
+  }
+
+  const t = (p - startP) / (endP - startP);
+  const curX = b.dx * easeOutCubic(t);
+  const curY = b.dy * easeOutQuad(t); // b.dy is negative, so it flies upward!
+  const curRot = b.initRot + (b.targetRot - b.initRot) * easeOutQuad(t);
+  const curScale = b.scale * (1 - 0.3 * easeOutQuad(t));
+
+  let opacity = 1;
+  if (t < 0.14) {
+    opacity = t / 0.14;
+  } else if (t > 0.75) {
+    opacity = Math.max(0, 1 - (t - 0.75) / 0.25);
+  }
 
   return {
+    left: `${b.startX}%`,
+    top: `${b.startY}%`,
     opacity: Math.round(opacity * 1000) / 1000,
-    transform: `translate3d(0px, ${translateY}px, 0px) scale(${scale})`,
-    pointerEvents: opacity > 0.2 ? "auto" : "none",
+    transform: `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0px) scale(${curScale.toFixed(2)}) rotate(${curRot.toFixed(1)}deg)`,
+    pointerEvents: "none",
+    "--flutter-speed": `${b.flutter}s`,
+  } as React.CSSProperties;
+}
+
+function computeFinalePetalStyle(
+  petal: TransitionPetalParticle,
+  p: number,
+  reducedMotion: boolean
+): React.CSSProperties {
+  if (reducedMotion) {
+    return { display: "none" };
+  }
+
+  // Finale petal cascade phase: starts around 0.72 - 0.78, ends around 0.88 - 0.95
+  const startP = 0.72 + (petal.delay / 0.5) * 0.06;
+  const endP = Math.min(0.95, startP + 0.16 + (petal.scale / 1.35) * 0.04);
+
+  if (p <= startP) {
+    return {
+      left: `${petal.startX}%`,
+      top: `${petal.startY}%`,
+      opacity: 0,
+      transform: `translate3d(0px, 0px, 0px) scale(${petal.scale}) rotate(${petal.initRot}deg)`,
+      pointerEvents: "none",
+    } as React.CSSProperties;
+  }
+
+  if (p >= endP) {
+    return {
+      left: `${petal.startX}%`,
+      top: `${petal.startY}%`,
+      opacity: 0,
+      transform: `translate3d(${petal.dx}px, ${petal.dy}px, 0px) scale(${petal.scale * 0.75}) rotate(${petal.targetRot}deg)`,
+      pointerEvents: "none",
+    } as React.CSSProperties;
+  }
+
+  const t = (p - startP) / (endP - startP);
+  const curX = petal.dx * easeOutQuad(t) + Math.sin(t * Math.PI * 2.5) * petal.swayAmp;
+  const curY = petal.dy * easeOutQuad(t); // petal.dy is positive, so it falls downward!
+  const curRot = petal.initRot + (petal.targetRot - petal.initRot) * t;
+  const curScale = petal.scale * (1 - 0.25 * easeOutQuad(t));
+
+  let opacity = 1;
+  if (t < 0.15) {
+    opacity = t / 0.15;
+  } else if (t > 0.75) {
+    opacity = Math.max(0, 1 - (t - 0.75) / 0.25);
+  }
+
+  return {
+    left: `${petal.startX}%`,
+    top: `${petal.startY}%`,
+    opacity: Math.round(opacity * 1000) / 1000,
+    transform: `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0px) scale(${curScale.toFixed(2)}) rotate(${curRot.toFixed(1)}deg)`,
+    pointerEvents: "none",
+  } as React.CSSProperties;
+}
+
+export function computeSignatureStyle(p: number, reducedMotion: boolean): React.CSSProperties {
+  if (reducedMotion) {
+    if (p <= 0.80) {
+      return { opacity: 0, pointerEvents: "none" };
+    }
+    const opacity = Math.min(1, (p - 0.80) / 0.10);
+    return {
+      opacity: Math.round(opacity * 1000) / 1000,
+      pointerEvents: opacity > 0.1 ? "auto" : "none",
+    };
+  }
+
+  // Phase 1: Before entrance (p <= 0.78)
+  if (p <= 0.78) {
+    return {
+      opacity: 0,
+      transform: "translate3d(0px, 25px, 0px) scale(0.96)",
+      pointerEvents: "none",
+    };
+  }
+
+  // Phase 2: Entrance beneath upward butterflies + downward petals (0.78 to 0.88)
+  if (p < 0.88) {
+    const t = (p - 0.78) / 0.10;
+    const easeT = easeOutCubic(t);
+    const opacity = easeOutQuad(t);
+    const translateY = (25 * (1 - easeT)).toFixed(1);
+    const scale = (0.96 + 0.04 * easeT).toFixed(3);
+    return {
+      opacity: Math.round(opacity * 1000) / 1000,
+      transform: `translate3d(0px, ${translateY}px, 0px) scale(${scale})`,
+      pointerEvents: opacity > 0.2 ? "auto" : "none",
+    };
+  }
+
+  // Phase 3: Peaceful final signature resting plateau (0.88 to 1.00)
+  return {
+    opacity: 1,
+    transform: "translate3d(0px, 0px, 0px) scale(1)",
+    pointerEvents: "auto",
   };
 }
 
@@ -596,9 +848,9 @@ export function SutoExperience() {
     const track = scrollTrackRef.current;
     const container = containerRef.current;
     const viewportHeight = window.innerHeight || 800;
-    const trackHeight = track ? track.offsetHeight : viewportHeight * 4.2;
+    const trackHeight = track ? track.offsetHeight : viewportHeight * 5.8;
     const maxScroll = trackHeight - viewportHeight;
-    const targetY = maxScroll * 0.50; // Centered at p = 0.50 within Part One plateau
+    const targetY = maxScroll * 0.33; // Centered at p = 0.33 within Part One plateau
 
     window.scrollTo({ top: targetY, behavior: "smooth" });
     if (container && container.scrollHeight > container.clientHeight) {
@@ -777,6 +1029,7 @@ export function SutoExperience() {
   const accentsStyle = computeAccentsStyle(scrollProgress, prefersReducedMotion);
   const partOneStyle = computePartOneStyle(scrollProgress, prefersReducedMotion);
   const partTwoStyle = computePartTwoStyle(scrollProgress, prefersReducedMotion);
+  const signatureStyle = computeSignatureStyle(scrollProgress, prefersReducedMotion);
   const scrollCueStyle = computeScrollCueStyle(scrollProgress);
 
   return (
@@ -1081,13 +1334,53 @@ export function SutoExperience() {
                 </div>
               </div>
 
-              {/* Part Two Section: Continuous stage prepared for Part Two wording */}
+              {/* Part Two Section: Miss Sunshine love letter */}
               <div
-                className="suto-part-two-stage suto-part-two-layer"
+                className="suto-body-stage suto-body-layer suto-part-two-stage"
                 style={partTwoStyle}
               >
                 <div className="suto-body-content suto-part-two-content">
-                  {/* Container ready for upcoming Part Two love letter text */}
+                  <p className="suto-body-text suto-part-two-text">
+                    You know, when I call you my Miss Sunshine. That was not like a flirty line. It was kind of a flirty line. I won't say wasn't a flirty line, but, like, it was more of the, like, you brighten up my day, and you brighten up everything. You are my sun. You are my brightest star. I love you. I love you. I love you so much. You are my pyaara bachcha.
+                  </p>
+                </div>
+              </div>
+
+              {/* Finale Ending Sequence: Upward Butterflies + Downward Petals */}
+              <div className="suto-finale-particles-container" aria-hidden="true">
+                {FINALE_BUTTERFLY_PARTICLES.map((b) => (
+                  <span
+                    key={`finale-b-${b.id}`}
+                    className="suto-finale-butterfly-particle"
+                    style={computeFinaleButterflyStyle(b, scrollProgress, prefersReducedMotion)}
+                  >
+                    <span className="suto-butterfly-inner">
+                      <ButterflySvg color={b.color} wingColor={b.wingColor} />
+                    </span>
+                  </span>
+                ))}
+                {FINALE_PETAL_PARTICLES.map((petal) => (
+                  <span
+                    key={`finale-p-${petal.id}`}
+                    className="suto-finale-petal-particle"
+                    style={computeFinalePetalStyle(petal, scrollProgress, prefersReducedMotion)}
+                  >
+                    <span className="suto-transition-petal-inner">
+                      <SakuraPetalSvg color={petal.color} strokeColor={petal.strokeColor} />
+                    </span>
+                  </span>
+                ))}
+              </div>
+
+              {/* Final Signature Section: "With love, by your boyfriend" */}
+              <div
+                className="suto-signature-stage suto-signature-layer"
+                style={signatureStyle}
+              >
+                <div className="suto-signature-content">
+                  <p className="suto-signature-text">
+                    With love, by your boyfriend
+                  </p>
                 </div>
               </div>
             </div>

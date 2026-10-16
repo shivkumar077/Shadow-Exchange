@@ -187,16 +187,16 @@ test("App.tsx integrates /suto route cleanly without regressing trading terminal
   assert.ok(app.includes("MarketsView"), "MarketsView must be preserved");
 });
 
-test("Regression: SUTO Part One text is visibly rendered throughout its reading plateau and pinned to viewport", () => {
+test("SUTO Part One text is visibly rendered throughout its reading plateau and pinned to viewport", () => {
   const compPath = path.join(srcDir, "components/SutoExperience.tsx");
   const cssPath = path.join(srcDir, "suto.css");
   const content = fs.readFileSync(compPath, "utf-8");
   const css = fs.readFileSync(cssPath, "utf-8");
 
   // Exact Part One text must be present in JSX
-  const expectedText =
+  const expectedPartOne =
     "Babu, you know, I would not have been able to do it if it was not for you. I know you don't give yourself the credit that you deserve, I think whatever I am, however I am, is all because of you. Really thankful I got to have you, my Babu.";
-  assert.ok(content.includes(expectedText), "Part One exact text must be present in SutoExperience component");
+  assert.ok(content.includes(expectedPartOne), "Part One exact text must be present in SutoExperience component");
 
   // Stage must remain pinned to viewport without being scrolled off-screen
   assert.ok(
@@ -212,7 +212,65 @@ test("Regression: SUTO Part One text is visibly rendered throughout its reading 
   assert.ok(content.includes("Math.max("), "handleScroll must take maximum of windowScroll, containerScroll, and rect.top");
   assert.ok(content.includes("window.scrollY"), "handleScroll must inspect window.scrollY");
 
-  // Reading plateau must be generous (opacity 1 from at least p = 0.32 to 0.76)
-  assert.ok(content.includes("0.76"), "Reading plateau must extend through at least p = 0.76");
+  // Reading plateau for Part One on expanded track
+  assert.ok(content.includes("0.42"), "Part One reading plateau must extend through p = 0.42");
+});
+
+test("SUTO Part Two love letter (Miss Sunshine) and transitions are implemented with exact wording", () => {
+  const compPath = path.join(srcDir, "components/SutoExperience.tsx");
+  const cssPath = path.join(srcDir, "suto.css");
+  const content = fs.readFileSync(compPath, "utf-8");
+  const css = fs.readFileSync(cssPath, "utf-8");
+
+  // Exact Part Two love letter text
+  const expectedPartTwo =
+    "You know, when I call you my Miss Sunshine. That was not like a flirty line. It was kind of a flirty line. I won't say wasn't a flirty line, but, like, it was more of the, like, you brighten up my day, and you brighten up everything. You are my sun. You are my brightest star. I love you. I love you. I love you so much. You are my pyaara bachcha.";
+  assert.ok(content.includes(expectedPartTwo), "Part Two exact text must be present in SutoExperience component");
+
+  // Part Two stage and text classes
+  assert.ok(content.includes("suto-part-two-stage"), "Component must render suto-part-two-stage");
+  assert.ok(content.includes("suto-part-two-text"), "Component must render suto-part-two-text");
+  assert.ok(css.includes(".suto-part-two-text"), "CSS must style suto-part-two-text");
+
+  // Transition from Part One to Part Two via falling cherry blossom petals
+  assert.ok(content.includes("PETAL_TRANSITION_PARTICLES"), "Must define PETAL_TRANSITION_PARTICLES");
+  assert.ok(content.includes("computePetalStyle"), "Must compute transition petal styles");
+  assert.ok(content.includes("computePartTwoStyle"), "Must compute Part Two style");
+});
+
+test("SUTO Finale Ending Sequence: Upward butterflies + downward petals + final signature", () => {
+  const compPath = path.join(srcDir, "components/SutoExperience.tsx");
+  const cssPath = path.join(srcDir, "suto.css");
+  const content = fs.readFileSync(compPath, "utf-8");
+  const css = fs.readFileSync(cssPath, "utf-8");
+
+  // Exact Final Signature text
+  const expectedSignature = "With love, by your boyfriend";
+  assert.ok(content.includes(expectedSignature), "Must contain exact final signature: With love, by your boyfriend");
+
+  // Finale particles: upward butterflies (dy < 0) and downward petals (dy > 0)
+  assert.ok(content.includes("FINALE_BUTTERFLY_PARTICLES"), "Must define FINALE_BUTTERFLY_PARTICLES");
+  assert.ok(content.includes("FINALE_PETAL_PARTICLES"), "Must define FINALE_PETAL_PARTICLES");
+  assert.ok(content.includes("computeFinaleButterflyStyle"), "Must define computeFinaleButterflyStyle");
+  assert.ok(content.includes("computeFinalePetalStyle"), "Must define computeFinalePetalStyle");
+  assert.ok(content.includes("computeSignatureStyle"), "Must define computeSignatureStyle");
+
+  // Verify upward flight (negative dy) and downward fall (positive dy) in particle definitions
+  assert.ok(content.includes("dy: -680") || content.includes("dy: -820"), "Finale butterflies must have negative dy to fly upward");
+  assert.ok(content.includes("dy: 660") || content.includes("dy: 780"), "Finale petals must have positive dy to fall downward");
+
+  // Signature and finale styling in CSS
+  assert.ok(css.includes(".suto-signature-stage"), "CSS must style .suto-signature-stage");
+  assert.ok(css.includes(".suto-signature-text"), "CSS must style .suto-signature-text");
+  assert.ok(css.includes("sutoSignatureFloat"), "CSS must define subtle signature float animation");
+  assert.ok(css.includes(".suto-finale-particles-container"), "CSS must style finale particles container");
+  assert.ok(css.includes(".suto-finale-butterfly-particle"), "CSS must style finale butterfly particle");
+  assert.ok(css.includes(".suto-finale-petal-particle"), "CSS must style finale petal particle");
+
+  // Track height expanded for complete 3-transition sequence
+  assert.ok(css.includes("580vh") || css.includes("580dvh"), "CSS must provide generous 580vh track for smooth pacing");
+
+  // No extra text or third section
+  assert.ok(!content.includes("suto-part-three"), "Must not add an unwanted third letter section");
 });
 
