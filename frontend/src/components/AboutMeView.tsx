@@ -29,7 +29,7 @@ const LINKEDIN_URL = "https://www.linkedin.com/in/shiv-kumar-399a32231/";
 const TWITTER_URL = "https://x.com/nightcore_077";
 const INSTAGRAM_URL = "https://www.instagram.com/nightcore_077/";
 const EMAIL_ADDRESS = "shivkumar6990655@gmail.com";
-const EMAIL_URL = `mailto:${EMAIL_ADDRESS}`;
+const GMAIL_COMPOSE_URL = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(EMAIL_ADDRESS)}`;
 
 export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeViewProps) {
   return (
@@ -131,10 +131,12 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
               </a>
 
               <a
-                href={EMAIL_URL}
+                href={GMAIL_COMPOSE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="about-link-pill"
-                aria-label={`Email Shiv Kumar at ${EMAIL_ADDRESS}`}
-                title={`Send an email to ${EMAIL_ADDRESS}`}
+                aria-label={`Compose a Gmail message to Shiv Kumar at ${EMAIL_ADDRESS} (opens in new tab)`}
+                title={`Compose an email in Gmail to ${EMAIL_ADDRESS}`}
               >
                 <Mail size={13} />
                 <span>Email</span>
