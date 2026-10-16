@@ -31,6 +31,28 @@ const INSTAGRAM_URL = "https://www.instagram.com/nightcore_077/";
 const EMAIL_ADDRESS = "shivkumar6990655@gmail.com";
 const GMAIL_COMPOSE_URL = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(EMAIL_ADDRESS)}`;
 
+function handleEmailContact(event: React.MouseEvent<HTMLAnchorElement>) {
+  const userAgent = navigator.userAgent || "";
+  const isAndroid = /Android/i.test(userAgent);
+  const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+
+  if (isAndroid) {
+    event.preventDefault();
+    window.location.href = `intent://compose?to=${encodeURIComponent(EMAIL_ADDRESS)}#Intent;scheme=mailto;package=com.google.android.gm;end`;
+    return;
+  }
+
+  if (isIOS) {
+    event.preventDefault();
+    // Try the Gmail app first; fall back to Gmail in the browser if it is unavailable.
+    const fallbackTimer = window.setTimeout(() => {
+      window.location.href = GMAIL_COMPOSE_URL;
+    }, 900);
+    window.location.href = `googlegmail://co?to=${encodeURIComponent(EMAIL_ADDRESS)}`;
+    window.setTimeout(() => window.clearTimeout(fallbackTimer), 1200);
+  }
+}
+
 export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeViewProps) {
   return (
     <section className="about-me-view" aria-label="About the Creator and Engineering of Shadow Exchange">
@@ -132,6 +154,7 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
 
               <a
                 href={GMAIL_COMPOSE_URL}
+                onClick={handleEmailContact}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="about-link-pill"

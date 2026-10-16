@@ -83,6 +83,10 @@ test("Task 3: About Me personal links, preserved sections, and clickable GitHub 
   assert.ok(aboutMeFile.includes('target="_blank"'), "External links must open in new tab");
   assert.ok(aboutMeFile.includes('rel="noopener noreferrer"'), "External links must specify rel='noopener noreferrer'");
   assert.ok(aboutMeFile.includes('href={GMAIL_COMPOSE_URL}'), "AboutMeView must provide a direct Gmail compose link");
+  assert.ok(aboutMeFile.includes('function handleEmailContact'), "Email link must use device-aware email handling");
+  assert.ok(aboutMeFile.includes('package=com.google.android.gm'), "Android email link must target the Gmail app");
+  assert.ok(aboutMeFile.includes('googlegmail://co?to='), "iOS email link must attempt to open the Gmail app");
+  assert.ok(aboutMeFile.includes('onClick={handleEmailContact}'), "Email link must use the device-aware handler");
   assert.ok(aboutMeFile.includes('<Mail size={13} />'), "Email link must use the Mail icon");
   assert.ok(aboutMeFile.includes('shivkumar6990655@gmail.com'), "Email link must use the creator's email address");
 
