@@ -186,3 +186,33 @@ test("App.tsx integrates /suto route cleanly without regressing trading terminal
   assert.ok(app.includes("NotFoundPage"), "NotFoundPage must be preserved");
   assert.ok(app.includes("MarketsView"), "MarketsView must be preserved");
 });
+
+test("Regression: SUTO Part One text is visibly rendered throughout its reading plateau and pinned to viewport", () => {
+  const compPath = path.join(srcDir, "components/SutoExperience.tsx");
+  const cssPath = path.join(srcDir, "suto.css");
+  const content = fs.readFileSync(compPath, "utf-8");
+  const css = fs.readFileSync(cssPath, "utf-8");
+
+  // Exact Part One text must be present in JSX
+  const expectedText =
+    "Babu, you know, I would not have been able to do it if it was not for you. I know you don't give yourself the credit that you deserve, I think whatever I am, however I am, is all because of you. Really thankful I got to have you, my Babu.";
+  assert.ok(content.includes(expectedText), "Part One exact text must be present in SutoExperience component");
+
+  // Stage must remain pinned to viewport without being scrolled off-screen
+  assert.ok(
+    css.includes("position: fixed") || css.includes("position: sticky"),
+    "Stage must have fixed/sticky positioning"
+  );
+  assert.ok(
+    !css.includes("overflow-y: auto"),
+    "suto-experience must not have overflow-y: auto that breaks viewport pinning and scrolls the stage off-screen"
+  );
+
+  // Robust scroll calculation combining window, documentElement, container, and bounding rect
+  assert.ok(content.includes("Math.max("), "handleScroll must take maximum of windowScroll, containerScroll, and rect.top");
+  assert.ok(content.includes("window.scrollY"), "handleScroll must inspect window.scrollY");
+
+  // Reading plateau must be generous (opacity 1 from at least p = 0.32 to 0.76)
+  assert.ok(content.includes("0.76"), "Reading plateau must extend through at least p = 0.76");
+});
+

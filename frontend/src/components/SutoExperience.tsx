@@ -322,34 +322,34 @@ function computeAccentsStyle(p: number, reducedMotion: boolean): React.CSSProper
 
 export function computePartOneStyle(p: number, reducedMotion: boolean): React.CSSProperties {
   if (reducedMotion) {
-    if (p < 0.22) {
+    if (p < 0.16) {
       return { opacity: 0, pointerEvents: "none" };
     }
-    if (p <= 0.68) {
+    if (p <= 0.78) {
       return { opacity: 1, pointerEvents: "auto" };
     }
-    const fadeOut = Math.max(0, 1 - (p - 0.68) / 0.14);
+    const fadeOut = Math.max(0, 1 - (p - 0.78) / 0.16);
     return {
       opacity: fadeOut,
       pointerEvents: fadeOut > 0.1 ? "auto" : "none",
     };
   }
 
-  // Phase 1: Before entrance (p <= 0.20)
-  if (p <= 0.20) {
+  // Phase 1: Before entrance (p <= 0.16)
+  if (p <= 0.16) {
     return {
       opacity: 0,
-      transform: "translate3d(0px, 32px, 0px) scale(0.96)",
+      transform: "translate3d(0px, 28px, 0px) scale(0.96)",
       pointerEvents: "none",
     };
   }
 
-  // Phase 2: Entrance from butterflies (0.20 to 0.38)
-  if (p < 0.38) {
-    const t = (p - 0.20) / 0.18;
+  // Phase 2: Entrance from butterflies (0.16 to 0.30)
+  if (p < 0.30) {
+    const t = (p - 0.16) / 0.14;
     const easeT = easeOutCubic(t);
     const opacity = easeOutQuad(t);
-    const translateY = (32 * (1 - easeT)).toFixed(1);
+    const translateY = (28 * (1 - easeT)).toFixed(1);
     const scale = (0.96 + 0.04 * easeT).toFixed(3);
     return {
       opacity: Math.round(opacity * 1000) / 1000,
@@ -359,8 +359,8 @@ export function computePartOneStyle(p: number, reducedMotion: boolean): React.CS
     };
   }
 
-  // Phase 3: Peaceful, stable reading plateau (0.38 to 0.64)
-  if (p <= 0.64) {
+  // Phase 3: Peaceful, stable reading plateau (0.30 to 0.76) - generous, comfortable reading space
+  if (p <= 0.76) {
     return {
       opacity: 1,
       transform: "translate3d(0px, 0px, 0px) scale(1)",
@@ -369,9 +369,9 @@ export function computePartOneStyle(p: number, reducedMotion: boolean): React.CS
     };
   }
 
-  // Phase 4: Dissolves into falling cherry-blossom petals (0.64 to 0.82)
-  if (p < 0.82) {
-    const t = (p - 0.64) / 0.18;
+  // Phase 4: Dissolves into falling cherry-blossom petals (0.76 to 0.94)
+  if (p < 0.94) {
+    const t = (p - 0.76) / 0.18;
     const easeT = easeOutQuad(t);
     const opacity = Math.max(0, 1 - easeT);
     const translateY = (-10 * easeT).toFixed(1);
@@ -406,8 +406,8 @@ function computePetalStyle(
     return { display: "none" };
   }
 
-  const startP = 0.63 + (petal.delay / 0.45) * 0.08; // 0.63 to 0.71
-  const endP = Math.min(0.96, startP + 0.18 + (petal.scale / 1.35) * 0.08); // 0.84 to 0.96
+  const startP = 0.74 + (petal.delay / 0.45) * 0.08; // 0.74 to 0.82
+  const endP = Math.min(0.98, startP + 0.16 + (petal.scale / 1.35) * 0.06); // 0.90 to 0.98
 
   if (p <= startP) {
     return {
@@ -453,17 +453,17 @@ function computePetalStyle(
 
 function computePartTwoStyle(p: number, reducedMotion: boolean): React.CSSProperties {
   if (reducedMotion) {
-    if (p <= 0.70) {
+    if (p <= 0.82) {
       return { opacity: 0, pointerEvents: "none" };
     }
-    const opacity = Math.min(1, (p - 0.70) / 0.15);
+    const opacity = Math.min(1, (p - 0.82) / 0.14);
     return {
       opacity,
       pointerEvents: opacity > 0.1 ? "auto" : "none",
     };
   }
 
-  if (p <= 0.74) {
+  if (p <= 0.84) {
     return {
       opacity: 0,
       transform: "translate3d(0px, 32px, 0px) scale(0.96)",
@@ -471,7 +471,7 @@ function computePartTwoStyle(p: number, reducedMotion: boolean): React.CSSProper
     };
   }
 
-  if (p >= 0.94) {
+  if (p >= 0.96) {
     return {
       opacity: 1,
       transform: "translate3d(0px, 0px, 0px) scale(1)",
@@ -479,7 +479,7 @@ function computePartTwoStyle(p: number, reducedMotion: boolean): React.CSSProper
     };
   }
 
-  const t = (p - 0.74) / 0.20;
+  const t = (p - 0.84) / 0.12;
   const easeT = easeOutCubic(t);
   const opacity = easeOutQuad(t);
   const translateY = (32 * (1 - easeT)).toFixed(1);
@@ -553,13 +553,16 @@ export function SutoExperience() {
           return;
         }
 
-        let currentScroll = 0;
-        if (container && container.scrollHeight > container.clientHeight && container.scrollTop > 0) {
-          currentScroll = container.scrollTop;
-        } else {
-          const rect = track.getBoundingClientRect();
-          currentScroll = -rect.top;
-        }
+        const windowScroll =
+          (typeof window !== "undefined"
+            ? window.scrollY ??
+              window.pageYOffset ??
+              document.documentElement?.scrollTop ??
+              document.body?.scrollTop
+            : 0) ?? 0;
+        const containerScroll = container ? container.scrollTop : 0;
+        const rect = track.getBoundingClientRect();
+        const currentScroll = Math.max(windowScroll, containerScroll, -rect.top);
 
         const rawP = currentScroll / maxScroll;
         setScrollProgress(clamp(rawP, 0, 1));
@@ -588,18 +591,18 @@ export function SutoExperience() {
     };
   }, [viewState]);
 
-  // Smooth scroll helper for scroll cue button: glides directly into Part One
+  // Smooth scroll helper for scroll cue button: glides directly into center of Part One reading plateau
   const handleScrollCueClick = useCallback(() => {
     const track = scrollTrackRef.current;
     const container = containerRef.current;
     const viewportHeight = window.innerHeight || 800;
-    const maxScroll = track ? track.offsetHeight - viewportHeight : viewportHeight * 3.2;
-    const targetY = maxScroll * 0.48;
+    const trackHeight = track ? track.offsetHeight : viewportHeight * 4.2;
+    const maxScroll = trackHeight - viewportHeight;
+    const targetY = maxScroll * 0.50; // Centered at p = 0.50 within Part One plateau
 
+    window.scrollTo({ top: targetY, behavior: "smooth" });
     if (container && container.scrollHeight > container.clientHeight) {
       container.scrollTo({ top: targetY, behavior: "smooth" });
-    } else {
-      window.scrollTo({ top: targetY, behavior: "smooth" });
     }
   }, []);
 
