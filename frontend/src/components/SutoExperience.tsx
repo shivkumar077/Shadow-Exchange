@@ -101,110 +101,298 @@ function ButterflySvg({ color, wingColor }: { color: string; wingColor: string }
   );
 }
 
+function clamp(val: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, val));
+}
+
+function easeOutQuad(t: number): number {
+  return t * (2 - t);
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function computeButterflyStyle(
+  b: ButterflyParticle,
+  p: number,
+  reducedMotion: boolean
+): React.CSSProperties {
+  if (reducedMotion) {
+    return { display: "none" };
+  }
+
+  const startP = 0.08 + (b.delay / 0.65) * 0.16;
+  const endP = Math.min(0.94, startP + 0.44 + (b.duration / 3.3) * 0.22);
+
+  if (p <= startP) {
+    return {
+      left: `${b.startX}%`,
+      top: `${b.startY}%`,
+      opacity: 0,
+      transform: `translate3d(0px, 0px, 0px) scale(${b.scale}) rotate(${b.initRot}deg)`,
+      pointerEvents: "none",
+      "--flutter-speed": `${b.flutter}s`,
+    } as React.CSSProperties;
+  }
+
+  if (p >= endP) {
+    return {
+      left: `${b.startX}%`,
+      top: `${b.startY}%`,
+      opacity: 0,
+      transform: `translate3d(${b.dx}px, ${b.dy}px, 0px) scale(${b.scale * 0.7}) rotate(${b.targetRot}deg)`,
+      pointerEvents: "none",
+      "--flutter-speed": `${b.flutter}s`,
+    } as React.CSSProperties;
+  }
+
+  const t = (p - startP) / (endP - startP);
+  const curX = b.dx * easeOutCubic(t);
+  const curY = b.dy * easeOutQuad(t);
+  const curRot = b.initRot + (b.targetRot - b.initRot) * easeOutQuad(t);
+  const curScale = b.scale * (1 - 0.3 * easeOutQuad(t));
+
+  let opacity = 1;
+  if (t < 0.14) {
+    opacity = t / 0.14;
+  } else if (t > 0.75) {
+    opacity = Math.max(0, 1 - (t - 0.75) / 0.25);
+  }
+
+  return {
+    left: `${b.startX}%`,
+    top: `${b.startY}%`,
+    opacity: Math.round(opacity * 1000) / 1000,
+    transform: `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0px) scale(${curScale.toFixed(2)}) rotate(${curRot.toFixed(1)}deg)`,
+    pointerEvents: "none",
+    "--flutter-speed": `${b.flutter}s`,
+  } as React.CSSProperties;
+}
+
+function computeHeadingStyle(p: number, reducedMotion: boolean): React.CSSProperties {
+  if (reducedMotion) {
+    const opacity = p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.15);
+    return {
+      opacity,
+      pointerEvents: opacity > 0.1 ? "auto" : "none",
+    };
+  }
+
+  if (p <= 0.04) {
+    return {
+      opacity: 1,
+      transform: "translate3d(0px, 0px, 0px) scale(1)",
+      pointerEvents: "auto",
+    };
+  }
+
+  if (p >= 0.45) {
+    return {
+      opacity: 0,
+      transform: "translate3d(0px, -16px, 0px) scale(1.04)",
+      filter: "blur(14px) brightness(1.8)",
+      pointerEvents: "none",
+    };
+  }
+
+  if (p <= 0.18) {
+    const t = (p - 0.04) / 0.14;
+    const glow = Math.round(t * 35);
+    const bright = (1 + t * 0.35).toFixed(2);
+    const lift = (-4 * t).toFixed(1);
+    const sc = (1 + 0.015 * t).toFixed(3);
+    return {
+      opacity: 1,
+      filter: `drop-shadow(0 0 ${glow}px rgba(245, 184, 28, 0.85)) brightness(${bright})`,
+      transform: `translate3d(0px, ${lift}px, 0px) scale(${sc})`,
+      pointerEvents: "auto",
+    };
+  }
+
+  const t = (p - 0.18) / 0.27;
+  const easeT = easeOutQuad(t);
+  const opacity = Math.max(0, 1 - easeT);
+  const blur = (easeT * 12).toFixed(1);
+  const bright = (1.35 + (1 - easeT) * 0.25).toFixed(2);
+  const lift = (-4 - easeT * 12).toFixed(1);
+  const sc = (1.015 + easeT * 0.035).toFixed(3);
+
+  return {
+    opacity: Math.round(opacity * 1000) / 1000,
+    filter: `drop-shadow(0 0 45px rgba(245, 184, 28, 0.9)) blur(${blur}px) brightness(${bright})`,
+    transform: `translate3d(0px, ${lift}px, 0px) scale(${sc})`,
+    pointerEvents: opacity > 0.05 ? "auto" : "none",
+  };
+}
+
+function computeAccentsStyle(p: number, reducedMotion: boolean): React.CSSProperties {
+  if (reducedMotion) {
+    return { opacity: p < 0.35 ? 1 : 0 };
+  }
+  if (p <= 0.10) {
+    return { opacity: 1, transform: "scale(1)" };
+  }
+  if (p >= 0.38) {
+    return { opacity: 0, transform: "scale(0.3) rotate(45deg)" };
+  }
+  const t = (p - 0.10) / 0.28;
+  const opacity = Math.max(0, 1 - t);
+  const sc = (1 + Math.sin(t * Math.PI) * 0.25 - t * 0.5).toFixed(2);
+  const rot = (t * 35).toFixed(0);
+  return {
+    opacity: Math.round(opacity * 1000) / 1000,
+    transform: `scale(${sc}) rotate(${rot}deg)`,
+  };
+}
+
+function computeBodyStyle(p: number, reducedMotion: boolean): React.CSSProperties {
+  if (reducedMotion) {
+    const opacity = p <= 0.45 ? 0 : Math.min(1, (p - 0.45) / 0.2);
+    return {
+      opacity,
+      pointerEvents: opacity > 0.1 ? "auto" : "none",
+    };
+  }
+
+  if (p <= 0.32) {
+    return {
+      opacity: 0,
+      transform: "translate3d(0px, 32px, 0px) scale(0.96)",
+      pointerEvents: "none",
+    };
+  }
+
+  if (p >= 0.80) {
+    return {
+      opacity: 1,
+      transform: "translate3d(0px, 0px, 0px) scale(1)",
+      pointerEvents: "auto",
+    };
+  }
+
+  const t = (p - 0.32) / 0.48;
+  const easeT = easeOutCubic(t);
+  const opacity = easeOutQuad(t);
+  const translateY = (32 * (1 - easeT)).toFixed(1);
+  const scale = (0.96 + 0.04 * easeT).toFixed(3);
+
+  return {
+    opacity: Math.round(opacity * 1000) / 1000,
+    transform: `translate3d(0px, ${translateY}px, 0px) scale(${scale})`,
+    pointerEvents: opacity > 0.2 ? "auto" : "none",
+  };
+}
+
+function computeScrollCueStyle(p: number): React.CSSProperties {
+  if (p <= 0.02) {
+    return { opacity: 1, pointerEvents: "auto" };
+  }
+  if (p >= 0.08) {
+    return { opacity: 0, pointerEvents: "none" };
+  }
+  const opacity = 1 - (p - 0.02) / 0.06;
+  return {
+    opacity: Math.round(opacity * 1000) / 1000,
+    pointerEvents: opacity > 0.1 ? "auto" : "none",
+  };
+}
+
 export function SutoExperience() {
   const [viewState, setViewState] = useState<"loading" | "unauthenticated" | "unauthorized" | "authorized">("loading");
   const [, setContent] = useState<SutoContent | null>(null);
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Scroll-triggered butterfly transformation state: "initial" -> "transforming" -> "completed"
-  const [transitionStage, setTransitionStage] = useState<"initial" | "transforming" | "completed">("initial");
-  const hasTriggeredRef = useRef(false);
+  // Continuous, reversible scroll progress: 0 (top / "Hello Baby") to 1 (scrolled / "This is the body")
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const scrollTrackRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const rafIdRef = useRef<number | null>(null);
 
-  const triggerButterflyTransition = useCallback(() => {
-    if (hasTriggeredRef.current) return;
-    hasTriggeredRef.current = true;
+  // Detect user prefers-reduced-motion accessibility setting
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mediaQuery.matches);
 
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (prefersReducedMotion) {
-      setTransitionStage("completed");
-      return;
-    }
-
-    setTransitionStage("transforming");
-
-    // After heading shimmer & butterfly flight complete, transition settles in completed state
-    window.setTimeout(() => {
-      setTransitionStage("completed");
-    }, 2600);
+    const handler = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+    };
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
-  // Reliable scroll trigger for mouse wheel, trackpad, touch swipe, keyboard, and native scroll
+  // Continuous scroll-progress tracking: handles wheel, trackpad, touch swipe, keyboard, and scrollbar
   useEffect(() => {
-    if (viewState !== "authorized" || transitionStage !== "initial") return;
-
-    const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY > 8) {
-        triggerButterflyTransition();
-      }
-    };
-
-    let touchStartY = 0;
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches.length > 0) {
-        touchStartY = e.touches[0].clientY;
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length > 0) {
-        const currentY = e.touches[0].clientY;
-        // Swiping up (standard scrolling down gesture)
-        if (touchStartY - currentY > 18) {
-          triggerButterflyTransition();
-        }
-      }
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === "ArrowDown" ||
-        e.key === "PageDown" ||
-        e.key === " " ||
-        e.code === "Space" ||
-        e.code === "ArrowDown" ||
-        e.code === "PageDown"
-      ) {
-        triggerButterflyTransition();
-      }
-    };
+    if (viewState !== "authorized") return;
 
     const handleScroll = () => {
-      if (window.scrollY > 10) {
-        triggerButterflyTransition();
-      }
-      const container = containerRef.current;
-      if (container && container.scrollTop > 10) {
-        triggerButterflyTransition();
-      }
+      if (rafIdRef.current !== null) return;
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        const track = scrollTrackRef.current;
+        if (!track) return;
+
+        const container = containerRef.current;
+        const viewportHeight = window.innerHeight || 800;
+        const trackHeight = track.offsetHeight;
+        const maxScroll = trackHeight - viewportHeight;
+
+        if (maxScroll <= 0) {
+          setScrollProgress(0);
+          return;
+        }
+
+        let currentScroll = 0;
+        if (container && container.scrollHeight > container.clientHeight && container.scrollTop > 0) {
+          currentScroll = container.scrollTop;
+        } else {
+          const rect = track.getBoundingClientRect();
+          currentScroll = -rect.top;
+        }
+
+        const rawP = currentScroll / maxScroll;
+        setScrollProgress(clamp(rawP, 0, 1));
+      });
     };
 
-    window.addEventListener("wheel", handleWheel, { passive: true });
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchmove", handleTouchMove, { passive: true });
-    window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("scroll", handleScroll, { passive: true });
-
+    window.addEventListener("resize", handleScroll, { passive: true });
     const container = containerRef.current;
     if (container) {
       container.addEventListener("scroll", handleScroll, { passive: true });
     }
 
+    // Measure initial scroll position
+    handleScroll();
+
     return () => {
-      window.removeEventListener("wheel", handleWheel);
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
       if (container) {
         container.removeEventListener("scroll", handleScroll);
       }
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
     };
-  }, [viewState, transitionStage, triggerButterflyTransition]);
+  }, [viewState]);
+
+  // Smooth scroll helper for scroll cue button
+  const handleScrollCueClick = useCallback(() => {
+    const track = scrollTrackRef.current;
+    const container = containerRef.current;
+    const viewportHeight = window.innerHeight || 800;
+    const targetY = track ? track.offsetHeight - viewportHeight : viewportHeight * 1.5;
+
+    if (container && container.scrollHeight > container.clientHeight) {
+      container.scrollTo({ top: targetY, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: targetY, behavior: "smooth" });
+    }
+  }, []);
 
   // Probe server-side authorization on mount
   useEffect(() => {
@@ -373,6 +561,11 @@ export function SutoExperience() {
     navigateTo("/");
   };
 
+  const headingStyle = computeHeadingStyle(scrollProgress, prefersReducedMotion);
+  const accentsStyle = computeAccentsStyle(scrollProgress, prefersReducedMotion);
+  const bodyStyle = computeBodyStyle(scrollProgress, prefersReducedMotion);
+  const scrollCueStyle = computeScrollCueStyle(scrollProgress);
+
   return (
     <div
       className="suto-experience"
@@ -380,6 +573,7 @@ export function SutoExperience() {
       onClick={handleGardenClick}
       role="main"
       aria-label="Suto"
+      tabIndex={0}
     >
       {/* Falling cherry blossoms canvas */}
       <canvas ref={canvasRef} className="suto-petals-canvas" aria-hidden="true" />
@@ -509,94 +703,109 @@ export function SutoExperience() {
         </div>
       )}
 
-      {/* View State: Authorized Experience — Scroll-Triggered Butterfly Transformation */}
+      {/* View State: Authorized Experience — Reversible, Scroll-Linked Butterfly Transformation */}
       {viewState === "authorized" && (
         <div className="suto-authorized-flow">
-          {/* Opening Hero Stage: "Hello Baby" heading with specimen accents */}
-          {transitionStage !== "completed" && (
-            <div
-              className={`suto-hero-stage ${
-                transitionStage === "transforming" ? "is-transforming" : ""
-              }`}
-            >
+          <div className="suto-scroll-track" ref={scrollTrackRef}>
+            <div className="suto-sticky-stage">
+              {/* Heading Layer: "Hello Baby" heading with specimen accents */}
               <div
-                className={`suto-heading-cluster ${
-                  transitionStage === "transforming" ? "is-transforming" : ""
-                }`}
+                className="suto-hero-stage suto-heading-layer"
+                style={{
+                  opacity: headingStyle.opacity,
+                  pointerEvents: headingStyle.pointerEvents,
+                }}
               >
-                {/* Top decorative accents inspired by specimen reference */}
-                <span className="suto-accent-decor suto-star-1" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" className="suto-svg-star">
-                    <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
-                  </svg>
-                </span>
+                <div
+                  className="suto-heading-cluster"
+                  style={{
+                    filter: headingStyle.filter,
+                    transform: headingStyle.transform,
+                  }}
+                >
+                  {/* Top decorative accents inspired by specimen reference */}
+                  <span
+                    className="suto-accent-decor suto-star-1"
+                    style={accentsStyle}
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 24 24" className="suto-svg-star">
+                      <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
+                    </svg>
+                  </span>
 
-                <span className="suto-accent-decor suto-heart-1" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" className="suto-svg-heart">
-                    <path
-                      d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                      fill="#FFFECB"
-                      stroke="#F5B81C"
-                      strokeWidth="2.5"
-                    />
-                  </svg>
-                </span>
+                  <span
+                    className="suto-accent-decor suto-heart-1"
+                    style={accentsStyle}
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 24 24" className="suto-svg-heart">
+                      <path
+                        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                        fill="#FFFECB"
+                        stroke="#F5B81C"
+                        strokeWidth="2.5"
+                      />
+                    </svg>
+                  </span>
 
-                <span className="suto-accent-decor suto-star-2" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" className="suto-svg-star">
-                    <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
-                  </svg>
-                </span>
+                  <span
+                    className="suto-accent-decor suto-star-2"
+                    style={accentsStyle}
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 24 24" className="suto-svg-star">
+                      <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
+                    </svg>
+                  </span>
 
-                <h1 className="suto-hello-baby" data-text="Hello Baby">
-                  Hello Baby
-                </h1>
+                  <h1 className="suto-hello-baby" data-text="Hello Baby">
+                    Hello Baby
+                  </h1>
 
-                {/* Bottom decorative accents */}
-                <span className="suto-accent-decor suto-star-3" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" className="suto-svg-star">
-                    <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
-                  </svg>
-                </span>
+                  {/* Bottom decorative accents */}
+                  <span
+                    className="suto-accent-decor suto-star-3"
+                    style={accentsStyle}
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 24 24" className="suto-svg-star">
+                      <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
+                    </svg>
+                  </span>
 
-                <span className="suto-accent-decor suto-heart-2" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" className="suto-svg-heart">
-                    <path
-                      d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                      fill="#FFFECB"
-                      stroke="#F5B81C"
-                      strokeWidth="2.5"
-                    />
-                  </svg>
-                </span>
+                  <span
+                    className="suto-accent-decor suto-heart-2"
+                    style={accentsStyle}
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 24 24" className="suto-svg-heart">
+                      <path
+                        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                        fill="#FFFECB"
+                        stroke="#F5B81C"
+                        strokeWidth="2.5"
+                      />
+                    </svg>
+                  </span>
 
-                <span className="suto-accent-decor suto-star-4" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" className="suto-svg-star">
-                    <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
-                  </svg>
-                </span>
+                  <span
+                    className="suto-accent-decor suto-star-4"
+                    style={accentsStyle}
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 24 24" className="suto-svg-star">
+                      <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
+                    </svg>
+                  </span>
 
-                {/* Butterfly Particles Swarm: Emerges during transformation */}
-                {transitionStage === "transforming" && (
+                  {/* Butterfly Particles Swarm: Emerge from heading and fly outward */}
                   <div className="suto-butterflies-swarm" aria-hidden="true">
                     {BUTTERFLY_PARTICLES.map((b) => (
                       <span
                         key={b.id}
                         className="suto-butterfly-particle"
-                        style={
-                          {
-                            left: `${b.startX}%`,
-                            top: `${b.startY}%`,
-                            "--fly-dx": `${b.dx}px`,
-                            "--fly-dy": `${b.dy}px`,
-                            "--fly-duration": `${b.duration}s`,
-                            "--fly-delay": `${b.delay}s`,
-                            "--flutter-speed": `${b.flutter}s`,
-                            "--base-scale": b.scale,
-                            "--initial-rot": `${b.initRot}deg`,
-                            "--target-rot": `${b.targetRot}deg`,
-                          } as React.CSSProperties
-                        }
+                        style={computeButterflyStyle(b, scrollProgress, prefersReducedMotion)}
                       >
                         <span className="suto-butterfly-inner">
                           <ButterflySvg color={b.color} wingColor={b.wingColor} />
@@ -604,15 +813,14 @@ export function SutoExperience() {
                       </span>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* Gentle, non-intrusive scroll indicator on opening screen */}
-              {transitionStage === "initial" && (
+                {/* Gentle scroll indicator on opening screen */}
                 <button
                   type="button"
                   className="suto-scroll-cue"
-                  onClick={triggerButterflyTransition}
+                  style={scrollCueStyle}
+                  onClick={handleScrollCueClick}
                   aria-label="Scroll down to explore"
                 >
                   <span className="suto-scroll-cue-text">Scroll</span>
@@ -631,26 +839,21 @@ export function SutoExperience() {
                     />
                   </svg>
                 </button>
-              )}
-            </div>
-          )}
+              </div>
 
-          {/* New Body Section: Gracefully enters as butterflies disperse */}
-          {(transitionStage === "transforming" || transitionStage === "completed") && (
-            <div
-              className={`suto-body-stage ${
-                transitionStage === "completed" || transitionStage === "transforming"
-                  ? "is-revealed"
-                  : ""
-              }`}
-            >
-              <div className="suto-body-content">
-                <p className="suto-body-text">
-                  This is the body
-                </p>
+              {/* Body Section: Progressively reveals as butterflies disperse */}
+              <div
+                className="suto-body-stage suto-body-layer"
+                style={bodyStyle}
+              >
+                <div className="suto-body-content">
+                  <p className="suto-body-text">
+                    This is the body
+                  </p>
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       )}
 

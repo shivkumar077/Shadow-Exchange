@@ -82,7 +82,7 @@ test("Full-screen background coverage and specimen-matched chunky typography in 
   assert.ok(css.includes("@media (prefers-reduced-motion: reduce)"), "Must respect prefers-reduced-motion");
 });
 
-test("Authorized view displays opening 'Hello Baby' and scroll-triggered butterfly transition", () => {
+test("Authorized view displays opening 'Hello Baby' and reversible, scroll-linked butterfly transition", () => {
   const compPath = path.join(srcDir, "components/SutoExperience.tsx");
   const cssPath = path.join(srcDir, "suto.css");
   assert.ok(fs.existsSync(compPath), "SutoExperience.tsx component must exist");
@@ -99,26 +99,27 @@ test("Authorized view displays opening 'Hello Baby' and scroll-triggered butterf
   assert.ok(content.includes("suto-butterflies-swarm"), "Must render butterflies swarm container");
   assert.ok(content.includes("BUTTERFLY_PARTICLES"), "Must define varied butterfly particles data");
 
-  // Scroll detection across modalities
-  assert.ok(content.includes("handleWheel"), "Must detect mouse wheel scroll");
-  assert.ok(content.includes("handleTouchMove"), "Must detect touch swipe down");
-  assert.ok(content.includes("handleKeyDown"), "Must detect keyboard scroll");
-  assert.ok(content.includes("triggerButterflyTransition"), "Must have trigger callback");
+  // Continuous, reversible scroll progress tracking (follows progress in both directions)
+  assert.ok(content.includes("scrollProgress"), "Must track continuous scroll progress");
+  assert.ok(content.includes("setScrollProgress"), "Must update scroll progress state");
+  assert.ok(content.includes("scrollTrackRef"), "Must reference scroll track element");
+  assert.ok(content.includes("computeButterflyStyle"), "Must compute butterfly styles from scroll progress");
+  assert.ok(content.includes("computeHeadingStyle"), "Must compute heading styles from scroll progress");
+  assert.ok(content.includes("computeBodyStyle"), "Must compute body styles from scroll progress");
+  assert.ok(!content.includes("hasTriggeredRef"), "Must NOT lock transition permanently into a one-way completed state");
 
-  // One-way non-reversing behavior
-  assert.ok(content.includes("hasTriggeredRef"), "Must lock transition to prevent replay or reverse on scroll up");
-
-  // Temporary body text
+  // Cohesive body text matching requirements
   assert.ok(content.includes("This is the body"), "Must render exact text: This is the body");
   assert.ok(content.includes("suto-body-stage"), "Must contain suto-body-stage");
   assert.ok(content.includes("suto-body-text"), "Must contain suto-body-text");
 
-  // CSS rules for butterfly flight, heading dissolve, and body text
+  // CSS rules for reversible scroll track, sticky stage, butterfly particles, and peach-cream body text
+  assert.ok(css.includes(".suto-scroll-track"), "CSS must style scroll track for stable scroll area");
+  assert.ok(css.includes(".suto-sticky-stage"), "CSS must style sticky stage pinned during transition");
   assert.ok(css.includes(".suto-butterfly-particle"), "CSS must style butterfly particle");
-  assert.ok(css.includes("sutoButterflyFly"), "CSS must define butterfly flight keyframes");
   assert.ok(css.includes("sutoButterflyFlutter"), "CSS must define 3D wing flutter keyframes");
-  assert.ok(css.includes("sutoHeadingDissolve"), "CSS must define heading dissolve keyframes");
   assert.ok(css.includes(".suto-body-text"), "CSS must style suto-body-text");
+  assert.ok(css.includes("#FFE6D0") || css.includes("FFE6D0"), "CSS must use soft peach-cream / buttery gold color for body text");
   assert.ok(css.includes("overflow-x: hidden"), "CSS must prevent horizontal scroll");
 
   // Previous paragraphs, chapter sections, and keepsakes shelf must remain removed
