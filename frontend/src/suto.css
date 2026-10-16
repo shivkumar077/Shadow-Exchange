@@ -1,8 +1,9 @@
 /* ==========================================================================
-   /suto — Minimal Background & Typography Pass
-   - Background: download (2).jpg covering the entire screen edge-to-edge
-   - Typography: Night Bubble font loaded via @font-face and applied everywhere
-   - Visible content: "Hello Baby" large, expressive, playful, and beautifully proportioned
+   /suto — 3D Render Lake Landscape & Chunky Bubbly Typography Pass
+   - Background: 3d-render-lake-landscape-with-retro-effect.jpg edge-to-edge
+   - Typography: Night Bubble font loaded via @font-face, styled matching specimen
+   - Heading: Oversized, chunky, bubbly "Hello Baby" with pale buttery cream fill,
+     thick golden-yellow outline, layered orange-gold 3D shadow, and heart/sparkle accents
    - Falling cherry-blossom petals canvas and custom lily cursor preserved
    ========================================================================== */
 
@@ -19,10 +20,10 @@
 }
 
 :root {
-  --suto-font: 'Night Bubble', cursive, sans-serif;
-  --suto-text-glow: 0 4px 20px rgba(65, 20, 29, 0.45),
-                    0 8px 40px rgba(84, 31, 40, 0.35),
-                    0 0 50px rgba(255, 225, 235, 0.55);
+  --suto-font: 'Night Bubble', 'Fredoka One', 'Chewy', cursive, sans-serif;
+  --suto-cream-fill: #FFFECB;
+  --suto-gold-outline: #F5B81C;
+  --suto-orange-shadow: #D97706;
 }
 
 /* ==========================================================================
@@ -56,7 +57,7 @@
 
 /* ==========================================================================
    Full-Screen Background Coverage
-   - download (2).jpg covers the entire screen edge to edge
+   - 3d-render-lake-landscape-with-retro-effect.jpg covers the entire screen edge to edge
    - background-size: cover, properly proportioned without distortion
    ========================================================================== */
 
@@ -66,13 +67,13 @@
   width: 100vw;
   width: 100%;
   position: relative;
-  background-color: #cf8b95;
-  background-image: url('/assets/suto/download%20(2).jpg'), url('/assets/shuto/download%20(2).jpg');
+  background-color: #2b1d3a;
+  background-image: url('/assets/suto/3d-render-lake-landscape-with-retro-effect.jpg'), url('/assets/shuto/3d-render-lake-landscape-with-retro-effect.jpg');
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
   font-family: var(--suto-font);
-  color: #fff8fa;
+  color: var(--suto-cream-fill);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -83,17 +84,17 @@
   box-sizing: border-box;
 }
 
-/* Desktop widescreen framing: blossoms on the right, open watercolor on the left/center */
+/* Desktop widescreen framing: centers the glowing retro sun and serene lake */
 @media (min-width: 1024px) {
   .suto-experience {
-    background-position: 65% center;
+    background-position: center 48%;
   }
 }
 
-/* Mobile responsive framing: keeps the cherry blossom flowers visible */
+/* Mobile responsive framing: keeps the glowing retro sun and landscape prominent */
 @media (max-width: 768px) {
   .suto-experience {
-    background-position: 70% center;
+    background-position: center 38%;
   }
 }
 
@@ -108,9 +109,12 @@
 }
 
 /* ==========================================================================
-   Visible Authorized Content: Only "Hello Baby"
-   - Large, expressive, playful, beautifully proportioned to the background
-   - No opaque cards, no clutter, no decorative boxes
+   Visible Authorized Content: "Hello Baby" Restyled to Specimen Reference
+   - Oversized, chunky, bubbly, playful lettering
+   - Pale buttery cream/yellow fill (#FFFECB)
+   - Thick golden-yellow outline (#F5B81C)
+   - Layered orange-gold 3D extruded shadow (#F5A623 down to #9A3412)
+   - Tiny heart & sparkle accents
    ========================================================================== */
 
 .suto-hero-stage {
@@ -128,25 +132,126 @@
   pointer-events: none;
 }
 
-.suto-hello-baby {
-  font-family: var(--suto-font);
-  font-size: clamp(3.8rem, 11vw, 9.5rem);
-  font-weight: normal;
-  line-height: 1.1;
-  letter-spacing: 0.035em;
-  color: #fff8fa;
-  text-shadow: var(--suto-text-glow);
-  margin: 0;
-  user-select: none;
-  pointer-events: auto;
-  animation: sutoGentlyFloat 5s ease-in-out infinite alternate;
-  filter: drop-shadow(0 10px 24px rgba(78, 24, 35, 0.3));
-  word-break: keep-all;
+.suto-heading-cluster {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 2.5rem;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-@keyframes sutoGentlyFloat {
+.suto-hello-baby {
+  font-family: var(--suto-font);
+  font-size: clamp(3.2rem, 9.5vw, 8rem);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 0.025em;
+  color: var(--suto-cream-fill);
+  -webkit-text-fill-color: var(--suto-cream-fill);
+  -webkit-text-stroke: clamp(3px, 0.65vw, 6px) var(--suto-gold-outline);
+  paint-order: stroke fill;
+  margin: 0;
+  text-align: center;
+  user-select: none;
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
+  word-break: keep-all;
+  text-shadow:
+    /* Layered 3D orange-gold extruded shadow */
+    0 1px 0 #F5B81C,
+    1px 2px 0 #F5B81C,
+    1px 3px 0 #F5A623,
+    2px 4px 0 #F5A623,
+    2px 5px 0 #EFA01B,
+    2px 6px 0 #E6910E,
+    3px 7px 0 #E68A0D,
+    3px 8px 0 #DC8007,
+    3px 9px 0 #D97706,
+    4px 10px 0 #CA6D04,
+    4px 11px 0 #B45309,
+    4px 12px 0 #9A3412,
+    /* Ambient warm glow */
+    0 16px 28px rgba(60, 20, 10, 0.38),
+    0 24px 50px rgba(30, 10, 5, 0.28);
+  animation: sutoBubblyFloat 4.8s ease-in-out infinite alternate;
+  filter: drop-shadow(0 12px 24px rgba(45, 15, 10, 0.35));
+}
+
+@keyframes sutoBubblyFloat {
   0% { transform: translateY(0px) scale(1); }
   100% { transform: translateY(-8px) scale(1.015); }
+}
+
+/* Decorative Accents: tiny heart and sparkle stars */
+.suto-accent-decor {
+  position: absolute;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  filter: drop-shadow(0 4px 10px rgba(100, 40, 5, 0.35));
+}
+
+.suto-svg-star {
+  width: clamp(14px, 2.4vw, 26px);
+  height: clamp(14px, 2.4vw, 26px);
+}
+
+.suto-svg-heart {
+  width: clamp(18px, 2.8vw, 32px);
+  height: clamp(18px, 2.8vw, 32px);
+}
+
+.suto-star-1 {
+  top: -6px;
+  left: 6%;
+  animation: sutoTwinkle 3.2s ease-in-out infinite;
+}
+
+.suto-heart-1 {
+  top: -16px;
+  left: 28%;
+  transform: rotate(-14deg);
+  animation: sutoFloatHeart 4s ease-in-out infinite alternate;
+}
+
+.suto-star-2 {
+  top: -8px;
+  right: 14%;
+  animation: sutoTwinkle 3.8s ease-in-out infinite 0.7s;
+}
+
+.suto-star-3 {
+  bottom: 0px;
+  left: 12%;
+  animation: sutoTwinkle 3.5s ease-in-out infinite 1.2s;
+}
+
+.suto-heart-2 {
+  bottom: -14px;
+  right: 22%;
+  transform: rotate(12deg);
+  animation: sutoFloatHeart 4.2s ease-in-out infinite alternate 0.5s;
+}
+
+.suto-star-4 {
+  bottom: -4px;
+  right: 6%;
+  animation: sutoTwinkle 3.6s ease-in-out infinite 1.8s;
+}
+
+@keyframes sutoTwinkle {
+  0%, 100% { transform: scale(0.9) rotate(0deg); opacity: 0.85; }
+  50% { transform: scale(1.2) rotate(15deg); opacity: 1; }
+}
+
+@keyframes sutoFloatHeart {
+  0% { transform: translateY(0px) rotate(-14deg) scale(0.95); }
+  100% { transform: translateY(-7px) rotate(-8deg) scale(1.08); }
 }
 
 /* ==========================================================================
@@ -409,6 +514,13 @@
 /* Reduced-motion accessibility */
 @media (prefers-reduced-motion: reduce) {
   .suto-hello-baby,
+  .suto-accent-decor,
+  .suto-star-1,
+  .suto-star-2,
+  .suto-star-3,
+  .suto-star-4,
+  .suto-heart-1,
+  .suto-heart-2,
   .suto-loading-flower,
   .suto-mischief-cat-svg,
   .suto-cat-paw-shoo,
@@ -418,3 +530,4 @@
     transition: none !important;
   }
 }
+

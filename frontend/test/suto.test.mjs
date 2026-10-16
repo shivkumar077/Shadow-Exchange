@@ -39,15 +39,15 @@ test("Route /suto is recognized, normalized, and strictly scoped", () => {
   assert.equal(VALID_APPLICATION_ROUTES["/suto"], "Suto");
 });
 
-test("Assets exist: download (2).jpg and Night Bubble.ttf are in public assets", () => {
-  const sutoImg = path.join(publicDir, "assets/suto/download (2).jpg");
+test("Assets exist: 3d-render-lake-landscape-with-retro-effect.jpg and Night Bubble.ttf are in public assets", () => {
+  const lakeImg = path.join(publicDir, "assets/suto/3d-render-lake-landscape-with-retro-effect.jpg");
   const sutoFont = path.join(publicDir, "assets/suto/Night Bubble.ttf");
 
-  assert.ok(fs.existsSync(sutoImg), "download (2).jpg must exist in public assets");
+  assert.ok(fs.existsSync(lakeImg), "3d-render-lake-landscape-with-retro-effect.jpg must exist in public assets");
   assert.ok(fs.existsSync(sutoFont), "Night Bubble.ttf must exist in public assets");
 });
 
-test("Full-screen background coverage and Night Bubble @font-face in suto.css", () => {
+test("Full-screen background coverage and specimen-matched chunky typography in suto.css", () => {
   const cssPath = path.join(srcDir, "suto.css");
   assert.ok(fs.existsSync(cssPath), "suto.css must exist");
   const css = fs.readFileSync(cssPath, "utf-8");
@@ -57,10 +57,18 @@ test("Full-screen background coverage and Night Bubble @font-face in suto.css", 
   assert.ok(css.includes("font-family: 'Night Bubble'"), "Must declare font-family Night Bubble");
   assert.ok(css.includes("Night%20Bubble.ttf") || css.includes("Night Bubble.ttf"), "Must reference Night Bubble.ttf");
 
-  // Full-screen background cover
+  // Full-screen background cover with 3D render lake landscape
   assert.ok(css.includes("background-size: cover"), "Must use background-size: cover");
-  assert.ok(css.includes("download%20(2).jpg") || css.includes("download (2).jpg"), "Must reference download (2).jpg");
+  assert.ok(css.includes("3d-render-lake-landscape-with-retro-effect.jpg"), "Must reference 3d-render-lake-landscape-with-retro-effect.jpg");
+  assert.ok(!css.includes("download%20(2).jpg") && !css.includes("download (2).jpg"), "Must not use old background download (2).jpg");
   assert.ok(css.includes("100vh"), "Must cover full viewport height");
+
+  // Chunky bubbly typography styling matching specimen reference
+  assert.ok(css.includes("-webkit-text-stroke"), "Must use text-stroke for thick golden outline");
+  assert.ok(css.includes("paint-order: stroke fill"), "Must use paint-order to keep lettering chunky");
+  assert.ok(css.includes("#F5B81C") || css.includes("var(--suto-gold-outline)"), "Must use golden-yellow outline");
+  assert.ok(css.includes("#FFFECB") || css.includes("var(--suto-cream-fill)"), "Must use pale buttery cream fill");
+  assert.ok(css.includes("suto-accent-decor"), "Must style tiny heart/sparkle accents");
 
   // Custom lily cursor SVG
   assert.ok(css.includes("cursor: url(\"data:image/svg+xml"), "Must define custom SVG lily cursor");

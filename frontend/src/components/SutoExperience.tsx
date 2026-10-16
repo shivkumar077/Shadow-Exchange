@@ -317,12 +317,62 @@ export function SutoExperience() {
         </div>
       )}
 
-      {/* View State: Authorized Experience — Only "Hello Baby" */}
+      {/* View State: Authorized Experience — Only "Hello Baby" with cute specimen accents */}
       {viewState === "authorized" && (
         <div className="suto-hero-stage">
-          <h1 className="suto-hello-baby">
-            Hello Baby
-          </h1>
+          <div className="suto-heading-cluster">
+            {/* Top decorative accents inspired by specimen reference */}
+            <span className="suto-accent-decor suto-star-1" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="suto-svg-star">
+                <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
+              </svg>
+            </span>
+
+            <span className="suto-accent-decor suto-heart-1" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="suto-svg-heart">
+                <path
+                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                  fill="#FFFECB"
+                  stroke="#F5B81C"
+                  strokeWidth="2.5"
+                />
+              </svg>
+            </span>
+
+            <span className="suto-accent-decor suto-star-2" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="suto-svg-star">
+                <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
+              </svg>
+            </span>
+
+            <h1 className="suto-hello-baby" data-text="Hello Baby">
+              Hello Baby
+            </h1>
+
+            {/* Bottom decorative accents */}
+            <span className="suto-accent-decor suto-star-3" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="suto-svg-star">
+                <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
+              </svg>
+            </span>
+
+            <span className="suto-accent-decor suto-heart-2" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="suto-svg-heart">
+                <path
+                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                  fill="#FFFECB"
+                  stroke="#F5B81C"
+                  strokeWidth="2.5"
+                />
+              </svg>
+            </span>
+
+            <span className="suto-accent-decor suto-star-4" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="suto-svg-star">
+                <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
+              </svg>
+            </span>
+          </div>
         </div>
       )}
 
