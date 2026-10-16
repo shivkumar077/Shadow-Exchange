@@ -11,6 +11,7 @@ import {
   Instagram,
   Layers,
   Linkedin,
+  Mail,
   ShieldCheck,
   Terminal,
   Twitter,
@@ -27,6 +28,8 @@ const GITHUB_PROFILE_URL = "https://github.com/shivkumar077";
 const LINKEDIN_URL = "https://www.linkedin.com/in/shiv-kumar-399a32231/";
 const TWITTER_URL = "https://x.com/nightcore_077";
 const INSTAGRAM_URL = "https://www.instagram.com/nightcore_077/";
+const EMAIL_ADDRESS = "shivkumar6990655@gmail.com";
+const EMAIL_URL = `mailto:${EMAIL_ADDRESS}`;
 
 export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeViewProps) {
   return (
@@ -124,6 +127,17 @@ export function AboutMeView({ onNavigateOverview, onNavigateMarkets }: AboutMeVi
               >
                 <Instagram size={13} />
                 <span>Instagram</span>
+                <ExternalLink size={11} />
+              </a>
+
+              <a
+                href={EMAIL_URL}
+                className="about-link-pill"
+                aria-label={`Email Shiv Kumar at ${EMAIL_ADDRESS}`}
+                title={`Send an email to ${EMAIL_ADDRESS}`}
+              >
+                <Mail size={13} />
+                <span>Email</span>
                 <ExternalLink size={11} />
               </a>
             </div>

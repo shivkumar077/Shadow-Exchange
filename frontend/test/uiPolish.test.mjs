@@ -75,12 +75,16 @@ test("Task 3: About Me personal links, preserved sections, and clickable GitHub 
     "https://www.linkedin.com/in/shiv-kumar-399a32231/",
     "https://x.com/nightcore_077",
     "https://www.instagram.com/nightcore_077/",
+    "mailto:shivkumar6990655@gmail.com",
   ];
   for (const url of expectedLinks) {
     assert.ok(aboutMeFile.includes(url), `AboutMeView must contain link to ${url}`);
   }
   assert.ok(aboutMeFile.includes('target="_blank"'), "External links must open in new tab");
   assert.ok(aboutMeFile.includes('rel="noopener noreferrer"'), "External links must specify rel='noopener noreferrer'");
+  assert.ok(aboutMeFile.includes('href={EMAIL_URL}'), "AboutMeView must provide a direct email link");
+  assert.ok(aboutMeFile.includes('<Mail size={13} />'), "Email link must use the Mail icon");
+  assert.ok(aboutMeFile.includes('shivkumar6990655@gmail.com'), "Email link must use the creator's email address");
 
   // Preserved content sections
   assert.ok(aboutMeFile.includes("PURPOSE AND SCOPE"), "AboutMeView must preserve Purpose and Scope section");
