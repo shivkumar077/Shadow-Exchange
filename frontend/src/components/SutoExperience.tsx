@@ -101,6 +101,79 @@ function ButterflySvg({ color, wingColor }: { color: string; wingColor: string }
   );
 }
 
+interface TransitionPetalParticle {
+  id: number;
+  startX: number;
+  startY: number;
+  dx: number;
+  dy: number;
+  scale: number;
+  initRot: number;
+  targetRot: number;
+  delay: number;
+  swayAmp: number;
+  color: string;
+  strokeColor?: string;
+}
+
+const PETAL_TRANSITION_PARTICLES: TransitionPetalParticle[] = [
+  // Upper-left cluster
+  { id: 1, startX: 24, startY: 38, dx: -150, dy: 440, scale: 1.1, initRot: -15, targetRot: 140, delay: 0.05, swayAmp: 22, color: "#FFD1DC" },
+  { id: 2, startX: 30, startY: 42, dx: -90, dy: 520, scale: 0.9, initRot: 10, targetRot: -120, delay: 0.12, swayAmp: 18, color: "#FDE8EF" },
+  { id: 3, startX: 20, startY: 46, dx: -190, dy: 390, scale: 1.25, initRot: -25, targetRot: 160, delay: 0.08, swayAmp: 26, color: "#FFB6C1" },
+  { id: 4, startX: 35, startY: 36, dx: -60, dy: 480, scale: 0.85, initRot: 5, targetRot: -140, delay: 0.18, swayAmp: 20, color: "#FFF0F5" },
+
+  // Center-left cluster
+  { id: 5, startX: 38, startY: 48, dx: -110, dy: 540, scale: 1.05, initRot: -8, targetRot: 180, delay: 0.14, swayAmp: 24, color: "#FFC0CB" },
+  { id: 6, startX: 42, startY: 40, dx: -40, dy: 580, scale: 1.2, initRot: 18, targetRot: -90, delay: 0.22, swayAmp: 28, color: "#FAD2E1" },
+  { id: 7, startX: 36, startY: 56, dx: -130, dy: 460, scale: 0.95, initRot: -12, targetRot: 130, delay: 0.10, swayAmp: 16, color: "#FDE8EF" },
+  { id: 8, startX: 44, startY: 52, dx: -20, dy: 510, scale: 1.15, initRot: 22, targetRot: -160, delay: 0.26, swayAmp: 25, color: "#FFD1DC" },
+
+  // Center cluster
+  { id: 9, startX: 48, startY: 38, dx: 15, dy: 600, scale: 1.3, initRot: 0, targetRot: 190, delay: 0.06, swayAmp: 30, color: "#FFE4E1" },
+  { id: 10, startX: 52, startY: 45, dx: -15, dy: 570, scale: 1.0, initRot: -10, targetRot: -150, delay: 0.16, swayAmp: 22, color: "#FFC0CB" },
+  { id: 11, startX: 50, startY: 58, dx: 25, dy: 530, scale: 1.1, initRot: 15, targetRot: 170, delay: 0.28, swayAmp: 27, color: "#FDE8EF" },
+  { id: 12, startX: 46, startY: 62, dx: -35, dy: 490, scale: 0.85, initRot: -18, targetRot: -110, delay: 0.20, swayAmp: 19, color: "#FFD1DC" },
+
+  // Center-right cluster
+  { id: 13, startX: 56, startY: 40, dx: 50, dy: 560, scale: 1.2, initRot: -5, targetRot: 140, delay: 0.15, swayAmp: 24, color: "#FFB6C1" },
+  { id: 14, startX: 62, startY: 48, dx: 110, dy: 500, scale: 0.95, initRot: 20, targetRot: -130, delay: 0.24, swayAmp: 21, color: "#FAD2E1" },
+  { id: 15, startX: 58, startY: 54, dx: 70, dy: 540, scale: 1.15, initRot: 12, targetRot: 160, delay: 0.12, swayAmp: 26, color: "#FDE8EF" },
+  { id: 16, startX: 64, startY: 38, dx: 130, dy: 470, scale: 0.9, initRot: -15, targetRot: -100, delay: 0.30, swayAmp: 18, color: "#FFC0CB" },
+
+  // Right side cluster
+  { id: 17, startX: 68, startY: 44, dx: 160, dy: 510, scale: 1.25, initRot: 25, targetRot: 190, delay: 0.10, swayAmp: 29, color: "#FFD1DC" },
+  { id: 18, startX: 74, startY: 52, dx: 210, dy: 440, scale: 1.0, initRot: -20, targetRot: -150, delay: 0.22, swayAmp: 23, color: "#FDE8EF" },
+  { id: 19, startX: 72, startY: 36, dx: 180, dy: 460, scale: 0.85, initRot: 8, targetRot: 120, delay: 0.16, swayAmp: 17, color: "#FFE4E1" },
+  { id: 20, startX: 78, startY: 48, dx: 240, dy: 410, scale: 1.1, initRot: -12, targetRot: -170, delay: 0.32, swayAmp: 25, color: "#FFC0CB" },
+
+  // Gentle trailing floaters
+  { id: 21, startX: 32, startY: 52, dx: -80, dy: 620, scale: 0.8, initRot: -5, targetRot: 160, delay: 0.36, swayAmp: 20, color: "#FFF0F5" },
+  { id: 22, startX: 48, startY: 48, dx: 10, dy: 650, scale: 1.05, initRot: 14, targetRot: -140, delay: 0.40, swayAmp: 32, color: "#FFD1DC" },
+  { id: 23, startX: 65, startY: 56, dx: 120, dy: 590, scale: 0.9, initRot: -16, targetRot: 150, delay: 0.38, swayAmp: 22, color: "#FDE8EF" },
+  { id: 24, startX: 54, startY: 36, dx: 30, dy: 630, scale: 1.15, initRot: 18, targetRot: -180, delay: 0.42, swayAmp: 26, color: "#FFB6C1" },
+];
+
+function SakuraPetalSvg({ color, strokeColor }: { color: string; strokeColor?: string }) {
+  return (
+    <svg viewBox="0 0 24 28" className="suto-transition-petal-svg" fill="none">
+      <path
+        d="M12 2C8 6 3 12 3 18C3 23 7 26 12 26C17 26 21 23 21 18C21 12 16 6 12 2Z"
+        fill={color}
+        stroke={strokeColor || "rgba(229, 148, 173, 0.65)"}
+        strokeWidth="0.8"
+      />
+      {/* Subtle inner delicate vein */}
+      <path
+        d="M12 6C12 12 12 20 12 24"
+        stroke="rgba(255, 255, 255, 0.45)"
+        strokeWidth="0.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, val));
 }
@@ -122,8 +195,9 @@ function computeButterflyStyle(
     return { display: "none" };
   }
 
-  const startP = 0.08 + (b.delay / 0.65) * 0.16;
-  const endP = Math.min(0.94, startP + 0.44 + (b.duration / 3.3) * 0.22);
+  // Butterfly flight phase: starts around 0.05 - 0.13, ends around 0.28 - 0.38
+  const startP = 0.05 + (b.delay / 0.65) * 0.08;
+  const endP = Math.min(0.38, startP + 0.18 + (b.duration / 3.3) * 0.09);
 
   if (p <= startP) {
     return {
@@ -172,14 +246,14 @@ function computeButterflyStyle(
 
 function computeHeadingStyle(p: number, reducedMotion: boolean): React.CSSProperties {
   if (reducedMotion) {
-    const opacity = p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.15);
+    const opacity = p < 0.25 ? 1 : Math.max(0, 1 - (p - 0.25) / 0.10);
     return {
       opacity,
       pointerEvents: opacity > 0.1 ? "auto" : "none",
     };
   }
 
-  if (p <= 0.04) {
+  if (p <= 0.03) {
     return {
       opacity: 1,
       transform: "translate3d(0px, 0px, 0px) scale(1)",
@@ -187,7 +261,7 @@ function computeHeadingStyle(p: number, reducedMotion: boolean): React.CSSProper
     };
   }
 
-  if (p >= 0.45) {
+  if (p >= 0.32) {
     return {
       opacity: 0,
       transform: "translate3d(0px, -16px, 0px) scale(1.04)",
@@ -196,8 +270,8 @@ function computeHeadingStyle(p: number, reducedMotion: boolean): React.CSSProper
     };
   }
 
-  if (p <= 0.18) {
-    const t = (p - 0.04) / 0.14;
+  if (p <= 0.12) {
+    const t = (p - 0.03) / 0.09;
     const glow = Math.round(t * 35);
     const bright = (1 + t * 0.35).toFixed(2);
     const lift = (-4 * t).toFixed(1);
@@ -210,7 +284,7 @@ function computeHeadingStyle(p: number, reducedMotion: boolean): React.CSSProper
     };
   }
 
-  const t = (p - 0.18) / 0.27;
+  const t = (p - 0.12) / 0.20;
   const easeT = easeOutQuad(t);
   const opacity = Math.max(0, 1 - easeT);
   const blur = (easeT * 12).toFixed(1);
@@ -228,15 +302,15 @@ function computeHeadingStyle(p: number, reducedMotion: boolean): React.CSSProper
 
 function computeAccentsStyle(p: number, reducedMotion: boolean): React.CSSProperties {
   if (reducedMotion) {
-    return { opacity: p < 0.35 ? 1 : 0 };
+    return { opacity: p < 0.20 ? 1 : 0 };
   }
-  if (p <= 0.10) {
+  if (p <= 0.08) {
     return { opacity: 1, transform: "scale(1)" };
   }
-  if (p >= 0.38) {
+  if (p >= 0.26) {
     return { opacity: 0, transform: "scale(0.3) rotate(45deg)" };
   }
-  const t = (p - 0.10) / 0.28;
+  const t = (p - 0.08) / 0.18;
   const opacity = Math.max(0, 1 - t);
   const sc = (1 + Math.sin(t * Math.PI) * 0.25 - t * 0.5).toFixed(2);
   const rot = (t * 35).toFixed(0);
@@ -246,16 +320,23 @@ function computeAccentsStyle(p: number, reducedMotion: boolean): React.CSSProper
   };
 }
 
-function computeBodyStyle(p: number, reducedMotion: boolean): React.CSSProperties {
+export function computePartOneStyle(p: number, reducedMotion: boolean): React.CSSProperties {
   if (reducedMotion) {
-    const opacity = p <= 0.45 ? 0 : Math.min(1, (p - 0.45) / 0.2);
+    if (p < 0.22) {
+      return { opacity: 0, pointerEvents: "none" };
+    }
+    if (p <= 0.68) {
+      return { opacity: 1, pointerEvents: "auto" };
+    }
+    const fadeOut = Math.max(0, 1 - (p - 0.68) / 0.14);
     return {
-      opacity,
-      pointerEvents: opacity > 0.1 ? "auto" : "none",
+      opacity: fadeOut,
+      pointerEvents: fadeOut > 0.1 ? "auto" : "none",
     };
   }
 
-  if (p <= 0.32) {
+  // Phase 1: Before entrance (p <= 0.20)
+  if (p <= 0.20) {
     return {
       opacity: 0,
       transform: "translate3d(0px, 32px, 0px) scale(0.96)",
@@ -263,7 +344,134 @@ function computeBodyStyle(p: number, reducedMotion: boolean): React.CSSPropertie
     };
   }
 
-  if (p >= 0.80) {
+  // Phase 2: Entrance from butterflies (0.20 to 0.38)
+  if (p < 0.38) {
+    const t = (p - 0.20) / 0.18;
+    const easeT = easeOutCubic(t);
+    const opacity = easeOutQuad(t);
+    const translateY = (32 * (1 - easeT)).toFixed(1);
+    const scale = (0.96 + 0.04 * easeT).toFixed(3);
+    return {
+      opacity: Math.round(opacity * 1000) / 1000,
+      transform: `translate3d(0px, ${translateY}px, 0px) scale(${scale})`,
+      filter: "none",
+      pointerEvents: opacity > 0.2 ? "auto" : "none",
+    };
+  }
+
+  // Phase 3: Peaceful, stable reading plateau (0.38 to 0.64)
+  if (p <= 0.64) {
+    return {
+      opacity: 1,
+      transform: "translate3d(0px, 0px, 0px) scale(1)",
+      filter: "none",
+      pointerEvents: "auto",
+    };
+  }
+
+  // Phase 4: Dissolves into falling cherry-blossom petals (0.64 to 0.82)
+  if (p < 0.82) {
+    const t = (p - 0.64) / 0.18;
+    const easeT = easeOutQuad(t);
+    const opacity = Math.max(0, 1 - easeT);
+    const translateY = (-10 * easeT).toFixed(1);
+    const blur = (10 * easeT).toFixed(1);
+    const bright = (1 + 0.3 * (1 - easeT)).toFixed(2);
+    const scale = (1 + 0.02 * easeT).toFixed(3);
+    return {
+      opacity: Math.round(opacity * 1000) / 1000,
+      transform: `translate3d(0px, ${translateY}px, 0px) scale(${scale})`,
+      filter: `drop-shadow(0 0 24px rgba(255, 182, 193, 0.85)) blur(${blur}px) brightness(${bright})`,
+      pointerEvents: opacity > 0.1 ? "auto" : "none",
+    };
+  }
+
+  // Phase 5: Fully dissolved into Part Two
+  return {
+    opacity: 0,
+    transform: "translate3d(0px, -10px, 0px) scale(1.02)",
+    filter: "blur(10px)",
+    pointerEvents: "none",
+  };
+}
+
+export const computeBodyStyle = computePartOneStyle;
+
+function computePetalStyle(
+  petal: TransitionPetalParticle,
+  p: number,
+  reducedMotion: boolean
+): React.CSSProperties {
+  if (reducedMotion) {
+    return { display: "none" };
+  }
+
+  const startP = 0.63 + (petal.delay / 0.45) * 0.08; // 0.63 to 0.71
+  const endP = Math.min(0.96, startP + 0.18 + (petal.scale / 1.35) * 0.08); // 0.84 to 0.96
+
+  if (p <= startP) {
+    return {
+      left: `${petal.startX}%`,
+      top: `${petal.startY}%`,
+      opacity: 0,
+      transform: `translate3d(0px, 0px, 0px) scale(${petal.scale}) rotate(${petal.initRot}deg)`,
+      pointerEvents: "none",
+    } as React.CSSProperties;
+  }
+
+  if (p >= endP) {
+    return {
+      left: `${petal.startX}%`,
+      top: `${petal.startY}%`,
+      opacity: 0,
+      transform: `translate3d(${petal.dx}px, ${petal.dy}px, 0px) scale(${petal.scale * 0.75}) rotate(${petal.targetRot}deg)`,
+      pointerEvents: "none",
+    } as React.CSSProperties;
+  }
+
+  const t = (p - startP) / (endP - startP);
+  const curX = petal.dx * easeOutQuad(t) + Math.sin(t * Math.PI * 2.5) * petal.swayAmp;
+  const curY = petal.dy * easeOutQuad(t);
+  const curRot = petal.initRot + (petal.targetRot - petal.initRot) * t;
+  const curScale = petal.scale * (1 - 0.25 * easeOutQuad(t));
+
+  let opacity = 1;
+  if (t < 0.15) {
+    opacity = t / 0.15;
+  } else if (t > 0.75) {
+    opacity = Math.max(0, 1 - (t - 0.75) / 0.25);
+  }
+
+  return {
+    left: `${petal.startX}%`,
+    top: `${petal.startY}%`,
+    opacity: Math.round(opacity * 1000) / 1000,
+    transform: `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0px) scale(${curScale.toFixed(2)}) rotate(${curRot.toFixed(1)}deg)`,
+    pointerEvents: "none",
+  } as React.CSSProperties;
+}
+
+function computePartTwoStyle(p: number, reducedMotion: boolean): React.CSSProperties {
+  if (reducedMotion) {
+    if (p <= 0.70) {
+      return { opacity: 0, pointerEvents: "none" };
+    }
+    const opacity = Math.min(1, (p - 0.70) / 0.15);
+    return {
+      opacity,
+      pointerEvents: opacity > 0.1 ? "auto" : "none",
+    };
+  }
+
+  if (p <= 0.74) {
+    return {
+      opacity: 0,
+      transform: "translate3d(0px, 32px, 0px) scale(0.96)",
+      pointerEvents: "none",
+    };
+  }
+
+  if (p >= 0.94) {
     return {
       opacity: 1,
       transform: "translate3d(0px, 0px, 0px) scale(1)",
@@ -271,7 +479,7 @@ function computeBodyStyle(p: number, reducedMotion: boolean): React.CSSPropertie
     };
   }
 
-  const t = (p - 0.32) / 0.48;
+  const t = (p - 0.74) / 0.20;
   const easeT = easeOutCubic(t);
   const opacity = easeOutQuad(t);
   const translateY = (32 * (1 - easeT)).toFixed(1);
@@ -285,13 +493,13 @@ function computeBodyStyle(p: number, reducedMotion: boolean): React.CSSPropertie
 }
 
 function computeScrollCueStyle(p: number): React.CSSProperties {
-  if (p <= 0.02) {
+  if (p <= 0.015) {
     return { opacity: 1, pointerEvents: "auto" };
   }
-  if (p >= 0.08) {
+  if (p >= 0.06) {
     return { opacity: 0, pointerEvents: "none" };
   }
-  const opacity = 1 - (p - 0.02) / 0.06;
+  const opacity = 1 - (p - 0.015) / 0.045;
   return {
     opacity: Math.round(opacity * 1000) / 1000,
     pointerEvents: opacity > 0.1 ? "auto" : "none",
@@ -380,12 +588,13 @@ export function SutoExperience() {
     };
   }, [viewState]);
 
-  // Smooth scroll helper for scroll cue button
+  // Smooth scroll helper for scroll cue button: glides directly into Part One
   const handleScrollCueClick = useCallback(() => {
     const track = scrollTrackRef.current;
     const container = containerRef.current;
     const viewportHeight = window.innerHeight || 800;
-    const targetY = track ? track.offsetHeight - viewportHeight : viewportHeight * 1.5;
+    const maxScroll = track ? track.offsetHeight - viewportHeight : viewportHeight * 3.2;
+    const targetY = maxScroll * 0.48;
 
     if (container && container.scrollHeight > container.clientHeight) {
       container.scrollTo({ top: targetY, behavior: "smooth" });
@@ -563,7 +772,8 @@ export function SutoExperience() {
 
   const headingStyle = computeHeadingStyle(scrollProgress, prefersReducedMotion);
   const accentsStyle = computeAccentsStyle(scrollProgress, prefersReducedMotion);
-  const bodyStyle = computeBodyStyle(scrollProgress, prefersReducedMotion);
+  const partOneStyle = computePartOneStyle(scrollProgress, prefersReducedMotion);
+  const partTwoStyle = computePartTwoStyle(scrollProgress, prefersReducedMotion);
   const scrollCueStyle = computeScrollCueStyle(scrollProgress);
 
   return (
@@ -841,15 +1051,40 @@ export function SutoExperience() {
                 </button>
               </div>
 
-              {/* Body Section: Progressively reveals as butterflies disperse */}
+              {/* Part One Section: Love letter paragraph */}
               <div
-                className="suto-body-stage suto-body-layer"
-                style={bodyStyle}
+                className="suto-body-stage suto-body-layer suto-part-one-stage"
+                style={partOneStyle}
               >
-                <div className="suto-body-content">
-                  <p className="suto-body-text">
-                    This is the body
+                <div className="suto-body-content suto-part-one-content">
+                  <p className="suto-body-text suto-part-one-text">
+                    Babu, you know, I would not have been able to do it if it was not for you. I know you don't give yourself the credit that you deserve, I think whatever I am, however I am, is all because of you. Really thankful I got to have you, my Babu.
                   </p>
+                </div>
+
+                {/* Delicate Falling Cherry-Blossom Petals Swarm (Part One -> Part Two Transition) */}
+                <div className="suto-petals-transition-swarm" aria-hidden="true">
+                  {PETAL_TRANSITION_PARTICLES.map((petal) => (
+                    <span
+                      key={petal.id}
+                      className="suto-transition-petal"
+                      style={computePetalStyle(petal, scrollProgress, prefersReducedMotion)}
+                    >
+                      <span className="suto-transition-petal-inner">
+                        <SakuraPetalSvg color={petal.color} strokeColor={petal.strokeColor} />
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Part Two Section: Continuous stage prepared for Part Two wording */}
+              <div
+                className="suto-part-two-stage suto-part-two-layer"
+                style={partTwoStyle}
+              >
+                <div className="suto-body-content suto-part-two-content">
+                  {/* Container ready for upcoming Part Two love letter text */}
                 </div>
               </div>
             </div>

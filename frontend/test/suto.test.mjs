@@ -105,19 +105,35 @@ test("Authorized view displays opening 'Hello Baby' and reversible, scroll-linke
   assert.ok(content.includes("scrollTrackRef"), "Must reference scroll track element");
   assert.ok(content.includes("computeButterflyStyle"), "Must compute butterfly styles from scroll progress");
   assert.ok(content.includes("computeHeadingStyle"), "Must compute heading styles from scroll progress");
-  assert.ok(content.includes("computeBodyStyle"), "Must compute body styles from scroll progress");
+  assert.ok(content.includes("computePartOneStyle") || content.includes("computeBodyStyle"), "Must compute body styles from scroll progress");
   assert.ok(!content.includes("hasTriggeredRef"), "Must NOT lock transition permanently into a one-way completed state");
 
-  // Cohesive body text matching requirements
-  assert.ok(content.includes("This is the body"), "Must render exact text: This is the body");
-  assert.ok(content.includes("suto-body-stage"), "Must contain suto-body-stage");
-  assert.ok(content.includes("suto-body-text"), "Must contain suto-body-text");
+  // Exact Part One love letter text
+  const expectedPartOne =
+    "Babu, you know, I would not have been able to do it if it was not for you. I know you don't give yourself the credit that you deserve, I think whatever I am, however I am, is all because of you. Really thankful I got to have you, my Babu.";
+  assert.ok(content.includes(expectedPartOne), "Must contain exact Part One love letter text");
+  assert.ok(content.includes("suto-part-one-stage") || content.includes("suto-body-stage"), "Must contain Part One stage");
+  assert.ok(content.includes("suto-part-one-text") || content.includes("suto-body-text"), "Must contain Part One text element");
 
-  // CSS rules for reversible scroll track, sticky stage, butterfly particles, and peach-cream body text
+  // Part One -> Part Two transition petals swarm and structure
+  assert.ok(content.includes("PETAL_TRANSITION_PARTICLES"), "Must define falling cherry-blossom transition petal particles");
+  assert.ok(content.includes("SakuraPetalSvg"), "Must define SakuraPetalSvg component");
+  assert.ok(content.includes("suto-transition-petal"), "Must render transition petals");
+  assert.ok(content.includes("computePetalStyle"), "Must compute transition petal styles from scroll progress");
+
+  // Part Two section structure prepared (without invented text or third section)
+  assert.ok(content.includes("suto-part-two-stage"), "Must include continuous Part Two stage structure");
+  assert.ok(content.includes("computePartTwoStyle"), "Must compute Part Two style from scroll progress");
+  assert.ok(!content.includes("suto-part-three"), "Must not add a third section");
+
+  // CSS rules for reversible scroll track, sticky stage, butterfly particles, transition petals, and peach-cream body text
   assert.ok(css.includes(".suto-scroll-track"), "CSS must style scroll track for stable scroll area");
   assert.ok(css.includes(".suto-sticky-stage"), "CSS must style sticky stage pinned during transition");
   assert.ok(css.includes(".suto-butterfly-particle"), "CSS must style butterfly particle");
   assert.ok(css.includes("sutoButterflyFlutter"), "CSS must define 3D wing flutter keyframes");
+  assert.ok(css.includes(".suto-transition-petal"), "CSS must style falling cherry-blossom transition petals");
+  assert.ok(css.includes("sutoPetalFlutter"), "CSS must define organic petal flutter keyframes");
+  assert.ok(css.includes(".suto-part-two-stage"), "CSS must style Part Two stage");
   assert.ok(css.includes(".suto-body-text"), "CSS must style suto-body-text");
   assert.ok(css.includes("#FFE6D0") || css.includes("FFE6D0"), "CSS must use soft peach-cream / buttery gold color for body text");
   assert.ok(css.includes("overflow-x: hidden"), "CSS must prevent horizontal scroll");
