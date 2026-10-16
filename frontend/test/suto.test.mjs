@@ -82,15 +82,46 @@ test("Full-screen background coverage and specimen-matched chunky typography in 
   assert.ok(css.includes("@media (prefers-reduced-motion: reduce)"), "Must respect prefers-reduced-motion");
 });
 
-test("Authorized view displays exclusively 'Hello Baby' without clutter or decorative cards", () => {
+test("Authorized view displays opening 'Hello Baby' and scroll-triggered butterfly transition", () => {
   const compPath = path.join(srcDir, "components/SutoExperience.tsx");
+  const cssPath = path.join(srcDir, "suto.css");
   assert.ok(fs.existsSync(compPath), "SutoExperience.tsx component must exist");
+  assert.ok(fs.existsSync(cssPath), "suto.css must exist");
   const content = fs.readFileSync(compPath, "utf-8");
+  const css = fs.readFileSync(cssPath, "utf-8");
 
-  // Exact required heading
+  // Exact required opening heading
   assert.ok(content.includes("Hello Baby"), "Must contain exact text: Hello Baby");
 
-  // Previous paragraphs, chapter sections, and keepsakes shelf must be removed from authorized view
+  // Butterfly SVG & particles
+  assert.ok(content.includes("ButterflySvg"), "Must define ButterflySvg component");
+  assert.ok(content.includes("suto-butterfly-particle"), "Must render butterfly particles");
+  assert.ok(content.includes("suto-butterflies-swarm"), "Must render butterflies swarm container");
+  assert.ok(content.includes("BUTTERFLY_PARTICLES"), "Must define varied butterfly particles data");
+
+  // Scroll detection across modalities
+  assert.ok(content.includes("handleWheel"), "Must detect mouse wheel scroll");
+  assert.ok(content.includes("handleTouchMove"), "Must detect touch swipe down");
+  assert.ok(content.includes("handleKeyDown"), "Must detect keyboard scroll");
+  assert.ok(content.includes("triggerButterflyTransition"), "Must have trigger callback");
+
+  // One-way non-reversing behavior
+  assert.ok(content.includes("hasTriggeredRef"), "Must lock transition to prevent replay or reverse on scroll up");
+
+  // Temporary body text
+  assert.ok(content.includes("This is the body"), "Must render exact text: This is the body");
+  assert.ok(content.includes("suto-body-stage"), "Must contain suto-body-stage");
+  assert.ok(content.includes("suto-body-text"), "Must contain suto-body-text");
+
+  // CSS rules for butterfly flight, heading dissolve, and body text
+  assert.ok(css.includes(".suto-butterfly-particle"), "CSS must style butterfly particle");
+  assert.ok(css.includes("sutoButterflyFly"), "CSS must define butterfly flight keyframes");
+  assert.ok(css.includes("sutoButterflyFlutter"), "CSS must define 3D wing flutter keyframes");
+  assert.ok(css.includes("sutoHeadingDissolve"), "CSS must define heading dissolve keyframes");
+  assert.ok(css.includes(".suto-body-text"), "CSS must style suto-body-text");
+  assert.ok(css.includes("overflow-x: hidden"), "CSS must prevent horizontal scroll");
+
+  // Previous paragraphs, chapter sections, and keepsakes shelf must remain removed
   assert.ok(!content.includes("suto-letters-grid"), "Chapter letters grid must be removed");
   assert.ok(!content.includes("suto-keepsakes-shelf"), "Keepsakes shelf must be removed");
   assert.ok(!content.includes("suto-topbar"), "Topbar must be removed for clean full-screen look");

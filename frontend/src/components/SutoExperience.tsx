@@ -14,11 +14,197 @@ interface Sparkle {
   y: number;
 }
 
+interface ButterflyParticle {
+  id: number;
+  startX: number;
+  startY: number;
+  dx: number;
+  dy: number;
+  scale: number;
+  initRot: number;
+  targetRot: number;
+  duration: number;
+  delay: number;
+  flutter: number;
+  color: string;
+  wingColor: string;
+}
+
+const BUTTERFLY_PARTICLES: ButterflyParticle[] = [
+  // Left side of "Hello Baby"
+  { id: 1, startX: 18, startY: 42, dx: -220, dy: -420, scale: 1.1, initRot: -12, targetRot: -35, duration: 2.4, delay: 0.12, flutter: 0.16, color: "#F5B81C", wingColor: "#FFFECB" },
+  { id: 2, startX: 24, startY: 52, dx: -310, dy: -520, scale: 0.95, initRot: -20, targetRot: -48, duration: 2.7, delay: 0.22, flutter: 0.14, color: "#F5A623", wingColor: "#FFFECB" },
+  { id: 3, startX: 15, startY: 35, dx: -160, dy: -380, scale: 0.85, initRot: -5, targetRot: -22, duration: 2.3, delay: 0.08, flutter: 0.18, color: "#D97706", wingColor: "#FCD3DE" },
+  { id: 4, startX: 28, startY: 46, dx: -260, dy: -480, scale: 1.25, initRot: -15, targetRot: -40, duration: 2.8, delay: 0.35, flutter: 0.15, color: "#F5B81C", wingColor: "#FFFDF0" },
+  { id: 5, startX: 21, startY: 58, dx: -380, dy: -590, scale: 1.05, initRot: -28, targetRot: -55, duration: 3.0, delay: 0.45, flutter: 0.13, color: "#E68A0D", wingColor: "#FFFECB" },
+  { id: 6, startX: 12, startY: 48, dx: -190, dy: -440, scale: 0.8, initRot: -8, targetRot: -28, duration: 2.2, delay: 0.18, flutter: 0.19, color: "#F5B81C", wingColor: "#FAD2E1" },
+
+  // Center-left "Hello"
+  { id: 7, startX: 34, startY: 40, dx: -120, dy: -490, scale: 1.15, initRot: -8, targetRot: -24, duration: 2.5, delay: 0.15, flutter: 0.15, color: "#F5A623", wingColor: "#FFFECB" },
+  { id: 8, startX: 38, startY: 55, dx: -80, dy: -540, scale: 1.0, initRot: -4, targetRot: -16, duration: 2.6, delay: 0.28, flutter: 0.17, color: "#F5B81C", wingColor: "#FFFDF0" },
+  { id: 9, startX: 42, startY: 36, dx: -40, dy: -610, scale: 1.3, initRot: 2, targetRot: -10, duration: 2.9, delay: 0.38, flutter: 0.14, color: "#C97F0A", wingColor: "#FFFECB" },
+  { id: 10, startX: 36, startY: 62, dx: -140, dy: -450, scale: 0.9, initRot: -10, targetRot: -30, duration: 2.4, delay: 0.42, flutter: 0.18, color: "#F5B81C", wingColor: "#FCD3DE" },
+
+  // Center "Baby"
+  { id: 11, startX: 48, startY: 45, dx: 15, dy: -640, scale: 1.2, initRot: 0, targetRot: 12, duration: 2.8, delay: 0.1, flutter: 0.15, color: "#F5B81C", wingColor: "#FFFECB" },
+  { id: 12, startX: 52, startY: 58, dx: 45, dy: -580, scale: 1.05, initRot: 6, targetRot: 18, duration: 2.6, delay: 0.25, flutter: 0.16, color: "#E68A0D", wingColor: "#FFFDF0" },
+  { id: 13, startX: 46, startY: 32, dx: -20, dy: -520, scale: 0.85, initRot: -2, targetRot: -8, duration: 2.3, delay: 0.18, flutter: 0.2, color: "#F5A623", wingColor: "#FFFECB" },
+  { id: 14, startX: 54, startY: 65, dx: 80, dy: -600, scale: 1.1, initRot: 10, targetRot: 25, duration: 2.7, delay: 0.32, flutter: 0.14, color: "#D97706", wingColor: "#FAD2E1" },
+
+  // Center-right
+  { id: 15, startX: 60, startY: 38, dx: 110, dy: -510, scale: 1.15, initRot: 8, targetRot: 26, duration: 2.5, delay: 0.14, flutter: 0.16, color: "#F5B81C", wingColor: "#FFFECB" },
+  { id: 16, startX: 64, startY: 54, dx: 170, dy: -560, scale: 0.95, initRot: 14, targetRot: 32, duration: 2.7, delay: 0.24, flutter: 0.17, color: "#F5A623", wingColor: "#FFFDF0" },
+  { id: 17, startX: 58, startY: 64, dx: 140, dy: -460, scale: 1.25, initRot: 12, targetRot: 28, duration: 2.9, delay: 0.4, flutter: 0.13, color: "#C97F0A", wingColor: "#FFFECB" },
+  { id: 18, startX: 66, startY: 44, dx: 210, dy: -490, scale: 0.9, initRot: 18, targetRot: 38, duration: 2.4, delay: 0.3, flutter: 0.18, color: "#F5B81C", wingColor: "#FCD3DE" },
+
+  // Right side "Baby"
+  { id: 19, startX: 72, startY: 42, dx: 240, dy: -430, scale: 1.2, initRot: 16, targetRot: 42, duration: 2.6, delay: 0.16, flutter: 0.15, color: "#E68A0D", wingColor: "#FFFECB" },
+  { id: 20, startX: 78, startY: 56, dx: 330, dy: -530, scale: 1.0, initRot: 22, targetRot: 50, duration: 2.8, delay: 0.26, flutter: 0.16, color: "#F5B81C", wingColor: "#FFFDF0" },
+  { id: 21, startX: 84, startY: 36, dx: 280, dy: -390, scale: 0.85, initRot: 20, targetRot: 44, duration: 2.2, delay: 0.12, flutter: 0.19, color: "#F5A623", wingColor: "#FFFECB" },
+  { id: 22, startX: 75, startY: 62, dx: 360, dy: -570, scale: 1.3, initRot: 25, targetRot: 54, duration: 3.1, delay: 0.44, flutter: 0.14, color: "#D97706", wingColor: "#FAD2E1" },
+  { id: 23, startX: 88, startY: 48, dx: 390, dy: -470, scale: 0.95, initRot: 28, targetRot: 58, duration: 2.5, delay: 0.36, flutter: 0.17, color: "#F5B81C", wingColor: "#FFFECB" },
+
+  // High-fliers and sky stragglers
+  { id: 24, startX: 20, startY: 40, dx: -280, dy: -660, scale: 0.8, initRot: -18, targetRot: -45, duration: 3.2, delay: 0.5, flutter: 0.15, color: "#F5B81C", wingColor: "#FFFECB" },
+  { id: 25, startX: 32, startY: 60, dx: -190, dy: -630, scale: 1.05, initRot: -12, targetRot: -36, duration: 3.0, delay: 0.56, flutter: 0.14, color: "#E68A0D", wingColor: "#FFFDF0" },
+  { id: 26, startX: 50, startY: 38, dx: 30, dy: -700, scale: 0.9, initRot: 2, targetRot: 15, duration: 3.3, delay: 0.6, flutter: 0.16, color: "#F5A623", wingColor: "#FFFECB" },
+  { id: 27, startX: 68, startY: 60, dx: 270, dy: -640, scale: 1.1, initRot: 18, targetRot: 46, duration: 3.1, delay: 0.54, flutter: 0.13, color: "#F5B81C", wingColor: "#FCD3DE" },
+  { id: 28, startX: 80, startY: 44, dx: 370, dy: -650, scale: 0.85, initRot: 24, targetRot: 52, duration: 3.2, delay: 0.62, flutter: 0.18, color: "#C97F0A", wingColor: "#FFFECB" },
+];
+
+function ButterflySvg({ color, wingColor }: { color: string; wingColor: string }) {
+  return (
+    <svg
+      viewBox="0 0 32 28"
+      className="suto-butterfly-svg"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Left upper wing */}
+      <path d="M16 13 C12 6 3 2 1 7 C-1 12 5 19 16 15 Z" fill={wingColor} />
+      {/* Left lower wing */}
+      <path d="M16 14 C12 17 6 21 4 24 C3 26 9 27 16 17 Z" fill={color} opacity={0.9} />
+      {/* Right upper wing */}
+      <path d="M16 13 C20 6 29 2 31 7 C33 12 27 19 16 15 Z" fill={wingColor} />
+      {/* Right lower wing */}
+      <path d="M16 14 C20 17 26 21 28 24 C29 26 23 27 16 17 Z" fill={color} opacity={0.9} />
+      {/* Butterfly body */}
+      <ellipse cx="16" cy="15" rx="1.2" ry="5.5" fill="#C97F0A" />
+      {/* Antennae */}
+      <path
+        d="M15.5 10 C14.5 7 12 5.5 10 5 M16.5 10 C17.5 7 20 5.5 22 5"
+        stroke="#C97F0A"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function SutoExperience() {
   const [viewState, setViewState] = useState<"loading" | "unauthenticated" | "unauthorized" | "authorized">("loading");
   const [, setContent] = useState<SutoContent | null>(null);
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Scroll-triggered butterfly transformation state: "initial" -> "transforming" -> "completed"
+  const [transitionStage, setTransitionStage] = useState<"initial" | "transforming" | "completed">("initial");
+  const hasTriggeredRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const triggerButterflyTransition = useCallback(() => {
+    if (hasTriggeredRef.current) return;
+    hasTriggeredRef.current = true;
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion) {
+      setTransitionStage("completed");
+      return;
+    }
+
+    setTransitionStage("transforming");
+
+    // After heading shimmer & butterfly flight complete, transition settles in completed state
+    window.setTimeout(() => {
+      setTransitionStage("completed");
+    }, 2600);
+  }, []);
+
+  // Reliable scroll trigger for mouse wheel, trackpad, touch swipe, keyboard, and native scroll
+  useEffect(() => {
+    if (viewState !== "authorized" || transitionStage !== "initial") return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY > 8) {
+        triggerButterflyTransition();
+      }
+    };
+
+    let touchStartY = 0;
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const currentY = e.touches[0].clientY;
+        // Swiping up (standard scrolling down gesture)
+        if (touchStartY - currentY > 18) {
+          triggerButterflyTransition();
+        }
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "ArrowDown" ||
+        e.key === "PageDown" ||
+        e.key === " " ||
+        e.code === "Space" ||
+        e.code === "ArrowDown" ||
+        e.code === "PageDown"
+      ) {
+        triggerButterflyTransition();
+      }
+    };
+
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        triggerButterflyTransition();
+      }
+      const container = containerRef.current;
+      if (container && container.scrollTop > 10) {
+        triggerButterflyTransition();
+      }
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: true });
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleScroll);
+      if (container) {
+        container.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, [viewState, transitionStage, triggerButterflyTransition]);
 
   // Probe server-side authorization on mount
   useEffect(() => {
@@ -188,7 +374,13 @@ export function SutoExperience() {
   };
 
   return (
-    <div className="suto-experience" onClick={handleGardenClick} role="main" aria-label="Suto">
+    <div
+      className="suto-experience"
+      ref={containerRef}
+      onClick={handleGardenClick}
+      role="main"
+      aria-label="Suto"
+    >
       {/* Falling cherry blossoms canvas */}
       <canvas ref={canvasRef} className="suto-petals-canvas" aria-hidden="true" />
 
@@ -317,62 +509,148 @@ export function SutoExperience() {
         </div>
       )}
 
-      {/* View State: Authorized Experience — Only "Hello Baby" with cute specimen accents */}
+      {/* View State: Authorized Experience — Scroll-Triggered Butterfly Transformation */}
       {viewState === "authorized" && (
-        <div className="suto-hero-stage">
-          <div className="suto-heading-cluster">
-            {/* Top decorative accents inspired by specimen reference */}
-            <span className="suto-accent-decor suto-star-1" aria-hidden="true">
-              <svg viewBox="0 0 24 24" className="suto-svg-star">
-                <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
-              </svg>
-            </span>
+        <div className="suto-authorized-flow">
+          {/* Opening Hero Stage: "Hello Baby" heading with specimen accents */}
+          {transitionStage !== "completed" && (
+            <div
+              className={`suto-hero-stage ${
+                transitionStage === "transforming" ? "is-transforming" : ""
+              }`}
+            >
+              <div
+                className={`suto-heading-cluster ${
+                  transitionStage === "transforming" ? "is-transforming" : ""
+                }`}
+              >
+                {/* Top decorative accents inspired by specimen reference */}
+                <span className="suto-accent-decor suto-star-1" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="suto-svg-star">
+                    <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
+                  </svg>
+                </span>
 
-            <span className="suto-accent-decor suto-heart-1" aria-hidden="true">
-              <svg viewBox="0 0 24 24" className="suto-svg-heart">
-                <path
-                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  fill="#FFFECB"
-                  stroke="#F5B81C"
-                  strokeWidth="2.5"
-                />
-              </svg>
-            </span>
+                <span className="suto-accent-decor suto-heart-1" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="suto-svg-heart">
+                    <path
+                      d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                      fill="#FFFECB"
+                      stroke="#F5B81C"
+                      strokeWidth="2.5"
+                    />
+                  </svg>
+                </span>
 
-            <span className="suto-accent-decor suto-star-2" aria-hidden="true">
-              <svg viewBox="0 0 24 24" className="suto-svg-star">
-                <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
-              </svg>
-            </span>
+                <span className="suto-accent-decor suto-star-2" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="suto-svg-star">
+                    <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
+                  </svg>
+                </span>
 
-            <h1 className="suto-hello-baby" data-text="Hello Baby">
-              Hello Baby
-            </h1>
+                <h1 className="suto-hello-baby" data-text="Hello Baby">
+                  Hello Baby
+                </h1>
 
-            {/* Bottom decorative accents */}
-            <span className="suto-accent-decor suto-star-3" aria-hidden="true">
-              <svg viewBox="0 0 24 24" className="suto-svg-star">
-                <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
-              </svg>
-            </span>
+                {/* Bottom decorative accents */}
+                <span className="suto-accent-decor suto-star-3" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="suto-svg-star">
+                    <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#C97F0A" />
+                  </svg>
+                </span>
 
-            <span className="suto-accent-decor suto-heart-2" aria-hidden="true">
-              <svg viewBox="0 0 24 24" className="suto-svg-heart">
-                <path
-                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  fill="#FFFECB"
-                  stroke="#F5B81C"
-                  strokeWidth="2.5"
-                />
-              </svg>
-            </span>
+                <span className="suto-accent-decor suto-heart-2" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="suto-svg-heart">
+                    <path
+                      d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                      fill="#FFFECB"
+                      stroke="#F5B81C"
+                      strokeWidth="2.5"
+                    />
+                  </svg>
+                </span>
 
-            <span className="suto-accent-decor suto-star-4" aria-hidden="true">
-              <svg viewBox="0 0 24 24" className="suto-svg-star">
-                <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
-              </svg>
-            </span>
-          </div>
+                <span className="suto-accent-decor suto-star-4" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="suto-svg-star">
+                    <path d="M12 0 C12 7.5 16.5 12 24 12 C16.5 12 12 16.5 12 24 C12 16.5 7.5 12 0 12 C7.5 12 12 7.5 12 0 Z" fill="#E29012" />
+                  </svg>
+                </span>
+
+                {/* Butterfly Particles Swarm: Emerges during transformation */}
+                {transitionStage === "transforming" && (
+                  <div className="suto-butterflies-swarm" aria-hidden="true">
+                    {BUTTERFLY_PARTICLES.map((b) => (
+                      <span
+                        key={b.id}
+                        className="suto-butterfly-particle"
+                        style={
+                          {
+                            left: `${b.startX}%`,
+                            top: `${b.startY}%`,
+                            "--fly-dx": `${b.dx}px`,
+                            "--fly-dy": `${b.dy}px`,
+                            "--fly-duration": `${b.duration}s`,
+                            "--fly-delay": `${b.delay}s`,
+                            "--flutter-speed": `${b.flutter}s`,
+                            "--base-scale": b.scale,
+                            "--initial-rot": `${b.initRot}deg`,
+                            "--target-rot": `${b.targetRot}deg`,
+                          } as React.CSSProperties
+                        }
+                      >
+                        <span className="suto-butterfly-inner">
+                          <ButterflySvg color={b.color} wingColor={b.wingColor} />
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Gentle, non-intrusive scroll indicator on opening screen */}
+              {transitionStage === "initial" && (
+                <button
+                  type="button"
+                  className="suto-scroll-cue"
+                  onClick={triggerButterflyTransition}
+                  aria-label="Scroll down to explore"
+                >
+                  <span className="suto-scroll-cue-text">Scroll</span>
+                  <svg
+                    className="suto-scroll-cue-arrow"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M7 10L12 15L17 10"
+                      stroke="#F5B81C"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* New Body Section: Gracefully enters as butterflies disperse */}
+          {(transitionStage === "transforming" || transitionStage === "completed") && (
+            <div
+              className={`suto-body-stage ${
+                transitionStage === "completed" || transitionStage === "transforming"
+                  ? "is-revealed"
+                  : ""
+              }`}
+            >
+              <div className="suto-body-content">
+                <p className="suto-body-text">
+                  This is the body
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
